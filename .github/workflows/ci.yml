@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.1'
+          cache: true
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod
+          if [ -f go.sum ]; then
+            git diff --exit-code -- go.sum
+          fi
+
+      - name: Detect Go packages
+        id: go
+        run: |
+          if [ -n "$(go list ./... 2>/dev/null || true)" ]; then
+            echo "packages=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "packages=false" >> "$GITHUB_OUTPUT"
+            echo "No Go packages found; vet/test/lint will be skipped"
+          fi
+
+      - name: Vet
+        if: steps.go.outputs.packages == 'true'
+        run: go vet ./...
+
+      - name: Test
+        if: steps.go.outputs.packages == 'true'
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      # - name: Get coverage percentage
+      #   if: steps.go.outputs.packages == 'true'
+      #   id: coverage
+      #   run: |
+      #     pct=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
+      #     echo "pct=$pct" >> "$GITHUB_OUTPUT"
+
+      # - name: Update coverage badge
+      #   if: steps.go.outputs.packages == 'true' && github.ref == 'refs/heads/main'
+      #   uses: schneegans/dynamic-badges-action@v1.7.0
+      #   with:
+      #     auth: ${{ secrets.GIST_TOKEN }}
+      #     gistID: b9b2b4a363877463d9a2cf0e8f56fd7c
+      #     filename: coverage.json
+      #     label: coverage
+      #     message: ${{ steps.coverage.outputs.pct }}%
+      #     valColorRange: ${{ steps.coverage.outputs.pct }}
+      #     minColorRange: 50
+      #     maxColorRange: 90
+
+      - name: Lint
+        if: steps.go.outputs.packages == 'true'
+        uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: latest

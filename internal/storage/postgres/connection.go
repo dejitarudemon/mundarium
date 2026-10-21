@@ -2,6 +2,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
@@ -42,8 +43,13 @@ func migrateLocations(db *gorm.DB) error {
 	return nil
 }
 
-// WithTransaction runs fn inside a database transaction.
+// WithTransaction runs fn inside a database transaction bound to ctx.
 // If fn returns an error, the transaction is rolled back; otherwise it is committed.
-func (c *Connection) WithTransaction(fn func(tx *gorm.DB) error) error {
-	return c.db.Transaction(fn)
+func (c *Connection) WithTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return c.db.WithContext(ctx).Transaction(fn)
+}
+
+// DB returns the underlying GORM handle.
+func (c *Connection) DB() *gorm.DB {
+	return c.db
 }

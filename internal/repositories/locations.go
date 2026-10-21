@@ -25,15 +25,16 @@ func NewLocationRepository(db *gorm.DB) (*LocationRepository, error) {
 	return &LocationRepository{db: db}, nil
 }
 
-// CreateLocation inserts a new location and returns its ID.
+// CreateLocation inserts a new location and returns the persisted record
+// (including the generated ID and any DB defaults).
 // Hierarchy validity (including cycles) is not checked here; use PutLocation
 // when reparenting an existing location.
-func (r *LocationRepository) CreateLocation(ctx context.Context, location *locations.Location) (types.ID, error) {
+func (r *LocationRepository) CreateLocation(ctx context.Context, location *locations.Location) (*locations.Location, error) {
 	if err := r.db.WithContext(ctx).Create(location).Error; err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	return location.ID, nil
+	return location, nil
 }
 
 // GetLocation returns the location with the given id, preloading its Subtype.

@@ -12,11 +12,11 @@ import (
 )
 
 type completeRecorder struct {
-	calls []services.Result
+	calls []journal.Result
 	err   error
 }
 
-func (r *completeRecorder) callback(ctx context.Context, requestID journal.RequestID, result services.Result) error {
+func (r *completeRecorder) callback(ctx context.Context, requestID journal.RequestID, result journal.Result) error {
 	r.calls = append(r.calls, result)
 	return r.err
 }

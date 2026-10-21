@@ -1,4 +1,4 @@
-// Package services provides shared execution context and result types for application services.
+// Package services provides shared execution context for application services.
 package services
 
 import (
@@ -8,20 +8,17 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/journal"
 )
 
-// CallbackComplete is invoked when an operation finishes successfully enough to report a Result.
-type CallbackComplete func(ctx context.Context, requestID journal.RequestID, result Result) error
-
 // ExecutionContext carries request-scoped context, a journal request ID, and an optional completion callback.
 type ExecutionContext struct {
 	context.Context
 
 	requestID        journal.RequestID
-	callbackComplete CallbackComplete
+	callbackComplete journal.CompleteFunc
 }
 
 // NewExecutionContext creates an ExecutionContext with a required completion callback.
 // Returns an error if callback is nil. A nil parent is replaced with context.Background.
-func NewExecutionContext(parent context.Context, requestID journal.RequestID, callback CallbackComplete) (ExecutionContext, context.CancelFunc, error) {
+func NewExecutionContext(parent context.Context, requestID journal.RequestID, callback journal.CompleteFunc) (ExecutionContext, context.CancelFunc, error) {
 	if callback == nil {
 		return ExecutionContext{}, nil, errors.New("nil callback")
 	}
@@ -55,7 +52,7 @@ func NewExecutionContextWithoutCallback(parent context.Context, requestID journa
 
 // Complete reports result through the configured callback, if any.
 // When no callback is set, Complete returns nil.
-func (e ExecutionContext) Complete(result Result) error {
+func (e ExecutionContext) Complete(result journal.Result) error {
 	if e.callbackComplete == nil {
 		return nil
 	}

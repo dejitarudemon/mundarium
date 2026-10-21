@@ -1,7 +1,9 @@
 package locations
 
 import (
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
+	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/services"
@@ -33,10 +35,10 @@ func (s *Service) CreateLocation(ctx services.ExecutionContext, input input.Crea
 			}
 
 			return ctx.Complete(
-				services.Result{
-					Operation: "create",
-					Entity:    locationEntity,
-					Data:      result,
+				journal.Result{
+					Action: libjournal.Action_Create,
+					Entity: locationEntity,
+					Data:   result,
 				},
 			)
 		},
@@ -60,10 +62,10 @@ func (s *Service) GetLocation(ctx services.ExecutionContext, id types.ID) (outpu
 	}
 
 	if err := ctx.Complete(
-		services.Result{
-			Operation: "get",
-			Entity:    locationEntity,
-			Data:      result,
+		journal.Result{
+			Action: libjournal.Action_Get,
+			Entity: locationEntity,
+			Data:   result,
 		},
 	); err != nil {
 		return output.GetLocationOutput{}, err
@@ -86,10 +88,10 @@ func (s *Service) FindChildLocations(ctx services.ExecutionContext, id types.ID,
 	}
 
 	if err := ctx.Complete(
-		services.Result{
-			Operation: "get",
-			Entity:    locationEntity,
-			Data:      result,
+		journal.Result{
+			Action: libjournal.Action_Get,
+			Entity: locationEntity,
+			Data:   result,
 		},
 	); err != nil {
 		return nil, err
@@ -108,10 +110,10 @@ func (s *Service) MoveLocation(ctx services.ExecutionContext, id, parentID types
 			}
 
 			return ctx.Complete(
-				services.Result{
-					Operation: "patch",
-					Entity:    locationEntity,
-					Data:      id,
+				journal.Result{
+					Action: libjournal.Action_Patch,
+					Entity: locationEntity,
+					Data:   id,
 				},
 			)
 		},
@@ -132,10 +134,10 @@ func (s *Service) RenameLocation(ctx services.ExecutionContext, id types.ID, nam
 			}
 
 			return ctx.Complete(
-				services.Result{
-					Operation: "patch",
-					Entity:    locationEntity,
-					Data:      id,
+				journal.Result{
+					Action: libjournal.Action_Patch,
+					Entity: locationEntity,
+					Data:   id,
 				},
 			)
 		},
@@ -156,10 +158,10 @@ func (s *Service) UpdateLocationDetails(ctx services.ExecutionContext, id types.
 			}
 
 			return ctx.Complete(
-				services.Result{
-					Operation: "patch",
-					Entity:    locationEntity,
-					Data:      id,
+				journal.Result{
+					Action: libjournal.Action_Patch,
+					Entity: locationEntity,
+					Data:   id,
 				},
 			)
 		},
@@ -180,10 +182,10 @@ func (s *Service) UpdateLocationDescription(ctx services.ExecutionContext, id ty
 			}
 
 			return ctx.Complete(
-				services.Result{
-					Operation: "patch",
-					Entity:    locationEntity,
-					Data:      id,
+				journal.Result{
+					Action: libjournal.Action_Patch,
+					Entity: locationEntity,
+					Data:   id,
 				},
 			)
 		},

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
+	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
@@ -29,7 +30,7 @@ func TestCreateLocation(t *testing.T) {
 	if out.ID == 0 || out.ParentID != root.ID || out.Name != "North" {
 		t.Fatalf("unexpected output: %+v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Operation != "create" || rec.calls[0].Entity != "LOCATION" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Create || rec.calls[0].Entity != "LOCATION" {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 
@@ -124,7 +125,7 @@ func TestGetLocation(t *testing.T) {
 	if out.ID != child.ID || out.ParentID != root.ID || out.Name != "child" || out.Type != "region" {
 		t.Fatalf("unexpected output: %+v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Operation != "get" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }
@@ -214,7 +215,7 @@ func TestMoveLocation(t *testing.T) {
 	if got.ParentID != other.ID {
 		t.Fatalf("want parent %d, got %d", other.ID, got.ParentID)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Operation != "patch" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }
@@ -251,7 +252,7 @@ func TestRenameLocation(t *testing.T) {
 	if got.Name != "new" {
 		t.Fatalf("want name %q, got %q", "new", got.Name)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Operation != "patch" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }

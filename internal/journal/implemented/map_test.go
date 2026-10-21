@@ -122,7 +122,7 @@ func TestMapJournal_Complete_AfterFail(t *testing.T) {
 	if !errors.As(err, &conflict) {
 		t.Fatalf("want StatusConflict, got %v", err)
 	}
-	if conflict.Got != libjournal.Status_Failed || conflict.Actual != libjournal.Status_Failed {
+	if conflict.Got != libjournal.Status_Completed || conflict.Actual != libjournal.Status_Failed {
 		t.Fatalf("unexpected conflict: %+v", conflict)
 	}
 }
@@ -141,9 +141,13 @@ func TestMapJournal_Complete_AlreadyCompleted(t *testing.T) {
 		t.Fatalf("first Complete: %v", err)
 	}
 
-	second := journal.Result{Action: libjournal.Action_Create, Entity: "LOCATION", Data: "second"}
-	if err := complete(ctx, id, second); err != nil {
-		t.Fatalf("second Complete: %v", err)
+	err = complete(ctx, id, journal.Result{Action: libjournal.Action_Create, Entity: "LOCATION", Data: "second"})
+	var conflict journal.StatusConflict
+	if !errors.As(err, &conflict) {
+		t.Fatalf("want StatusConflict, got %v", err)
+	}
+	if conflict.Got != libjournal.Status_Completed || conflict.Actual != libjournal.Status_Completed {
+		t.Fatalf("unexpected conflict: %+v", conflict)
 	}
 
 	got, err := mj.Find(ctx, id)
@@ -209,8 +213,13 @@ func TestMapJournal_Fail_AlreadyFailed(t *testing.T) {
 		t.Fatalf("first Fail: %v", err)
 	}
 
-	if err := fail(ctx, id, errors.New("second")); err != nil {
-		t.Fatalf("second Fail: %v", err)
+	err = fail(ctx, id, errors.New("second"))
+	var conflict journal.StatusConflict
+	if !errors.As(err, &conflict) {
+		t.Fatalf("want StatusConflict, got %v", err)
+	}
+	if conflict.Got != libjournal.Status_Failed || conflict.Actual != libjournal.Status_Failed {
+		t.Fatalf("unexpected conflict: %+v", conflict)
 	}
 
 	got, err := mj.Find(ctx, id)
@@ -240,7 +249,7 @@ func TestMapJournal_Fail_AfterComplete(t *testing.T) {
 	if !errors.As(err, &conflict) {
 		t.Fatalf("want StatusConflict, got %v", err)
 	}
-	if conflict.Got != libjournal.Status_Completed || conflict.Actual != libjournal.Status_Completed {
+	if conflict.Got != libjournal.Status_Failed || conflict.Actual != libjournal.Status_Completed {
 		t.Fatalf("unexpected conflict: %+v", conflict)
 	}
 }

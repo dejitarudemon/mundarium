@@ -46,8 +46,7 @@ func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, actio
 }
 
 // Complete marks a running request as completed and stores result.
-// Already completed requests are left unchanged. Returns NotFound if id is
-// missing, or StatusConflict if the request already failed.
+// Returns NotFound if id is missing, or StatusConflict if the request is not running.
 func (mj *MapJournal) Complete(_ context.Context, id libjournal.RequestID, result journal.Result) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
@@ -57,24 +56,22 @@ func (mj *MapJournal) Complete(_ context.Context, id libjournal.RequestID, resul
 		return journal.NewNotFound(id)
 	}
 
-	switch request.Status {
-	case libjournal.Status_Failed:
-		return journal.NewStatusConflict(id, libjournal.Status_Failed, request.Status)
-	case libjournal.Status_Running:
-		mj.m[id] = journal.Request{
-			ID:     request.ID,
-			Action: request.Action,
-			Status: libjournal.Status_Completed,
-			Result: result,
-		}
+	if request.Status != libjournal.Status_Running {
+		return journal.NewStatusConflict(id, libjournal.Status_Completed, request.Status)
+	}
+
+	mj.m[id] = journal.Request{
+		ID:     request.ID,
+		Action: request.Action,
+		Status: libjournal.Status_Completed,
+		Result: result,
 	}
 
 	return nil
 }
 
 // Fail marks a running request as failed and stores cause.
-// Already failed requests are left unchanged. Returns NotFound if id is
-// missing, or StatusConflict if the request already completed.
+// Returns NotFound if id is missing, or StatusConflict if the request is not running.
 func (mj *MapJournal) Fail(_ context.Context, id libjournal.RequestID, cause error) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
@@ -84,16 +81,15 @@ func (mj *MapJournal) Fail(_ context.Context, id libjournal.RequestID, cause err
 		return journal.NewNotFound(id)
 	}
 
-	switch request.Status {
-	case libjournal.Status_Completed:
-		return journal.NewStatusConflict(id, libjournal.Status_Completed, request.Status)
-	case libjournal.Status_Running:
-		mj.m[id] = journal.Request{
-			ID:     request.ID,
-			Action: request.Action,
-			Status: libjournal.Status_Failed,
-			Error:  cause,
-		}
+	if request.Status != libjournal.Status_Running {
+		return journal.NewStatusConflict(id, libjournal.Status_Failed, request.Status)
+	}
+
+	mj.m[id] = journal.Request{
+		ID:     request.ID,
+		Action: request.Action,
+		Status: libjournal.Status_Failed,
+		Error:  cause,
 	}
 
 	return nil

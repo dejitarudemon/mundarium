@@ -26,6 +26,8 @@ func NewLocationRepository(db *gorm.DB) (*LocationRepository, error) {
 }
 
 // CreateLocation inserts a new location.
+// Hierarchy validity (including cycles) is not checked here; use PutLocation
+// when reparenting an existing location.
 func (r *LocationRepository) CreateLocation(ctx context.Context, location *locations.Location) error {
 	return r.db.WithContext(ctx).Create(location).Error
 }
@@ -113,9 +115,13 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id types.ID
 }
 
 // PutLocation updates mutable fields of an existing location identified by location.ID.
-// Before writing, it checks that the new ParentID would not create a hierarchy cycle.
-// Returns an error if the update would form a cycle.
-// Returns gorm.ErrRecordNotFound if no row was updated.
+//
+// Before writing, checkCircle walks ancestors of location.ParentID (no transaction)
+// and rejects the update if that parent link would create a cycle.
+// ParentID equal to location.ID is allowed and means the location is a root.
+//
+// Returns an error with message "location would create a cycle" if the new
+// parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PutLocation(ctx context.Context, location *locations.Location) error {
 	cycle, err := r.checkCircle(ctx, location.ID, location.ParentID)
 	if err != nil {
@@ -258,7 +264,11 @@ func (r *LocationRepository) DeleteConnection(ctx context.Context, id types.ID) 
 }
 
 // checkCircle reports whether setting id's parent to newParent would create a cycle.
-// It walks ancestors of newParent without writing; newParent == id is a valid root (self-parent).
+//
+// It reads the current ancestor chain of newParent and does not write.
+// Returns true if a cycle would be created, false otherwise.
+// newParent == id is treated as a valid root (self-parent), not a cycle.
+// A node whose parent_id equals its own id ends the walk as a tree root.
 func (r *LocationRepository) checkCircle(ctx context.Context, id, newParent types.ID) (bool, error) {
 	if newParent == id {
 		return false, nil

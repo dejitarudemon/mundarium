@@ -190,6 +190,54 @@ func (r *LocationRepository) PatchLocationParent(ctx context.Context, id, parent
 	return nil
 }
 
+// PatchLocationName sets the name of the location identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchLocationName(ctx context.Context, id types.ID, name string) error {
+	query := r.db.WithContext(ctx).Model(&locations.Location{}).Where("id = ?", id).Update("name", name)
+
+	if err := query.Error; err != nil {
+		return err
+	}
+
+	if query.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+// PatchLocationDetails sets the details of the location identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchLocationDetails(ctx context.Context, id types.ID, details types.JSON) error {
+	query := r.db.WithContext(ctx).Model(&locations.Location{}).Where("id = ?", id).Update("details", details)
+
+	if err := query.Error; err != nil {
+		return err
+	}
+
+	if query.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+// PatchLocationDescription sets the description of the location identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchLocationDescription(ctx context.Context, id types.ID, description string) error {
+	query := r.db.WithContext(ctx).Model(&locations.Location{}).Where("id = ?", id).Update("description", description)
+
+	if err := query.Error; err != nil {
+		return err
+	}
+
+	if query.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
 // CreateSubtype inserts a new location subtype.
 func (r *LocationRepository) CreateSubtype(ctx context.Context, subtype *locations.LocationSubtype) error {
 	return r.db.WithContext(ctx).Create(subtype).Error

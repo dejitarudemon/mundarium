@@ -122,8 +122,36 @@ func TestMapJournal_Complete_AfterFail(t *testing.T) {
 	if !errors.As(err, &conflict) {
 		t.Fatalf("want StatusConflict, got %v", err)
 	}
-	if conflict.Got != libjournal.Status_Completed || conflict.Actual != libjournal.Status_Failed {
+	if conflict.Got != libjournal.Status_Failed || conflict.Actual != libjournal.Status_Failed {
 		t.Fatalf("unexpected conflict: %+v", conflict)
+	}
+}
+
+func TestMapJournal_Complete_AlreadyCompleted(t *testing.T) {
+	ctx := context.Background()
+	mj := implemented.NewMapJournal()
+	id := newID()
+
+	complete, _, err := mj.Register(ctx, id, libjournal.Action_Create)
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	first := journal.Result{Action: libjournal.Action_Create, Entity: "LOCATION", Data: "first"}
+	if err := complete(ctx, id, first); err != nil {
+		t.Fatalf("first Complete: %v", err)
+	}
+
+	second := journal.Result{Action: libjournal.Action_Create, Entity: "LOCATION", Data: "second"}
+	if err := complete(ctx, id, second); err != nil {
+		t.Fatalf("second Complete: %v", err)
+	}
+
+	got, err := mj.Find(ctx, id)
+	if err != nil {
+		t.Fatalf("Find: %v", err)
+	}
+	if got.Result == nil || got.Result.Data != "first" {
+		t.Fatalf("completed request must keep first result: %#v", got.Result)
 	}
 }
 
@@ -181,12 +209,38 @@ func TestMapJournal_Fail_AlreadyFailed(t *testing.T) {
 		t.Fatalf("first Fail: %v", err)
 	}
 
-	err = fail(ctx, id, errors.New("second"))
+	if err := fail(ctx, id, errors.New("second")); err != nil {
+		t.Fatalf("second Fail: %v", err)
+	}
+
+	got, err := mj.Find(ctx, id)
+	if err != nil {
+		t.Fatalf("Find: %v", err)
+	}
+	if got.Error == nil || got.Error.Error() != "first" {
+		t.Fatalf("failed request must keep first error: %v", got.Error)
+	}
+}
+
+func TestMapJournal_Fail_AfterComplete(t *testing.T) {
+	ctx := context.Background()
+	mj := implemented.NewMapJournal()
+	id := newID()
+
+	complete, fail, err := mj.Register(ctx, id, libjournal.Action_Update)
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if err := complete(ctx, id, journal.Result{Action: libjournal.Action_Update}); err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+
+	err = fail(ctx, id, errors.New("late"))
 	var conflict journal.StatusConflict
 	if !errors.As(err, &conflict) {
 		t.Fatalf("want StatusConflict, got %v", err)
 	}
-	if conflict.Got != libjournal.Status_Failed || conflict.Actual != libjournal.Status_Failed {
+	if conflict.Got != libjournal.Status_Completed || conflict.Actual != libjournal.Status_Completed {
 		t.Fatalf("unexpected conflict: %+v", conflict)
 	}
 }

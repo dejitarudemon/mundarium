@@ -6,19 +6,20 @@ import (
 	"errors"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
+	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 )
 
 // ExecutionContext carries request-scoped context, a journal request ID, and an optional completion callback.
 type ExecutionContext struct {
 	context.Context
 
-	requestID        journal.RequestID
+	requestID        libjournal.RequestID
 	callbackComplete journal.CompleteFunc
 }
 
 // NewExecutionContext creates an ExecutionContext with a required completion callback.
 // Returns an error if callback is nil. A nil parent is replaced with context.Background.
-func NewExecutionContext(parent context.Context, requestID journal.RequestID, callback journal.CompleteFunc) (ExecutionContext, context.CancelFunc, error) {
+func NewExecutionContext(parent context.Context, requestID libjournal.RequestID, callback journal.CompleteFunc) (ExecutionContext, context.CancelFunc, error) {
 	if callback == nil {
 		return ExecutionContext{}, nil, errors.New("nil callback")
 	}
@@ -37,7 +38,7 @@ func NewExecutionContext(parent context.Context, requestID journal.RequestID, ca
 
 // NewExecutionContextWithoutCallback creates an ExecutionContext without a completion callback.
 // Complete becomes a no-op. A nil parent is replaced with context.Background.
-func NewExecutionContextWithoutCallback(parent context.Context, requestID journal.RequestID) (ExecutionContext, context.CancelFunc) {
+func NewExecutionContextWithoutCallback(parent context.Context, requestID libjournal.RequestID) (ExecutionContext, context.CancelFunc) {
 	if parent == nil {
 		parent = context.Background()
 	}

@@ -1,4 +1,3 @@
-// Package journal defines types used to correlate and record service operations.
 package journal
 
 import (
@@ -7,3 +6,8 @@ import (
 
 // RequestID identifies a single client or orchestrator request in the journal.
 type RequestID uuid.UUID
+
+// String returns the canonical UUID representation of the request id.
+func (id RequestID) String() string {
+	return uuid.UUID(id).String()
+}

@@ -1,4 +1,4 @@
-// Package journal defines shared journal domain primitives (actions, statuses).
+// Package journal defines shared journal domain primitives (actions, statuses, request ids).
 package journal
 
 // Action is the kind of operation recorded for journaling callbacks.

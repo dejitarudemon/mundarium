@@ -6,6 +6,7 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/services"
 	"github.com/google/uuid"
@@ -16,7 +17,7 @@ type completeRecorder struct {
 	err   error
 }
 
-func (r *completeRecorder) callback(ctx context.Context, requestID journal.RequestID, result journal.Result) error {
+func (r *completeRecorder) callback(ctx context.Context, requestID libjournal.RequestID, result journal.Result) error {
 	r.calls = append(r.calls, result)
 	return r.err
 }
@@ -25,13 +26,13 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (services.ExecutionContext,
 	t.Helper()
 
 	if rec == nil {
-		ctx, cancel := services.NewExecutionContextWithoutCallback(context.Background(), journal.RequestID(uuid.New()))
+		ctx, cancel := services.NewExecutionContextWithoutCallback(context.Background(), libjournal.RequestID(uuid.New()))
 		return ctx, cancel
 	}
 
 	ctx, cancel, err := services.NewExecutionContext(
 		context.Background(),
-		journal.RequestID(uuid.New()),
+		libjournal.RequestID(uuid.New()),
 		rec.callback,
 	)
 	if err != nil {

@@ -4,7 +4,7 @@ import libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 
 // Request is a journaled service request and its outcome.
 type Request struct {
-	ID RequestID
+	ID libjournal.RequestID
 
 	Action libjournal.Action
 	Status libjournal.Status

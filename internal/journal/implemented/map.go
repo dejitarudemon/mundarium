@@ -15,14 +15,14 @@ var (
 
 // MapJournal is an in-memory Journal backed by a map.
 type MapJournal struct {
-	m  map[libjournal.RequestID]*journal.Request
+	m  map[libjournal.RequestID]journal.Request
 	mu sync.RWMutex
 }
 
 // NewMapJournal creates an empty MapJournal.
 func NewMapJournal() *MapJournal {
 	return &MapJournal{
-		m: make(map[libjournal.RequestID]*journal.Request),
+		m: make(map[libjournal.RequestID]journal.Request),
 	}
 }
 
@@ -33,10 +33,10 @@ func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, actio
 	defer mj.mu.Unlock()
 
 	if request, ok := mj.m[id]; ok {
-		return nil, nil, journal.NewAlreadyRegistered(*request)
+		return nil, nil, journal.NewAlreadyRegistered(request)
 	}
 
-	mj.m[id] = &journal.Request{
+	mj.m[id] = journal.Request{
 		ID:     id,
 		Action: action,
 		Status: libjournal.Status_Running,
@@ -61,8 +61,12 @@ func (mj *MapJournal) Complete(_ context.Context, id libjournal.RequestID, resul
 	case libjournal.Status_Failed:
 		return journal.NewStatusConflict(id, libjournal.Status_Failed, request.Status)
 	case libjournal.Status_Running:
-		request.Result = &result
-		request.Status = libjournal.Status_Completed
+		mj.m[id] = journal.Request{
+			ID:     request.ID,
+			Action: request.Action,
+			Status: libjournal.Status_Completed,
+			Result: result,
+		}
 	}
 
 	return nil
@@ -84,8 +88,12 @@ func (mj *MapJournal) Fail(_ context.Context, id libjournal.RequestID, cause err
 	case libjournal.Status_Completed:
 		return journal.NewStatusConflict(id, libjournal.Status_Completed, request.Status)
 	case libjournal.Status_Running:
-		request.Error = cause
-		request.Status = libjournal.Status_Failed
+		mj.m[id] = journal.Request{
+			ID:     request.ID,
+			Action: request.Action,
+			Status: libjournal.Status_Failed,
+			Error:  cause,
+		}
 	}
 
 	return nil
@@ -102,7 +110,7 @@ func (mj *MapJournal) Find(_ context.Context, id libjournal.RequestID) (journal.
 		return journal.Request{}, journal.NewNotFound(id)
 	}
 
-	return *request, nil
+	return request, nil
 }
 
 // Delete removes the request for id. Missing ids are ignored.

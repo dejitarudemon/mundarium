@@ -35,7 +35,7 @@ func TestMapJournal_RegisterAndFind(t *testing.T) {
 	if got.ID != id || got.Action != libjournal.Action_Create || got.Status != libjournal.Status_Running {
 		t.Fatalf("unexpected request: %+v", got)
 	}
-	if got.Result != nil || got.Error != nil {
+	if got.Result != (journal.Result{}) || got.Error != nil {
 		t.Fatalf("running request must have empty outcome: %+v", got)
 	}
 }
@@ -88,7 +88,7 @@ func TestMapJournal_Complete(t *testing.T) {
 	if got.Status != libjournal.Status_Completed {
 		t.Fatalf("want completed, got %v", got.Status)
 	}
-	if got.Result == nil || got.Result.Entity != "LOCATION" || got.Result.Data != "ok" {
+	if got.Result.Entity != "LOCATION" || got.Result.Data != "ok" {
 		t.Fatalf("unexpected result: %#v", got.Result)
 	}
 }
@@ -150,7 +150,7 @@ func TestMapJournal_Complete_AlreadyCompleted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find: %v", err)
 	}
-	if got.Result == nil || got.Result.Data != "first" {
+	if got.Result.Data != "first" {
 		t.Fatalf("completed request must keep first result: %#v", got.Result)
 	}
 }
@@ -180,7 +180,7 @@ func TestMapJournal_Fail(t *testing.T) {
 	if got.Error == nil || got.Error.Error() != "failed op" {
 		t.Fatalf("unexpected error: %v", got.Error)
 	}
-	if got.Result != nil {
+	if got.Result != (journal.Result{}) {
 		t.Fatalf("failed request must not keep result: %#v", got.Result)
 	}
 }

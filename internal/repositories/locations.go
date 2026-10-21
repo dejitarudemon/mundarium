@@ -27,8 +27,8 @@ func NewLocationRepository(db *gorm.DB) (*LocationRepository, error) {
 
 // CreateLocation inserts a new location and returns the persisted record
 // (including the generated ID and any DB defaults).
-// Hierarchy validity (including cycles) is not checked here; use PutLocation
-// when reparenting an existing location.
+// Hierarchy validity (including cycles) is not checked here; use
+// PatchLocationParent or PutLocation when reparenting an existing location.
 func (r *LocationRepository) CreateLocation(ctx context.Context, location *locations.Location) (*locations.Location, error) {
 	if err := r.db.WithContext(ctx).Create(location).Error; err != nil {
 		return nil, err
@@ -154,6 +154,36 @@ func (r *LocationRepository) PutLocation(ctx context.Context, location *location
 	}
 
 	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+// PatchLocationParent sets the parent of the location identified by id to parentID.
+//
+// Before writing, checkCircle walks ancestors of parentID (no transaction)
+// and rejects the change if that parent link would create a cycle.
+// parentID equal to id is allowed and means the location becomes a root.
+//
+// Returns an error with message "location would create a cycle" if the new
+// parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchLocationParent(ctx context.Context, id, parentID types.ID) error {
+	cycle, err := r.checkCircle(ctx, id, parentID)
+	if err != nil {
+		return err
+	}
+	if cycle {
+		return errors.New("location would create a cycle")
+	}
+
+	query := r.db.WithContext(ctx).Model(&locations.Location{}).Where("id = ?", id).Update("parent_id", parentID)
+
+	if err := query.Error; err != nil {
+		return err
+	}
+
+	if query.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
 

@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"math"
 )
 
 // LocationType is the hierarchical kind of a location in the world model.
@@ -10,20 +9,19 @@ type LocationType uint16
 
 // Known location types, ordered from broadest scope to most specific.
 const (
-	LocationType_PLANE LocationType = iota // cosmological plane
-	LocationType_DEMIPLANE                 // demiplane
-	LocationType_PLANELAYER                // layer within a plane
-	LocationType_WORLD                     // world / planet
-	LocationType_CONTINENT                 // continent
-	LocationType_REGION                    // geographic or political region
-	LocationType_SETTLEMENT                // settlement (city, town, village)
-	LocationType_DISTRICT                  // district within a settlement
-	LocationType_SITE                      // notable site
-	LocationType_STRUCTURE                 // building or structure
-	LocationType_ROOM                      // room inside a structure
-	LocationType_AREA                      // generic area
-
-	LocationType_UNKNOWN LocationType = math.MaxUint16 // unrecognized or unset type
+	LocationType_UNKNOWN    LocationType = iota // unrecognized or unset type
+	LocationType_PLANE                          // cosmological plane
+	LocationType_DEMIPLANE                      // demiplane
+	LocationType_PLANELAYER                     // layer within a plane
+	LocationType_WORLD                          // world / planet
+	LocationType_CONTINENT                      // continent
+	LocationType_REGION                         // geographic or political region
+	LocationType_SETTLEMENT                     // settlement (city, town, village)
+	LocationType_DISTRICT                       // district within a settlement
+	LocationType_SITE                           // notable site
+	LocationType_STRUCTURE                      // building or structure
+	LocationType_ROOM                           // room inside a structure
+	LocationType_AREA                           // generic area
 )
 
 var (
@@ -40,6 +38,7 @@ var (
 		"structure":  LocationType_STRUCTURE,
 		"room":       LocationType_ROOM,
 		"area":       LocationType_AREA,
+		"unkown":     LocationType_UNKNOWN,
 	}
 
 	// AvaliableTypes lists all known LocationType values except LocationType_UNKNOWN.
@@ -77,12 +76,12 @@ var (
 
 // NewLocationType parses s into a LocationType.
 // Unknown values map to LocationType_UNKNOWN.
-func NewLocationType(s string) LocationType {
+func NewLocationType(s string) (LocationType, error) {
 	if t, ok := fromMapTypes[s]; ok {
-		return t
+		return t, nil
 	}
 
-	return LocationType_UNKNOWN
+	return LocationType_UNKNOWN, fmt.Errorf("unexepcted location type: %v", s)
 }
 
 // String returns the canonical name of the location type.

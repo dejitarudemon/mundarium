@@ -1,5 +1,5 @@
-// Package services provides shared execution context for application services.
-package services
+// Package execution provides request-scoped execution context for application services.
+package execution
 
 import (
 	"context"
@@ -9,18 +9,19 @@ import (
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 )
 
-// ExecutionContext carries request-scoped context, a journal request ID, and an optional completion callback.
+// ExecutionContext carries request-scoped context, a journal request ID, and optional complete/fail callbacks.
 type ExecutionContext struct {
 	context.Context
 
 	requestID        libjournal.RequestID
 	callbackComplete journal.CompleteFunc
+	callbackFail     journal.FailFunc
 }
 
-// NewExecutionContext creates an ExecutionContext with a required completion callback.
-// Returns an error if callback is nil. A nil parent is replaced with context.Background.
-func NewExecutionContext(parent context.Context, requestID libjournal.RequestID, callback journal.CompleteFunc) (ExecutionContext, context.CancelFunc, error) {
-	if callback == nil {
+// NewExecutionContext creates an ExecutionContext with required complete and fail callbacks.
+// Returns an error if either callback is nil. A nil parent is replaced with context.Background.
+func NewExecutionContext(parent context.Context, requestID libjournal.RequestID, complete journal.CompleteFunc, fail journal.FailFunc) (ExecutionContext, context.CancelFunc, error) {
+	if complete == nil || fail == nil {
 		return ExecutionContext{}, nil, errors.New("nil callback")
 	}
 	if parent == nil {
@@ -32,12 +33,13 @@ func NewExecutionContext(parent context.Context, requestID libjournal.RequestID,
 	return ExecutionContext{
 		Context:          ctx,
 		requestID:        requestID,
-		callbackComplete: callback,
+		callbackComplete: complete,
+		callbackFail:     fail,
 	}, cancel, nil
 }
 
-// NewExecutionContextWithoutCallback creates an ExecutionContext without a completion callback.
-// Complete becomes a no-op. A nil parent is replaced with context.Background.
+// NewExecutionContextWithoutCallback creates an ExecutionContext without callbacks.
+// Complete and Fail become no-ops. A nil parent is replaced with context.Background.
 func NewExecutionContextWithoutCallback(parent context.Context, requestID libjournal.RequestID) (ExecutionContext, context.CancelFunc) {
 	if parent == nil {
 		parent = context.Background()
@@ -59,4 +61,14 @@ func (e ExecutionContext) Complete(result journal.Result) error {
 	}
 
 	return e.callbackComplete(e.Context, e.requestID, result)
+}
+
+// Fail reports cause through the configured fail callback, if any.
+// When no callback is set, Fail returns nil.
+func (e ExecutionContext) Fail(cause error) error {
+	if e.callbackFail == nil {
+		return nil
+	}
+
+	return e.callbackFail(e.Context, e.requestID, cause)
 }

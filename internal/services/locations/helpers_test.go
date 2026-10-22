@@ -5,35 +5,43 @@ import (
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
+	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
-	"github.com/dejitarudemon/mundarium/internal/services"
 	"github.com/google/uuid"
 )
 
 type completeRecorder struct {
-	calls []journal.Result
-	err   error
+	calls     []journal.Result
+	failCalls []error
+	err       error
+	failErr   error
 }
 
-func (r *completeRecorder) callback(ctx context.Context, requestID libjournal.RequestID, result journal.Result) error {
+func (r *completeRecorder) complete(ctx context.Context, requestID libjournal.RequestID, result journal.Result) error {
 	r.calls = append(r.calls, result)
 	return r.err
 }
 
-func newExecCtx(t *testing.T, rec *completeRecorder) (services.ExecutionContext, context.CancelFunc) {
+func (r *completeRecorder) fail(ctx context.Context, requestID libjournal.RequestID, cause error) error {
+	r.failCalls = append(r.failCalls, cause)
+	return r.failErr
+}
+
+func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext, context.CancelFunc) {
 	t.Helper()
 
 	if rec == nil {
-		ctx, cancel := services.NewExecutionContextWithoutCallback(context.Background(), libjournal.RequestID(uuid.New()))
+		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), libjournal.RequestID(uuid.New()))
 		return ctx, cancel
 	}
 
-	ctx, cancel, err := services.NewExecutionContext(
+	ctx, cancel, err := execution.NewExecutionContext(
 		context.Background(),
 		libjournal.RequestID(uuid.New()),
-		rec.callback,
+		rec.complete,
+		rec.fail,
 	)
 	if err != nil {
 		t.Fatalf("NewExecutionContext: %v", err)

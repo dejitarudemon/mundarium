@@ -46,7 +46,8 @@ func TestCreateLocation(t *testing.T) {
 func TestCreateLocation_ValidationErrors(t *testing.T) {
 	resetDB(t)
 	root := seedRoot(t, "world")
-	ctx, cancel := newExecCtx(t, nil)
+	rec := &completeRecorder{}
+	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
 	t.Run("zero parent", func(t *testing.T) {
@@ -58,9 +59,13 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 		if err == nil || err.Error() != "parent id is zero" {
 			t.Fatalf("want parent id is zero, got %v", err)
 		}
+		if len(rec.failCalls) == 0 {
+			t.Fatal("want Fail called on validation error")
+		}
 	})
 
 	t.Run("unknown type", func(t *testing.T) {
+		before := len(rec.failCalls)
 		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
 			ParentID: root.ID,
 			Type:     "not-a-type",
@@ -69,9 +74,13 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected type error")
 		}
+		if len(rec.failCalls) <= before {
+			t.Fatal("want Fail called on validation error")
+		}
 	})
 
 	t.Run("zero subtype id", func(t *testing.T) {
+		before := len(rec.failCalls)
 		zero := types.ID(0)
 		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
 			ParentID:  root.ID,
@@ -81,6 +90,9 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 		})
 		if err == nil || err.Error() != "subtype id is zero" {
 			t.Fatalf("want subtype id is zero, got %v", err)
+		}
+		if len(rec.failCalls) <= before {
+			t.Fatal("want Fail called on validation error")
 		}
 	})
 }
@@ -99,6 +111,9 @@ func TestCreateLocation_CompleteError(t *testing.T) {
 	})
 	if err == nil || err.Error() != "callback failed" {
 		t.Fatalf("want callback failed, got %v", err)
+	}
+	if len(rec.failCalls) != 1 || rec.failCalls[0].Error() != "callback failed" {
+		t.Fatalf("want Fail called once with callback failed, got %#v", rec.failCalls)
 	}
 
 	var count int64

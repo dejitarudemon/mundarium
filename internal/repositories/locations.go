@@ -4,11 +4,34 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
+
+// FindLocationsFilter selects locations under ScopeID with optional filters.
+//
+// Depth semantics (relative to ScopeID):
+//   - 0: only the scope location
+//   - 1: scope + direct children
+//   - n: scope + descendants up to relative depth n (max 5)
+type FindLocationsFilter struct {
+	ScopeID   types.ID
+	Query     *string
+	Type      *types.LocationType
+	SubtypeID *types.ID
+	Depth     int
+}
+
+// FindLocationsResult is the scope plus matching descendants grouped by relative depth.
+// Depth keys: 1 = direct children, 2 = grandchildren, and so on.
+type FindLocationsResult struct {
+	Scope    locations.Location
+	Children map[int][]locations.Location
+}
 
 // LocationRepository persists and queries Location, LocationSubtype, and Connection records.
 type LocationRepository struct {
@@ -116,6 +139,77 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id types.ID
 		result[d] = level
 	}
 
+	return result, nil
+}
+
+// FindLocations returns the scope location plus descendants matching filter.
+// The scope is always included when it exists; filters apply only to descendants.
+// Depth 0 returns only the scope; larger depths include descendants up to that relative depth.
+// Traversal uses a recursive CTE so non-matching intermediates still expand the tree;
+// already-seen IDs are excluded via a path array to break parent_id cycles.
+// Returns gorm.ErrRecordNotFound if ScopeID does not exist.
+// Returns an error if Depth is outside 0..5.
+func (r *LocationRepository) FindLocations(ctx context.Context, filter FindLocationsFilter) (FindLocationsResult, error) {
+	if filter.Depth < 0 || filter.Depth > 5 {
+		return FindLocationsResult{}, errors.New("depth out of range")
+	}
+
+	args := []any{filter.ScopeID, filter.Depth}
+
+	var match strings.Builder
+	match.WriteString("TRUE")
+	if filter.Type != nil {
+		match.WriteString(" AND type = ?")
+		args = append(args, *filter.Type)
+	}
+	if filter.SubtypeID != nil {
+		match.WriteString(" AND subtype_id = ?")
+		args = append(args, *filter.SubtypeID)
+	}
+	if filter.Query != nil && *filter.Query != "" {
+		match.WriteString(" AND (name ILIKE '%' || ? || '%' OR description ILIKE '%' || ? || '%')")
+		args = append(args, *filter.Query, *filter.Query)
+	}
+
+	const query = `
+WITH RECURSIVE tree AS (
+	SELECT id, parent_id, type, subtype_id, name, description, details,
+		0 AS rel_depth, ARRAY[id] AS path
+	FROM locations
+	WHERE id = ?
+	UNION ALL
+	SELECT c.id, c.parent_id, c.type, c.subtype_id, c.name, c.description, c.details,
+		t.rel_depth + 1, t.path || c.id
+	FROM locations c
+	INNER JOIN tree t ON c.parent_id = t.id
+	WHERE t.rel_depth < ?
+		AND NOT (c.id = ANY(t.path))
+)
+SELECT id, parent_id, type, subtype_id, name, description, details, rel_depth
+FROM tree
+WHERE rel_depth = 0 OR (%s)
+ORDER BY rel_depth, id`
+
+	type row struct {
+		locations.Location
+		RelDepth int `gorm:"column:rel_depth"`
+	}
+
+	var rows []row
+	if err := r.db.WithContext(ctx).Raw(fmt.Sprintf(query, match.String()), args...).Scan(&rows).Error; err != nil {
+		return FindLocationsResult{}, err
+	}
+	if len(rows) == 0 {
+		return FindLocationsResult{}, gorm.ErrRecordNotFound
+	}
+
+	result := FindLocationsResult{
+		Scope:    rows[0].Location,
+		Children: make(map[int][]locations.Location),
+	}
+	for _, item := range rows[1:] {
+		result.Children[item.RelDepth] = append(result.Children[item.RelDepth], item.Location)
+	}
 	return result, nil
 }
 

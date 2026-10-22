@@ -26,20 +26,21 @@ func NewMapJournal() *MapJournal {
 	}
 }
 
-// Register stores a running request for id under tool and returns Complete/Fail callbacks.
+// Register stores a running request for id under tool with argsHash and returns Complete/Fail callbacks.
 // Returns AlreadyRegistered if id is already present.
-func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, tool string) (journal.CompleteFunc, journal.FailFunc, error) {
+func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, tool string, argsHash []byte) (journal.CompleteFunc, journal.FailFunc, error) {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
 	if request, ok := mj.m[id]; ok {
-		return nil, nil, journal.NewAlreadyRegistered(request)
+		return nil, nil, journal.NewAlreadyRegistered(cloneRequest(request))
 	}
 
 	mj.m[id] = journal.Request{
-		ID:     id,
-		Tool:   tool,
-		Status: libjournal.Status_Running,
+		ID:       id,
+		Tool:     tool,
+		ArgsHash: cloneBytes(argsHash),
+		Status:   libjournal.Status_Running,
 	}
 
 	return mj.Complete, mj.Fail, nil
@@ -61,10 +62,11 @@ func (mj *MapJournal) Complete(_ context.Context, id libjournal.RequestID, resul
 	}
 
 	mj.m[id] = journal.Request{
-		ID:     request.ID,
-		Tool:   request.Tool,
-		Status: libjournal.Status_Completed,
-		Result: result,
+		ID:       request.ID,
+		Tool:     request.Tool,
+		ArgsHash: request.ArgsHash,
+		Status:   libjournal.Status_Completed,
+		Result:   result,
 	}
 
 	return nil
@@ -86,10 +88,11 @@ func (mj *MapJournal) Fail(_ context.Context, id libjournal.RequestID, cause err
 	}
 
 	mj.m[id] = journal.Request{
-		ID:     request.ID,
-		Tool:   request.Tool,
-		Status: libjournal.Status_Failed,
-		Error:  cause,
+		ID:       request.ID,
+		Tool:     request.Tool,
+		ArgsHash: request.ArgsHash,
+		Status:   libjournal.Status_Failed,
+		Error:    cause,
 	}
 
 	return nil
@@ -106,7 +109,7 @@ func (mj *MapJournal) Find(_ context.Context, id libjournal.RequestID) (journal.
 		return journal.Request{}, journal.NewNotFound(id)
 	}
 
-	return request, nil
+	return cloneRequest(request), nil
 }
 
 // Delete removes the request for id. Missing ids are ignored.
@@ -116,4 +119,18 @@ func (mj *MapJournal) Delete(_ context.Context, id libjournal.RequestID) error {
 
 	delete(mj.m, id)
 	return nil
+}
+
+func cloneBytes(b []byte) []byte {
+	if b == nil {
+		return nil
+	}
+	out := make([]byte, len(b))
+	copy(out, b)
+	return out
+}
+
+func cloneRequest(req journal.Request) journal.Request {
+	req.ArgsHash = cloneBytes(req.ArgsHash)
+	return req
 }

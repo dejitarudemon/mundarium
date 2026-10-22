@@ -7,8 +7,9 @@ import libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 type Request struct {
 	ID libjournal.RequestID
 
-	Status libjournal.Status
-	Tool   string // tool name, e.g. "create_location"
+	Status   libjournal.Status
+	Tool     string // tool name, e.g. "create_location"
+	ArgsHash []byte // blake2b digest of tool args; computed by the executor
 
 	Result Result
 	Error  error

@@ -1,0 +1,55 @@
+{
+    "name": "create_location",
+    "description": "Create a new location and return its ID. Reuse an existing location ID when referring to an already established location.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Location name.",
+          "minLength": 1
+        },
+        "parent_id": {
+          "type": ["integer", "null"],
+          "description": "Parent location ID. Use null for a new root location."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "plane",
+            "demiplane",
+            "planelayer",
+            "world",
+            "continent",
+            "region",
+            "settlement",
+            "district",
+            "site",
+            "structure",
+            "room",
+            "area"
+          ],
+          "description": "General location category. Does not constrain parent-child relationships."
+        },
+        "description": {
+          "type": "string",
+          "description": "Short narrative description of the location."
+        },
+        "subtype": {
+          "type": ["integer", "null"],
+          "description": "Optional existing subtype ID, such as tavern or wizard tower. Look up subtype IDs using the available tools. Do not invent IDs or create overly specific subtypes solely for classification."
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional established facts about the location as key-value pairs.",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "parent_id"
+      ],
+      "additionalProperties": false
+    }
+}

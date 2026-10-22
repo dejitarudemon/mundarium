@@ -11,6 +11,8 @@ var (
 
 	// ErrRequestToolMismatch is returned when a request id is already registered under another tool name.
 	ErrRequestToolMismatch = errors.New("request already registered for a different tool")
+	// ErrRequestArgsMismatch is returned when a request id is reused with different tool args.
+	ErrRequestArgsMismatch = errors.New("request already registered with different args")
 	// ErrRequestStillRunning is returned when a non-idempotent request is still in progress.
 	ErrRequestStillRunning = errors.New("request is still running")
 	// ErrRequestAlreadyFailed is returned when a non-idempotent request previously failed without a cause.

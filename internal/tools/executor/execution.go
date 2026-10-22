@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -31,11 +32,12 @@ func (e *Executor) Execute(ctx context.Context, invokeID string, call libtools.C
 
 func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, requestID libjournal.RequestID, args json.RawMessage) (json.RawMessage, error) {
 	toolName := tool.Definition().Name
+	argsHash := hashArgs(args)
 
-	complete, fail, err := e.journal.Register(parent, requestID, toolName)
+	complete, fail, err := e.journal.Register(parent, requestID, toolName, argsHash)
 	if err != nil {
 		if _, ok := errors.AsType[journal.AlreadyRegistered](err); ok {
-			return e.resolveAlreadyRegistered(parent, toolName, requestID)
+			return e.resolveAlreadyRegistered(parent, toolName, requestID, argsHash)
 		}
 		return nil, err
 	}
@@ -49,7 +51,7 @@ func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool,
 	return tool.Execute(ctx, args)
 }
 
-func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string, requestID libjournal.RequestID) (json.RawMessage, error) {
+func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string, requestID libjournal.RequestID, argsHash []byte) (json.RawMessage, error) {
 	req, err := e.journal.Find(ctx, requestID)
 	if err != nil {
 		return nil, err
@@ -57,6 +59,9 @@ func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string
 
 	if req.Tool != toolName {
 		return nil, ErrRequestToolMismatch
+	}
+	if !bytes.Equal(req.ArgsHash, argsHash) {
+		return nil, ErrRequestArgsMismatch
 	}
 
 	switch req.Status {

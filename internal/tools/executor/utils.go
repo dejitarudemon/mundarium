@@ -6,10 +6,19 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"golang.org/x/crypto/blake2b"
 )
 
 func createRequestID(invokeID, callID string) libjournal.RequestID {
 	return libjournal.RequestID(fmt.Sprintf("%s%s%s", invokeID, IDSep, callID))
+}
+
+// hashArgs returns a blake2b-256 digest of tool arguments for semantic journal checks.
+func hashArgs(args json.RawMessage) []byte {
+	sum := blake2b.Sum256(args)
+	out := make([]byte, len(sum))
+	copy(out, sum[:])
+	return out
 }
 
 func resultPayload(result journal.Result) (json.RawMessage, error) {

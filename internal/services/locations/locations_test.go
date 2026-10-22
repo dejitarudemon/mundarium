@@ -156,6 +156,76 @@ func TestGetLocation_NotFound(t *testing.T) {
 	}
 }
 
+func TestFindLocations(t *testing.T) {
+	resetDB(t)
+	root := seedRoot(t, "World")
+	north := seedChild(t, root.ID, "North")
+	_ = seedChild(t, north.ID, "North Gate")
+	_ = seedChild(t, root.ID, "South")
+
+	rec := &completeRecorder{}
+	ctx, cancel := newExecCtx(t, rec)
+	defer cancel()
+
+	depth := 2
+	query := "Gate"
+	out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		ScopeID: root.ID,
+		Query:   &query,
+		Depth:   &depth,
+	})
+	if err != nil {
+		t.Fatalf("FindLocations: %v", err)
+	}
+	if out.Scope.Name != "World" || len(out.Children[2]) != 1 || out.Children[2][0].Name != "North Gate" || out.HasMore != 0 {
+		t.Fatalf("want World scope + North Gate at depth 2, got %#v", out)
+	}
+	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
+		t.Fatalf("unexpected complete calls: %#v", rec.calls)
+	}
+}
+
+func TestFindLocations_HasMore(t *testing.T) {
+	resetDB(t)
+	root := seedRoot(t, "World")
+	_ = seedChild(t, root.ID, "A")
+	_ = seedChild(t, root.ID, "B")
+	_ = seedChild(t, root.ID, "C")
+
+	ctx, cancel := newExecCtx(t, &completeRecorder{})
+	defer cancel()
+
+	limit := 2
+	depth := 1
+	out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		ScopeID: root.ID,
+		Depth:   &depth,
+		Limit:   &limit,
+	})
+	if err != nil {
+		t.Fatalf("FindLocations: %v", err)
+	}
+	// 3 children, limit 2 => 2 returned, has_more = 1
+	if out.Scope.Name != "World" || len(out.Children[1]) != 2 || out.HasMore != 1 {
+		t.Fatalf("want scope + 2 children and has_more=1, got %#v", out)
+	}
+}
+
+func TestFindLocations_ValidationError(t *testing.T) {
+	resetDB(t)
+	rec := &completeRecorder{}
+	ctx, cancel := newExecCtx(t, rec)
+	defer cancel()
+
+	_, err := testSvc.FindLocations(ctx, input.FindLocationsInput{ScopeID: 0})
+	if err == nil || err.Error() != "scope id is zero" {
+		t.Fatalf("want scope id is zero, got %v", err)
+	}
+	if len(rec.failCalls) == 0 {
+		t.Fatal("want Fail called")
+	}
+}
+
 func TestFindChildLocations(t *testing.T) {
 	resetDB(t)
 	root := seedRoot(t, "root")

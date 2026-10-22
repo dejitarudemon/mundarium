@@ -7,6 +7,7 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 )
 
 // toNewLocation maps CreateLocationInput to a domain Location ready for insert.
@@ -80,6 +81,103 @@ func toGotChildLocations(children map[int][]locations.Location) (output.FindChil
 	}
 
 	return result, nil
+}
+
+const (
+	defaultFindLocationsDepth = 1
+	defaultFindLocationsLimit = 20
+	maxFindLocationsLimit     = 100
+)
+
+// toFindLocationsFilter maps FindLocationsInput to a repository filter and page limit.
+func toFindLocationsFilter(in input.FindLocationsInput) (repositories.FindLocationsFilter, int, error) {
+	if in.ScopeID == 0 {
+		return repositories.FindLocationsFilter{}, 0, errors.New("scope id is zero")
+	}
+	if in.SubtypeID != nil && *in.SubtypeID == 0 {
+		return repositories.FindLocationsFilter{}, 0, errors.New("subtype id is zero")
+	}
+
+	depth := defaultFindLocationsDepth
+	if in.Depth != nil {
+		depth = *in.Depth
+	}
+	if depth < 0 || depth > 5 {
+		return repositories.FindLocationsFilter{}, 0, errors.New("depth out of range")
+	}
+
+	limit := defaultFindLocationsLimit
+	if in.Limit != nil {
+		limit = *in.Limit
+	}
+	if limit < 1 || limit > maxFindLocationsLimit {
+		return repositories.FindLocationsFilter{}, 0, errors.New("limit out of range")
+	}
+
+	filter := repositories.FindLocationsFilter{
+		ScopeID:   in.ScopeID,
+		Query:     in.Query,
+		SubtypeID: in.SubtypeID,
+		Depth:     depth,
+	}
+
+	if in.Type != nil && *in.Type != "" {
+		t, err := types.NewLocationType(*in.Type)
+		if err != nil {
+			return repositories.FindLocationsFilter{}, 0, err
+		}
+		filter.Type = &t
+	}
+
+	return filter, limit, nil
+}
+
+// toFoundLocations maps a FindLocationsResult to FindLocationsOutput.
+// Limit applies only to matching descendants (scope is always included).
+// HasMore is the number of matching descendants omitted due to limit.
+func toFoundLocations(found repositories.FindLocationsResult, limit int) (output.FindLocationsOutput, error) {
+	scope, err := toGotLocation(found.Scope)
+	if err != nil {
+		return output.FindLocationsOutput{}, err
+	}
+
+	type entry struct {
+		depth int
+		loc   locations.Location
+	}
+	flat := make([]entry, 0)
+	maxDepth := 0
+	for depth := range found.Children {
+		if depth > maxDepth {
+			maxDepth = depth
+		}
+	}
+	for depth := 1; depth <= maxDepth; depth++ {
+		for _, loc := range found.Children[depth] {
+			flat = append(flat, entry{depth: depth, loc: loc})
+		}
+	}
+
+	omitted := 0
+	if len(flat) > limit {
+		omitted = len(flat) - limit
+		flat = flat[:limit]
+	}
+
+	children := make(map[int][]output.GetLocationOutput)
+	for _, e := range flat {
+		item, err := toGotLocation(e.loc)
+		if err != nil {
+			return output.FindLocationsOutput{}, err
+		}
+		children[e.depth] = append(children[e.depth], item)
+	}
+
+	return output.FindLocationsOutput{
+		Scope:    scope,
+		Children: children,
+		HasMore:  omitted,
+	}, nil
 }
 
 // checkLocation validates required identity fields on a Location.

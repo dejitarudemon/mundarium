@@ -80,6 +80,40 @@ func (s *Service) GetLocation(ctx execution.ExecutionContext, id types.ID) (outp
 	return result, nil
 }
 
+// FindLocations searches locations under a scope with optional filters and completes the execution context.
+func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLocationsInput) (output.FindLocationsOutput, error) {
+	filter, limit, err := toFindLocationsFilter(in)
+	if err != nil {
+		_ = ctx.Fail(err)
+		return output.FindLocationsOutput{}, err
+	}
+
+	locs, err := s.repository().FindLocations(ctx, filter)
+	if err != nil {
+		_ = ctx.Fail(err)
+		return output.FindLocationsOutput{}, err
+	}
+
+	result, err := toFoundLocations(locs, limit)
+	if err != nil {
+		_ = ctx.Fail(err)
+		return output.FindLocationsOutput{}, err
+	}
+
+	if err := ctx.Complete(
+		journal.Result{
+			Action: libjournal.Action_Get,
+			Entity: locationEntity,
+			Data:   result,
+		},
+	); err != nil {
+		_ = ctx.Fail(err)
+		return output.FindLocationsOutput{}, err
+	}
+
+	return result, nil
+}
+
 // FindChildLocations returns descendants of id grouped by depth and completes the execution context.
 // Depth semantics match the repository: 0 or less yields an empty map; 1 is direct children.
 func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id types.ID, depth int) (output.FindChildLocationsOutput, error) {

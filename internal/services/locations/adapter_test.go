@@ -132,3 +132,53 @@ func TestToGotChildLocations(t *testing.T) {
 		t.Fatal("expected validation error")
 	}
 }
+
+func TestToFindLocationsFilter(t *testing.T) {
+	depth := 2
+	locType := "region"
+	query := "north"
+
+	got, limit, err := toFindLocationsFilter(input.FindLocationsInput{
+		ScopeID: 7,
+		Query:   &query,
+		Type:    &locType,
+		Depth:   &depth,
+	})
+	if err != nil {
+		t.Fatalf("toFindLocationsFilter: %v", err)
+	}
+	if got.ScopeID != 7 || got.Depth != 2 || limit != defaultFindLocationsLimit {
+		t.Fatalf("unexpected filter/limit: %+v %d", got, limit)
+	}
+	if got.Query == nil || *got.Query != "north" {
+		t.Fatalf("unexpected query: %#v", got.Query)
+	}
+	if got.Type == nil || *got.Type != types.LocationType_REGION {
+		t.Fatalf("unexpected type: %#v", got.Type)
+	}
+
+	_, _, err = toFindLocationsFilter(input.FindLocationsInput{ScopeID: 0})
+	if err == nil || err.Error() != "scope id is zero" {
+		t.Fatalf("want scope id is zero, got %v", err)
+	}
+
+	defaults, limit, err := toFindLocationsFilter(input.FindLocationsInput{ScopeID: 1})
+	if err != nil {
+		t.Fatalf("defaults: %v", err)
+	}
+	if defaults.Depth != 1 || limit != 20 {
+		t.Fatalf("want depth=1 limit=20, got %+v %d", defaults, limit)
+	}
+
+	badDepth := 6
+	_, _, err = toFindLocationsFilter(input.FindLocationsInput{ScopeID: 1, Depth: &badDepth})
+	if err == nil || err.Error() != "depth out of range" {
+		t.Fatalf("want depth out of range, got %v", err)
+	}
+
+	badLimit := 0
+	_, _, err = toFindLocationsFilter(input.FindLocationsInput{ScopeID: 1, Limit: &badLimit})
+	if err == nil || err.Error() != "limit out of range" {
+		t.Fatalf("want limit out of range, got %v", err)
+	}
+}

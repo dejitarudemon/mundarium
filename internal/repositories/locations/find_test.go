@@ -11,8 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func strPtr(s string) *string { return &s }
-
 func typePtr(t types.LocationType) *types.LocationType { return &t }
 
 func childCount(children map[int][]locations.Location) int {

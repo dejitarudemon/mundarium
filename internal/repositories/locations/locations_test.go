@@ -10,7 +10,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func createLocation(t *testing.T, parentID types.ID, name string) *locations.Location {
+func idPtr(id types.ID) *types.ID {
+	return &id
+}
+
+func createLocation(t *testing.T, parentID *types.ID, name string) *locations.Location {
 	t.Helper()
 
 	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
@@ -27,13 +31,7 @@ func createLocation(t *testing.T, parentID types.ID, name string) *locations.Loc
 
 func createRoot(t *testing.T, name string) *locations.Location {
 	t.Helper()
-
-	loc := createLocation(t, 0, name)
-	if err := testRepo.PatchLocationParent(context.Background(), loc.ID, loc.ID); err != nil {
-		t.Fatalf("make root %q: %v", name, err)
-	}
-	loc.ParentID = loc.ID
-	return loc
+	return createLocation(t, nil, name)
 }
 
 func TestCreateAndGetLocation(t *testing.T) {
@@ -45,7 +43,7 @@ func TestCreateAndGetLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if got.ID != root.ID || got.ParentID != root.ID || got.Name != "world" {
+	if got.ID != root.ID || got.ParentID != nil || got.Name != "world" {
 		t.Fatalf("unexpected location: %+v", got)
 	}
 }
@@ -64,9 +62,9 @@ func TestFindChildLocations_ByDepth(t *testing.T) {
 	ctx := context.Background()
 
 	root := createRoot(t, "root")
-	childA := createLocation(t, root.ID, "A")
-	childB := createLocation(t, root.ID, "B")
-	grand := createLocation(t, childA.ID, "A1")
+	childA := createLocation(t, idPtr(root.ID), "A")
+	childB := createLocation(t, idPtr(root.ID), "B")
+	grand := createLocation(t, idPtr(childA.ID), "A1")
 
 	depth0, err := testRepo.FindChildLocations(ctx, root.ID, 0, false)
 	if err != nil {
@@ -107,7 +105,7 @@ func TestFindChildLocations_SkipsCycles(t *testing.T) {
 
 	// Force B <-> C via parent_id (child lookup uses parent_id, so each is a child of the other).
 	b := createRoot(t, "B")
-	c := createLocation(t, b.ID, "C")
+	c := createLocation(t, idPtr(b.ID), "C")
 	if err := testDB.Model(&locations.Location{}).Where("id = ?", b.ID).Update("parent_id", c.ID).Error; err != nil {
 		t.Fatalf("force cycle B.parent=C: %v", err)
 	}
@@ -128,17 +126,29 @@ func TestPatchLocationParent_AllowsRoot(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
-	loc := createLocation(t, 0, "alone")
-	if err := testRepo.PatchLocationParent(ctx, loc.ID, loc.ID); err != nil {
-		t.Fatalf("self-parent root: %v", err)
+	parent := createRoot(t, "parent")
+	loc := createLocation(t, idPtr(parent.ID), "alone")
+	if err := testRepo.PatchLocationParent(ctx, loc.ID, nil); err != nil {
+		t.Fatalf("null parent root: %v", err)
 	}
 
 	got, err := testRepo.GetLocation(ctx, loc.ID)
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if got.ParentID != got.ID {
-		t.Fatalf("want root ParentID=ID, got parent=%d id=%d", got.ParentID, got.ID)
+	if got.ParentID != nil {
+		t.Fatalf("want root ParentID=nil, got parent=%v id=%d", got.ParentID, got.ID)
+	}
+}
+
+func TestPatchLocationParent_RejectsSelfParent(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+
+	loc := createRoot(t, "alone")
+	err := testRepo.PatchLocationParent(ctx, loc.ID, idPtr(loc.ID))
+	if err == nil || err.Error() != "location would create a cycle" {
+		t.Fatalf("want cycle error for self-parent, got %v", err)
 	}
 }
 
@@ -148,10 +158,10 @@ func TestPatchLocationParent_AllowsChain(t *testing.T) {
 
 	// A > B > C  (A child of B child of C/root)
 	c := createRoot(t, "C")
-	b := createLocation(t, c.ID, "B")
-	a := createLocation(t, b.ID, "A")
+	b := createLocation(t, idPtr(c.ID), "B")
+	a := createLocation(t, idPtr(b.ID), "A")
 
-	if err := testRepo.PatchLocationParent(ctx, a.ID, c.ID); err != nil {
+	if err := testRepo.PatchLocationParent(ctx, a.ID, idPtr(c.ID)); err != nil {
 		t.Fatalf("reparent A under C: %v", err)
 	}
 
@@ -159,8 +169,8 @@ func TestPatchLocationParent_AllowsChain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if got.ParentID != c.ID {
-		t.Fatalf("want parent %d, got %d", c.ID, got.ParentID)
+	if got.ParentID == nil || *got.ParentID != c.ID {
+		t.Fatalf("want parent %d, got %v", c.ID, got.ParentID)
 	}
 }
 
@@ -170,9 +180,9 @@ func TestPatchLocationParent_RejectsTwoNodeCycle(t *testing.T) {
 
 	// A > B > A attempt: A root, B under A, then A.parent = B
 	a := createRoot(t, "A")
-	b := createLocation(t, a.ID, "B")
+	b := createLocation(t, idPtr(a.ID), "B")
 
-	err := testRepo.PatchLocationParent(ctx, a.ID, b.ID)
+	err := testRepo.PatchLocationParent(ctx, a.ID, idPtr(b.ID))
 	if err == nil || err.Error() != "location would create a cycle" {
 		t.Fatalf("want cycle error, got %v", err)
 	}
@@ -182,21 +192,19 @@ func TestPatchLocationParent_RejectsCycleIntoDescendantBranch(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
-	// Start with A > B > C (A under B under C/root), then try C > B which is fine...
-	// Want A > B > C > B: make B root-ish chain then set B.parent = C while C.parent = B.
 	// Setup: C root, B under C, A under B. Then PatchLocationParent(B, A) should fail
 	// because A is descendant of B.
 	c := createRoot(t, "C")
-	b := createLocation(t, c.ID, "B")
-	a := createLocation(t, b.ID, "A")
+	b := createLocation(t, idPtr(c.ID), "B")
+	a := createLocation(t, idPtr(b.ID), "A")
 
-	err := testRepo.PatchLocationParent(ctx, b.ID, a.ID)
+	err := testRepo.PatchLocationParent(ctx, b.ID, idPtr(a.ID))
 	if err == nil || err.Error() != "location would create a cycle" {
 		t.Fatalf("want cycle error when B.parent=A, got %v", err)
 	}
 
 	// Also: after making C.parent = B is invalid while B still under C.
-	err = testRepo.PatchLocationParent(ctx, c.ID, b.ID)
+	err = testRepo.PatchLocationParent(ctx, c.ID, idPtr(b.ID))
 	if err == nil || err.Error() != "location would create a cycle" {
 		t.Fatalf("want cycle error when C.parent=B, got %v", err)
 	}
@@ -207,10 +215,10 @@ func TestPutLocation_RejectsCycle(t *testing.T) {
 	ctx := context.Background()
 
 	a := createRoot(t, "A")
-	b := createLocation(t, a.ID, "B")
+	b := createLocation(t, idPtr(a.ID), "B")
 
-	b.ParentID = a.ID
-	a.ParentID = b.ID
+	b.ParentID = idPtr(a.ID)
+	a.ParentID = idPtr(b.ID)
 	err := testRepo.PutLocation(ctx, a)
 	if err == nil || err.Error() != "location would create a cycle" {
 		t.Fatalf("want cycle error, got %v", err)

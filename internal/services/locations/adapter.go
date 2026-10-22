@@ -11,7 +11,7 @@ import (
 
 // toNewLocation maps CreateLocationInput to a domain Location ready for insert.
 func toNewLocation(input input.CreateLocationInput) (*locations.Location, error) {
-	if input.ParentID == 0 {
+	if input.ParentID != nil && *input.ParentID == 0 {
 		return nil, errors.New("parent id is zero")
 	}
 
@@ -87,7 +87,7 @@ func checkLocation(location locations.Location) error {
 	if location.ID == 0 {
 		return errors.New("location id is zero")
 	}
-	if location.ParentID == 0 {
+	if location.ParentID != nil && *location.ParentID == 0 {
 		return errors.New("parent id is zero")
 	}
 

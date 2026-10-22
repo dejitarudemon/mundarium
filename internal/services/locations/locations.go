@@ -110,7 +110,8 @@ func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id types.ID
 }
 
 // MoveLocation reparents a location to parentID inside a transaction and completes the execution context.
-func (s *Service) MoveLocation(ctx execution.ExecutionContext, id, parentID types.ID) error {
+// A nil parentID makes the location a root.
+func (s *Service) MoveLocation(ctx execution.ExecutionContext, id types.ID, parentID *types.ID) error {
 	if err := s.connection.WithTransaction(
 		ctx,
 		func(tx *gorm.DB) error {

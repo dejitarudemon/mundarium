@@ -18,7 +18,7 @@ func TestCreateLocation(t *testing.T) {
 	defer cancel()
 
 	out, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
-		ParentID:    root.ID,
+		ParentID:    idPtr(root.ID),
 		Type:        "region",
 		Name:        "North",
 		Description: "cold",
@@ -27,7 +27,7 @@ func TestCreateLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateLocation: %v", err)
 	}
-	if out.ID == 0 || out.ParentID != root.ID || out.Name != "North" {
+	if out.ID == 0 || out.ParentID == nil || *out.ParentID != root.ID || out.Name != "North" {
 		t.Fatalf("unexpected output: %+v", out)
 	}
 	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Create || rec.calls[0].Entity != "LOCATION" {
@@ -52,7 +52,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 
 	t.Run("zero parent", func(t *testing.T) {
 		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
-			ParentID: 0,
+			ParentID: idPtr(0),
 			Type:     "region",
 			Name:     "x",
 		})
@@ -67,7 +67,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 	t.Run("unknown type", func(t *testing.T) {
 		before := len(rec.failCalls)
 		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
-			ParentID: root.ID,
+			ParentID: idPtr(root.ID),
 			Type:     "not-a-type",
 			Name:     "x",
 		})
@@ -83,7 +83,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 		before := len(rec.failCalls)
 		zero := types.ID(0)
 		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
-			ParentID:  root.ID,
+			ParentID:  idPtr(root.ID),
 			Type:      "region",
 			SubtypeID: &zero,
 			Name:      "x",
@@ -105,7 +105,7 @@ func TestCreateLocation_CompleteError(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
-		ParentID: root.ID,
+		ParentID: idPtr(root.ID),
 		Type:     "region",
 		Name:     "X",
 	})
@@ -137,7 +137,7 @@ func TestGetLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if out.ID != child.ID || out.ParentID != root.ID || out.Name != "child" || out.Type != "region" {
+	if out.ID != child.ID || out.ParentID == nil || *out.ParentID != root.ID || out.Name != "child" || out.Type != "region" {
 		t.Fatalf("unexpected output: %+v", out)
 	}
 	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
@@ -219,7 +219,7 @@ func TestMoveLocation(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	if err := testSvc.MoveLocation(ctx, child.ID, other.ID); err != nil {
+	if err := testSvc.MoveLocation(ctx, child.ID, idPtr(other.ID)); err != nil {
 		t.Fatalf("MoveLocation: %v", err)
 	}
 
@@ -227,8 +227,8 @@ func TestMoveLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if got.ParentID != other.ID {
-		t.Fatalf("want parent %d, got %d", other.ID, got.ParentID)
+	if got.ParentID == nil || *got.ParentID != other.ID {
+		t.Fatalf("want parent %d, got %v", other.ID, got.ParentID)
 	}
 	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
@@ -243,7 +243,7 @@ func TestMoveLocation_RejectsCycle(t *testing.T) {
 	ctx, cancel := newExecCtx(t, nil)
 	defer cancel()
 
-	err := testSvc.MoveLocation(ctx, root.ID, child.ID)
+	err := testSvc.MoveLocation(ctx, root.ID, idPtr(child.ID))
 	if err == nil || err.Error() != "location would create a cycle" {
 		t.Fatalf("want cycle error, got %v", err)
 	}

@@ -5,7 +5,7 @@ import "github.com/dejitarudemon/mundarium/internal/libs/types"
 
 // CreateLocationInput carries data required to create a new location.
 type CreateLocationInput struct {
-	ParentID    types.ID   // parent location ID (required, non-zero)
+	ParentID    *types.ID  // parent location ID; nil creates a root
 	Type        string     // location type name, e.g. "region", "structure"
 	SubtypeID   *types.ID  // optional subtype ID; nil means no subtype
 	Name        string     // display name

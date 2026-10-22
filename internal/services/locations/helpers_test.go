@@ -49,21 +49,21 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 	return ctx, cancel
 }
 
+func idPtr(id types.ID) *types.ID {
+	return &id
+}
+
 func seedRoot(t *testing.T, name string) *locations.Location {
 	t.Helper()
 
 	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
-		ParentID: 0,
+		ParentID: nil,
 		Type:     types.LocationType_WORLD,
 		Name:     name,
 	})
 	if err != nil {
 		t.Fatalf("CreateLocation seed: %v", err)
 	}
-	if err := testRepo.PatchLocationParent(context.Background(), loc.ID, loc.ID); err != nil {
-		t.Fatalf("make root: %v", err)
-	}
-	loc.ParentID = loc.ID
 	return loc
 }
 
@@ -71,7 +71,7 @@ func seedChild(t *testing.T, parentID types.ID, name string) *locations.Location
 	t.Helper()
 
 	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
-		ParentID: parentID,
+		ParentID: idPtr(parentID),
 		Type:     types.LocationType_REGION,
 		Name:     name,
 	})

@@ -123,7 +123,7 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id types.ID
 //
 // Before writing, checkCircle walks ancestors of location.ParentID (no transaction)
 // and rejects the update if that parent link would create a cycle.
-// ParentID equal to location.ID is allowed and means the location is a root.
+// A nil ParentID means the location becomes a root.
 //
 // Returns an error with message "location would create a cycle" if the new
 // parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
@@ -164,11 +164,11 @@ func (r *LocationRepository) PutLocation(ctx context.Context, location *location
 //
 // Before writing, checkCircle walks ancestors of parentID (no transaction)
 // and rejects the change if that parent link would create a cycle.
-// parentID equal to id is allowed and means the location becomes a root.
+// A nil parentID means the location becomes a root.
 //
 // Returns an error with message "location would create a cycle" if the new
 // parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
-func (r *LocationRepository) PatchLocationParent(ctx context.Context, id, parentID types.ID) error {
+func (r *LocationRepository) PatchLocationParent(ctx context.Context, id types.ID, parentID *types.ID) error {
 	cycle, err := r.checkCircle(ctx, id, parentID)
 	if err != nil {
 		return err
@@ -350,35 +350,41 @@ func (r *LocationRepository) DeleteConnection(ctx context.Context, id types.ID) 
 //
 // It reads the current ancestor chain of newParent and does not write.
 // Returns true if a cycle would be created, false otherwise.
-// newParent == id is treated as a valid root (self-parent), not a cycle.
-// A node whose parent_id equals its own id ends the walk as a tree root.
-func (r *LocationRepository) checkCircle(ctx context.Context, id, newParent types.ID) (bool, error) {
-	if newParent == id {
+// A nil newParent means becoming a root and is never a cycle.
+// A nil parent_id on an ancestor ends the walk as a tree root.
+func (r *LocationRepository) checkCircle(ctx context.Context, id types.ID, newParent *types.ID) (bool, error) {
+	if newParent == nil {
 		return false, nil
 	}
+	if *newParent == 0 {
+		return false, errors.New("parent id is zero")
+	}
+	if *newParent == id {
+		return true, nil
+	}
 
-	next := newParent
+	next := *newParent
 	seen := map[types.ID]struct{}{
-		id:        {},
-		newParent: {},
+		id:   {},
+		next: {},
 	}
 
 	for ctx.Err() == nil {
-		prev := next
-
+		var parentID *types.ID
 		if err := r.db.WithContext(ctx).
 			Model(&locations.Location{}).
 			Select("parent_id").
 			Where("id = ?", next).
-			Scan(&next).Error; err != nil {
+			Scan(&parentID).Error; err != nil {
 			return false, err
 		}
 
-		// root: parent is self
-		if next == prev {
+		// root: parent is null
+		if parentID == nil {
 			return false, nil
 		}
 
+		next = *parentID
 		if next == id {
 			return true, nil
 		}

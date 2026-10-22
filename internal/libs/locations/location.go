@@ -6,10 +6,10 @@ import (
 )
 
 // Location is a place in the world hierarchy (plane, region, room, and so on).
-// A root location has ParentID equal to its own ID (self-parent).
+// A root location has a nil ParentID.
 type Location struct {
-	ID       types.ID `gorm:"primaryKey" json:"id"`
-	ParentID types.ID `gorm:"index" json:"parent_id"` // parent location ID; equals ID for a root
+	ID       types.ID  `gorm:"primaryKey" json:"id"`
+	ParentID *types.ID `gorm:"index" json:"parent_id"` // parent location ID; nil for a root
 
 	Type      types.LocationType `gorm:"not null" json:"type"`                // location type; see types.LocationType
 	SubtypeID *types.ID          `gorm:"index" json:"subtype_id"`             // optional ID of the location subtype

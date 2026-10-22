@@ -73,7 +73,7 @@ func TestWithTransaction_Commits(t *testing.T) {
 	var id types.ID
 	err := conn.WithTransaction(ctx, func(tx *gorm.DB) error {
 		loc := &locations.Location{
-			ParentID: 0,
+			ParentID: nil,
 			Type:     types.LocationType_REGION,
 			Name:     "committed",
 		}
@@ -104,7 +104,7 @@ func TestWithTransaction_RollsBackOnError(t *testing.T) {
 	var id types.ID
 	err := conn.WithTransaction(ctx, func(tx *gorm.DB) error {
 		loc := &locations.Location{
-			ParentID: 0,
+			ParentID: nil,
 			Type:     types.LocationType_REGION,
 			Name:     "rolled-back",
 		}

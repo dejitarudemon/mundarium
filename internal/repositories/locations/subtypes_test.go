@@ -109,7 +109,7 @@ func TestGetLocation_PreloadsSubtype(t *testing.T) {
 	root := createRoot(t, "town")
 	id := subtype.ID
 	loc, err := testRepo.CreateLocation(ctx, &locations.Location{
-		ParentID:  root.ID,
+		ParentID:  idPtr(root.ID),
 		Type:      types.LocationType_STRUCTURE,
 		SubtypeID: &id,
 		Name:      "The Boar",

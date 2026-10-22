@@ -8,11 +8,15 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 )
 
+func idPtr(id types.ID) *types.ID {
+	return &id
+}
+
 func TestToNewLocation(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		subtypeID := types.ID(7)
 		loc, err := toNewLocation(input.CreateLocationInput{
-			ParentID:    3,
+			ParentID:    idPtr(3),
 			Type:        "structure",
 			SubtypeID:   &subtypeID,
 			Name:        "Tavern",
@@ -22,7 +26,7 @@ func TestToNewLocation(t *testing.T) {
 		if err != nil {
 			t.Fatalf("toNewLocation: %v", err)
 		}
-		if loc.ParentID != 3 || loc.Type != types.LocationType_STRUCTURE || loc.Name != "Tavern" {
+		if loc.ParentID == nil || *loc.ParentID != 3 || loc.Type != types.LocationType_STRUCTURE || loc.Name != "Tavern" {
 			t.Fatalf("unexpected location: %+v", loc)
 		}
 		if loc.SubtypeID == nil || *loc.SubtypeID != 7 {
@@ -30,15 +34,25 @@ func TestToNewLocation(t *testing.T) {
 		}
 	})
 
+	t.Run("root parent", func(t *testing.T) {
+		loc, err := toNewLocation(input.CreateLocationInput{Type: "world", Name: "x"})
+		if err != nil {
+			t.Fatalf("toNewLocation: %v", err)
+		}
+		if loc.ParentID != nil {
+			t.Fatalf("want nil parent for root, got %v", loc.ParentID)
+		}
+	})
+
 	t.Run("zero parent", func(t *testing.T) {
-		_, err := toNewLocation(input.CreateLocationInput{Type: "region", Name: "x"})
+		_, err := toNewLocation(input.CreateLocationInput{ParentID: idPtr(0), Type: "region", Name: "x"})
 		if err == nil || err.Error() != "parent id is zero" {
 			t.Fatalf("want parent id is zero, got %v", err)
 		}
 	})
 
 	t.Run("bad type", func(t *testing.T) {
-		_, err := toNewLocation(input.CreateLocationInput{ParentID: 1, Type: "nope", Name: "x"})
+		_, err := toNewLocation(input.CreateLocationInput{ParentID: idPtr(1), Type: "nope", Name: "x"})
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -47,7 +61,7 @@ func TestToNewLocation(t *testing.T) {
 	t.Run("zero subtype", func(t *testing.T) {
 		zero := types.ID(0)
 		_, err := toNewLocation(input.CreateLocationInput{
-			ParentID:  1,
+			ParentID:  idPtr(1),
 			Type:      "region",
 			SubtypeID: &zero,
 			Name:      "x",
@@ -61,7 +75,7 @@ func TestToNewLocation(t *testing.T) {
 func TestToCreatedAndGotLocation(t *testing.T) {
 	loc := locations.Location{
 		ID:          10,
-		ParentID:    10,
+		ParentID:    nil,
 		Type:        types.LocationType_WORLD,
 		Name:        "World",
 		Description: "big",
@@ -72,7 +86,7 @@ func TestToCreatedAndGotLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("toCreatedLocation: %v", err)
 	}
-	if created.ID != 10 || created.ParentID != 10 || created.Name != "World" {
+	if created.ID != 10 || created.ParentID != nil || created.Name != "World" {
 		t.Fatalf("unexpected created: %+v", created)
 	}
 
@@ -80,24 +94,27 @@ func TestToCreatedAndGotLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("toGotLocation: %v", err)
 	}
-	if got.Type != "world" || got.Description != "big" {
+	if got.Type != "world" || got.Description != "big" || got.ParentID != nil {
 		t.Fatalf("unexpected got: %+v", got)
 	}
 }
 
 func TestCheckLocation(t *testing.T) {
-	if err := checkLocation(locations.Location{ID: 0, ParentID: 1}); err == nil || err.Error() != "location id is zero" {
+	if err := checkLocation(locations.Location{ID: 0, ParentID: idPtr(1)}); err == nil || err.Error() != "location id is zero" {
 		t.Fatalf("want location id is zero, got %v", err)
 	}
-	if err := checkLocation(locations.Location{ID: 1, ParentID: 0}); err == nil || err.Error() != "parent id is zero" {
+	if err := checkLocation(locations.Location{ID: 1, ParentID: idPtr(0)}); err == nil || err.Error() != "parent id is zero" {
 		t.Fatalf("want parent id is zero, got %v", err)
+	}
+	if err := checkLocation(locations.Location{ID: 1, ParentID: nil}); err != nil {
+		t.Fatalf("root location should be valid: %v", err)
 	}
 }
 
 func TestToGotChildLocations(t *testing.T) {
 	children := map[int][]locations.Location{
-		1: {{ID: 2, ParentID: 1, Type: types.LocationType_REGION, Name: "A"}},
-		2: {{ID: 3, ParentID: 2, Type: types.LocationType_SITE, Name: "A1"}},
+		1: {{ID: 2, ParentID: idPtr(1), Type: types.LocationType_REGION, Name: "A"}},
+		2: {{ID: 3, ParentID: idPtr(2), Type: types.LocationType_SITE, Name: "A1"}},
 	}
 
 	out, err := toGotChildLocations(children)
@@ -109,7 +126,7 @@ func TestToGotChildLocations(t *testing.T) {
 	}
 
 	_, err = toGotChildLocations(map[int][]locations.Location{
-		1: {{ID: 0, ParentID: 1, Name: "bad"}},
+		1: {{ID: 0, ParentID: idPtr(1), Name: "bad"}},
 	})
 	if err == nil {
 		t.Fatal("expected validation error")

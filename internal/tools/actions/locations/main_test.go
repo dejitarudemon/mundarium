@@ -93,7 +93,7 @@ func resetDB(t *testing.T) {
 	}
 }
 
-func createLocationDefinitionPath(t *testing.T) string {
+func definitionsDir(t *testing.T) string {
 	t.Helper()
 
 	_, file, _, ok := runtime.Caller(0)
@@ -101,5 +101,15 @@ func createLocationDefinitionPath(t *testing.T) string {
 		t.Fatal("runtime.Caller failed")
 	}
 	// internal/tools/actions/locations -> repo root
-	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "definitions", "create_location.json"))
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "definitions"))
+}
+
+func createLocationDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "create_location.json")
+}
+
+func findLocationsDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "find_location.json")
 }

@@ -34,8 +34,7 @@ func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool,
 
 	complete, fail, err := e.journal.Register(parent, requestID, toolName)
 	if err != nil {
-		var already journal.AlreadyRegistered
-		if errors.As(err, &already) {
+		if _, ok := errors.AsType[journal.AlreadyRegistered](err); ok {
 			return e.resolveAlreadyRegistered(parent, toolName, requestID)
 		}
 		return nil, err

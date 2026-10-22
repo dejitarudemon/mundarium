@@ -10,6 +10,23 @@ import (
 // JSON is a JSONB-compatible value stored as raw JSON bytes.
 type JSON json.RawMessage
 
+// MarshalJSON implements json.Marshaler.
+func (j JSON) MarshalJSON() ([]byte, error) {
+	if len(j) == 0 {
+		return []byte("null"), nil
+	}
+	return json.RawMessage(j).MarshalJSON()
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *JSON) UnmarshalJSON(data []byte) error {
+	if j == nil {
+		return errors.New("types.JSON: UnmarshalJSON on nil pointer")
+	}
+	*j = append((*j)[0:0], data...)
+	return nil
+}
+
 // Scan implements sql.Scanner by decoding a database value into JSON.
 func (j *JSON) Scan(value any) error {
 	bytes, ok := value.([]byte)

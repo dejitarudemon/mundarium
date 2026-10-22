@@ -2,13 +2,13 @@ package journal
 
 import libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 
-// Request is a journaled service request and its outcome.
+// Request is a journaled tool invocation and its outcome.
 // Result is set when Status is completed; Error is set when Status is failed.
 type Request struct {
 	ID libjournal.RequestID
 
-	Action libjournal.Action
 	Status libjournal.Status
+	Tool   string // tool name, e.g. "create_location"
 
 	Result Result
 	Error  error

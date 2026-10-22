@@ -12,4 +12,7 @@ import (
 type Tool interface {
 	Definition() definition.Definition
 	Execute(ctx execution.ExecutionContext, arguments json.RawMessage) (json.RawMessage, error)
+	// IsIdempotent reports whether repeated Execute calls with the same request are safe
+	// without journal registration (e.g. pure reads).
+	IsIdempotent() bool
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolslocations "github.com/dejitarudemon/mundarium/internal/tools/actions/locations"
-	"github.com/google/uuid"
 )
 
 var (
@@ -29,7 +28,7 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
 
 	ctx, cancel, err := execution.NewExecutionContext(
 		context.Background(),
-		libjournal.RequestID(uuid.New()),
+		libjournal.RequestID("test-request"),
 		complete,
 		fail,
 	)
@@ -55,6 +54,9 @@ func TestNewCreateLocationTool_LoadsDefinition(t *testing.T) {
 	def := tool.Definition()
 	if def.Name != "create_location" {
 		t.Fatalf("want definition name create_location, got %q", def.Name)
+	}
+	if tool.IsIdempotent() {
+		t.Fatal("create_location must not be idempotent")
 	}
 }
 

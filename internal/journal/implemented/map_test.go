@@ -3,6 +3,8 @@ package implemented_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync/atomic"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
@@ -11,8 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
+var idSeq atomic.Uint64
+
 func newID() libjournal.RequestID {
-	return libjournal.RequestID(uuid.New())
+	return libjournal.RequestID(fmt.Sprintf("req-%d", idSeq.Add(1)))
 }
 
 func TestMapJournal_RegisterAndFind(t *testing.T) {
@@ -20,7 +24,7 @@ func TestMapJournal_RegisterAndFind(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	complete, fail, err := mj.Register(ctx, id, libjournal.Action_Create)
+	complete, fail, err := mj.Register(ctx, id, "create_location")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -32,7 +36,7 @@ func TestMapJournal_RegisterAndFind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find: %v", err)
 	}
-	if got.ID != id || got.Action != libjournal.Action_Create || got.Status != libjournal.Status_Running {
+	if got.ID != id || got.Tool != "create_location" || got.Status != libjournal.Status_Running {
 		t.Fatalf("unexpected request: %+v", got)
 	}
 	if got.Result != (journal.Result{}) || got.Error != nil {
@@ -45,17 +49,20 @@ func TestMapJournal_Register_AlreadyRegistered(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	if _, _, err := mj.Register(ctx, id, libjournal.Action_Get); err != nil {
+	if _, _, err := mj.Register(ctx, id, "get_location"); err != nil {
 		t.Fatalf("first Register: %v", err)
 	}
 
-	_, _, err := mj.Register(ctx, id, libjournal.Action_Create)
+	_, _, err := mj.Register(ctx, id, "create_location")
 	var already journal.AlreadyRegistered
 	if !errors.As(err, &already) {
 		t.Fatalf("want AlreadyRegistered, got %v", err)
 	}
 	if already.Request.ID != id {
 		t.Fatalf("want request id %s, got %s", id, already.Request.ID)
+	}
+	if already.Request.Tool != "get_location" {
+		t.Fatalf("want original tool get_location, got %q", already.Request.Tool)
 	}
 	if already.TracebackID() == uuid.Nil {
 		t.Fatal("expected non-nil traceback id")
@@ -67,7 +74,7 @@ func TestMapJournal_Complete(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	complete, _, err := mj.Register(ctx, id, libjournal.Action_Create)
+	complete, _, err := mj.Register(ctx, id, "create_location")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -87,6 +94,9 @@ func TestMapJournal_Complete(t *testing.T) {
 	}
 	if got.Status != libjournal.Status_Completed {
 		t.Fatalf("want completed, got %v", got.Status)
+	}
+	if got.Tool != "create_location" {
+		t.Fatalf("want tool preserved, got %q", got.Tool)
 	}
 	if got.Result.Entity != "LOCATION" || got.Result.Data != "ok" {
 		t.Fatalf("unexpected result: %#v", got.Result)
@@ -109,7 +119,7 @@ func TestMapJournal_Complete_AfterFail(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	_, fail, err := mj.Register(ctx, id, libjournal.Action_Patch)
+	_, fail, err := mj.Register(ctx, id, "patch_location")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -132,7 +142,7 @@ func TestMapJournal_Complete_AlreadyCompleted(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	complete, _, err := mj.Register(ctx, id, libjournal.Action_Create)
+	complete, _, err := mj.Register(ctx, id, "create_location")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -164,7 +174,7 @@ func TestMapJournal_Fail(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	_, fail, err := mj.Register(ctx, id, libjournal.Action_Update)
+	_, fail, err := mj.Register(ctx, id, "update_location")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -205,7 +215,7 @@ func TestMapJournal_Fail_AlreadyFailed(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	_, fail, err := mj.Register(ctx, id, libjournal.Action_Delete)
+	_, fail, err := mj.Register(ctx, id, "delete_location")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -236,7 +246,7 @@ func TestMapJournal_Fail_AfterComplete(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	complete, fail, err := mj.Register(ctx, id, libjournal.Action_Update)
+	complete, fail, err := mj.Register(ctx, id, "update_location")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -270,7 +280,7 @@ func TestMapJournal_Delete(t *testing.T) {
 	mj := implemented.NewMapJournal()
 	id := newID()
 
-	if _, _, err := mj.Register(ctx, id, libjournal.Action_Create); err != nil {
+	if _, _, err := mj.Register(ctx, id, "create_location"); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	if err := mj.Delete(ctx, id); err != nil {

@@ -6,10 +6,9 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
-	"github.com/google/uuid"
 )
 
 type completeRecorder struct {
@@ -33,13 +32,13 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 	t.Helper()
 
 	if rec == nil {
-		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), libjournal.RequestID(uuid.New()))
+		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), libjournal.RequestID("test-request"))
 		return ctx, cancel
 	}
 
 	ctx, cancel, err := execution.NewExecutionContext(
 		context.Background(),
-		libjournal.RequestID(uuid.New()),
+		libjournal.RequestID("test-request"),
 		rec.complete,
 		rec.fail,
 	)

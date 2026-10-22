@@ -26,9 +26,9 @@ func NewMapJournal() *MapJournal {
 	}
 }
 
-// Register stores a running request for id and returns Complete/Fail callbacks.
+// Register stores a running request for id under tool and returns Complete/Fail callbacks.
 // Returns AlreadyRegistered if id is already present.
-func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, action libjournal.Action) (journal.CompleteFunc, journal.FailFunc, error) {
+func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, tool string) (journal.CompleteFunc, journal.FailFunc, error) {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
@@ -38,7 +38,7 @@ func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, actio
 
 	mj.m[id] = journal.Request{
 		ID:     id,
-		Action: action,
+		Tool:   tool,
 		Status: libjournal.Status_Running,
 	}
 
@@ -62,7 +62,7 @@ func (mj *MapJournal) Complete(_ context.Context, id libjournal.RequestID, resul
 
 	mj.m[id] = journal.Request{
 		ID:     request.ID,
-		Action: request.Action,
+		Tool:   request.Tool,
 		Status: libjournal.Status_Completed,
 		Result: result,
 	}
@@ -87,7 +87,7 @@ func (mj *MapJournal) Fail(_ context.Context, id libjournal.RequestID, cause err
 
 	mj.m[id] = journal.Request{
 		ID:     request.ID,
-		Action: request.Action,
+		Tool:   request.Tool,
 		Status: libjournal.Status_Failed,
 		Error:  cause,
 	}

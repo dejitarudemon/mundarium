@@ -42,6 +42,11 @@ func (t *CreateLocationTool) Definition() definition.Definition {
 	return t.definition
 }
 
+// IsIdempotent reports that create_location is not safe to retry without journaling.
+func (t *CreateLocationTool) IsIdempotent() bool {
+	return false
+}
+
 // Execute unmarshals create-location args, calls the service, and returns JSON output.
 func (t *CreateLocationTool) Execute(ctx execution.ExecutionContext, args json.RawMessage) (json.RawMessage, error) {
 	location, err := t.unmarshal(args)

@@ -41,8 +41,8 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
 
 func TestNewCreateLocationTool_NilService(t *testing.T) {
 	_, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), nil)
-	if !errors.Is(err, actions.ServiceIsNil) {
-		t.Fatalf("want ServiceIsNil, got %v", err)
+	if !errors.Is(err, actions.ErrServiceIsNil) {
+		t.Fatalf("want ErrServiceIsNil, got %v", err)
 	}
 }
 

@@ -26,7 +26,7 @@ type CreateLocationTool struct {
 // NewCreateLocationTool loads the tool definition from file and binds service.
 func NewCreateLocationTool(file string, service *servicelocation.Service) (*CreateLocationTool, error) {
 	if service == nil {
-		return nil, actions.ServiceIsNil
+		return nil, actions.ErrServiceIsNil
 	}
 
 	def, err := actions.LoadDefinition(file)

@@ -9,6 +9,7 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
@@ -220,20 +221,40 @@ func TestExecuteNotIdempotent_CreateChild(t *testing.T) {
 	}
 }
 
-func TestExecuteNotIdempotent_ReplayCompleted(t *testing.T) {
+func TestExecuteNotIdempotent_SameIDsReplay(t *testing.T) {
 	resetDB(t)
 
-	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	call := masterCall("call-1", "create_location", json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`))
+	tool := newCreateLocationTool(t)
+	if tool.IsIdempotent() {
+		t.Fatal("create_location must be non-idempotent")
+	}
 
-	first, err := ex.Execute(context.Background(), "inv-1", call)
+	j := implemented.NewMapJournal()
+	ex := newExecutor(t, j, tool)
+
+	const (
+		invokeID = "inv-1"
+		callID   = "call-1"
+	)
+	call := masterCall(callID, "create_location", json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`))
+
+	first, err := ex.Execute(context.Background(), invokeID, call)
 	if err != nil {
 		t.Fatalf("first Execute: %v", err)
 	}
 
-	second, err := ex.Execute(context.Background(), "inv-1", call)
+	req, err := j.Find(context.Background(), callID, invokeID)
 	if err != nil {
-		t.Fatalf("second Execute: %v", err)
+		t.Fatalf("Find after first: %v", err)
+	}
+	if req.Status != libjournal.Status_Completed {
+		t.Fatalf("after first Execute want completed, got %s", req.Status)
+	}
+
+	// Same invokeID + call.ID: journal hits AlreadyRegistered and returns the stored result.
+	second, err := ex.Execute(context.Background(), invokeID, call)
+	if err != nil {
+		t.Fatalf("second Execute with same ids: %v", err)
 	}
 	if string(first) != string(second) {
 		t.Fatalf("replay mismatch:\nfirst=%s\nsecond=%s", first, second)
@@ -244,7 +265,7 @@ func TestExecuteNotIdempotent_ReplayCompleted(t *testing.T) {
 		t.Fatalf("count: %v", err)
 	}
 	if count != 1 {
-		t.Fatalf("completed request must not create twice, count=%d", count)
+		t.Fatalf("same ids must not create twice, count=%d", count)
 	}
 }
 

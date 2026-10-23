@@ -8,7 +8,6 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
@@ -99,6 +98,45 @@ func TestAllowed(t *testing.T) {
 	}
 	if got := ex.Allowed(providers.Role("guest")); len(got) != 0 {
 		t.Fatalf("want no tools for guest, got %#v", got)
+	}
+}
+
+func TestExecuteIdempotent_FindLocations(t *testing.T) {
+	resetDB(t)
+
+	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+		ParentID: nil,
+		Type:     types.LocationType_WORLD,
+		Name:     "World",
+	})
+	if err != nil {
+		t.Fatalf("seed root: %v", err)
+	}
+
+	ex := newExecutor(t, nil, newFindLocationsTool(t))
+	args, err := json.Marshal(map[string]any{
+		"scope_id": root.ID,
+		"depth":    0,
+	})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	got, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "find_locations", args))
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	var out struct {
+		Scope struct {
+			Name string `json:"name"`
+		} `json:"scope"`
+	}
+	if err := json.Unmarshal(got, &out); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if out.Scope.Name != "World" {
+		t.Fatalf("want World scope, got %#v", out)
 	}
 }
 
@@ -217,8 +255,7 @@ func TestExecuteNotIdempotent_StillRunning(t *testing.T) {
 	ex := newExecutor(t, j, newCreateLocationTool(t))
 
 	args := json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`)
-	requestID := libjournal.RequestID("inv-1:call-1")
-	if _, _, err := j.Register(context.Background(), requestID, "create_location", mustHashArgs(t, args)); err != nil {
+	if _, _, err := j.Register(context.Background(), "call-1", "inv-1", "create_location", mustHashArgs(t, args)); err != nil {
 		t.Fatalf("seed Register: %v", err)
 	}
 
@@ -243,8 +280,7 @@ func TestExecuteNotIdempotent_ToolMismatch(t *testing.T) {
 	ex := newExecutor(t, j, newCreateLocationTool(t))
 
 	args := json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`)
-	requestID := libjournal.RequestID("inv-1:call-1")
-	if _, _, err := j.Register(context.Background(), requestID, "other_tool", mustHashArgs(t, args)); err != nil {
+	if _, _, err := j.Register(context.Background(), "call-1", "inv-1", "other_tool", mustHashArgs(t, args)); err != nil {
 		t.Fatalf("seed Register: %v", err)
 	}
 

@@ -1,7 +1,6 @@
 package locations
 
 import (
-	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
@@ -16,7 +15,7 @@ const locationEntity = "LOCATION"
 func (s *Service) CreateLocation(ctx execution.ExecutionContext, input input.CreateLocationInput) (output.CreateLocationOutput, error) {
 	location, err := toNewLocation(input)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 
 		return output.CreateLocationOutput{}, err
 	}
@@ -37,15 +36,15 @@ func (s *Service) CreateLocation(ctx execution.ExecutionContext, input input.Cre
 			}
 
 			return ctx.Complete(
-				journal.Result{
+				libjournal.Result{
 					Action: libjournal.Action_Create,
 					Entity: locationEntity,
 					Data:   result,
-				},
+				}, tx,
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.CreateLocationOutput{}, err
 	}
 
@@ -56,24 +55,24 @@ func (s *Service) CreateLocation(ctx execution.ExecutionContext, input input.Cre
 func (s *Service) GetLocation(ctx execution.ExecutionContext, id types.ID) (output.GetLocationOutput, error) {
 	location, err := s.repository().GetLocation(ctx, id)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.GetLocationOutput{}, err
 	}
 
 	result, err := toGotLocation(*location)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.GetLocationOutput{}, err
 	}
 
 	if err := ctx.Complete(
-		journal.Result{
+		libjournal.Result{
 			Action: libjournal.Action_Get,
 			Entity: locationEntity,
 			Data:   result,
-		},
+		}, s.connection.DB(),
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.GetLocationOutput{}, err
 	}
 
@@ -84,30 +83,30 @@ func (s *Service) GetLocation(ctx execution.ExecutionContext, id types.ID) (outp
 func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLocationsInput) (output.FindLocationsOutput, error) {
 	filter, limit, err := toFindLocationsFilter(in)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.FindLocationsOutput{}, err
 	}
 
 	locs, err := s.repository().FindLocations(ctx, filter)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.FindLocationsOutput{}, err
 	}
 
 	result, err := toFoundLocations(locs, limit)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.FindLocationsOutput{}, err
 	}
 
 	if err := ctx.Complete(
-		journal.Result{
+		libjournal.Result{
 			Action: libjournal.Action_Get,
 			Entity: locationEntity,
 			Data:   result,
-		},
+		}, s.connection.DB(),
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return output.FindLocationsOutput{}, err
 	}
 
@@ -119,24 +118,24 @@ func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLoc
 func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id types.ID, depth int) (output.FindChildLocationsOutput, error) {
 	children, err := s.repository().FindChildLocations(ctx, id, depth, false)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return nil, err
 	}
 
 	result, err := toGotChildLocations(children)
 	if err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return nil, err
 	}
 
 	if err := ctx.Complete(
-		journal.Result{
+		libjournal.Result{
 			Action: libjournal.Action_Get,
 			Entity: locationEntity,
 			Data:   result,
-		},
+		}, s.connection.DB(),
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return nil, err
 	}
 
@@ -154,15 +153,15 @@ func (s *Service) MoveLocation(ctx execution.ExecutionContext, id types.ID, pare
 			}
 
 			return ctx.Complete(
-				journal.Result{
+				libjournal.Result{
 					Action: libjournal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
-				},
+				}, tx,
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return err
 	}
 
@@ -179,15 +178,15 @@ func (s *Service) RenameLocation(ctx execution.ExecutionContext, id types.ID, na
 			}
 
 			return ctx.Complete(
-				journal.Result{
+				libjournal.Result{
 					Action: libjournal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
-				},
+				}, tx,
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return err
 	}
 
@@ -204,15 +203,15 @@ func (s *Service) UpdateLocationDetails(ctx execution.ExecutionContext, id types
 			}
 
 			return ctx.Complete(
-				journal.Result{
+				libjournal.Result{
 					Action: libjournal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
-				},
+				}, tx,
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return err
 	}
 
@@ -229,15 +228,15 @@ func (s *Service) UpdateLocationDescription(ctx execution.ExecutionContext, id t
 			}
 
 			return ctx.Complete(
-				journal.Result{
+				libjournal.Result{
 					Action: libjournal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
-				},
+				}, tx,
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err)
+		_ = ctx.Fail(err, s.connection.DB())
 		return err
 	}
 

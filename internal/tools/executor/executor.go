@@ -9,8 +9,6 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
 )
 
-const IDSep = ":"
-
 type Executor struct {
 	tools   map[string]tools.Tool
 	journal journal.Journal

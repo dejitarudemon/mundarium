@@ -4,26 +4,26 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"gorm.io/gorm"
 )
 
 type completeRecorder struct {
-	calls     []journal.Result
+	calls     []libjournal.Result
 	failCalls []error
 	err       error
 	failErr   error
 }
 
-func (r *completeRecorder) complete(ctx context.Context, requestID libjournal.RequestID, result journal.Result) error {
+func (r *completeRecorder) complete(ctx context.Context, requestID, groupRequestID libjournal.RequestID, result libjournal.Result, tx *gorm.DB) error {
 	r.calls = append(r.calls, result)
 	return r.err
 }
 
-func (r *completeRecorder) fail(ctx context.Context, requestID libjournal.RequestID, cause error) error {
+func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID libjournal.RequestID, cause error, tx *gorm.DB) error {
 	r.failCalls = append(r.failCalls, cause)
 	return r.failErr
 }
@@ -31,14 +31,18 @@ func (r *completeRecorder) fail(ctx context.Context, requestID libjournal.Reques
 func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext, context.CancelFunc) {
 	t.Helper()
 
+	requestID := libjournal.RequestID("test-request")
+	groupID := libjournal.RequestID("test-group")
+
 	if rec == nil {
-		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), libjournal.RequestID("test-request"))
+		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), requestID, groupID)
 		return ctx, cancel
 	}
 
 	ctx, cancel, err := execution.NewExecutionContext(
 		context.Background(),
-		libjournal.RequestID("test-request"),
+		requestID,
+		groupID,
 		rec.complete,
 		rec.fail,
 	)

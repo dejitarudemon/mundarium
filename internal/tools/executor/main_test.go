@@ -94,7 +94,7 @@ func resetDB(t *testing.T) {
 	}
 }
 
-func createLocationDefinitionPath(t *testing.T) string {
+func definitionsDir(t *testing.T) string {
 	t.Helper()
 
 	_, file, _, ok := runtime.Caller(0)
@@ -102,7 +102,17 @@ func createLocationDefinitionPath(t *testing.T) string {
 		t.Fatal("runtime.Caller failed")
 	}
 	// internal/tools/executor -> repo root
-	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "definitions", "create_location.json"))
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "definitions"))
+}
+
+func createLocationDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "create_location.json")
+}
+
+func findLocationsDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "find_location.json")
 }
 
 func newCreateLocationTool(t *testing.T) *toolslocations.CreateLocationTool {
@@ -111,6 +121,16 @@ func newCreateLocationTool(t *testing.T) *toolslocations.CreateLocationTool {
 	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc)
 	if err != nil {
 		t.Fatalf("NewCreateLocationTool: %v", err)
+	}
+	return tool
+}
+
+func newFindLocationsTool(t *testing.T) *toolslocations.FindLocationsTool {
+	t.Helper()
+
+	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc)
+	if err != nil {
+		t.Fatalf("NewFindLocationsTool: %v", err)
 	}
 	return tool
 }

@@ -17,20 +17,18 @@ import (
 )
 
 // Execute runs call against a registered tool.
-// Non-idempotent tools are journaled by request id derived from invokeID and call.ID.
+// Non-idempotent tools are journaled under group invokeID and request call.ID.
 func (e *Executor) Execute(ctx context.Context, invokeID string, call libtools.Call) (json.RawMessage, error) {
 	tool, err := e.lookup(call.Name, call.Role)
 	if err != nil {
 		return nil, err
 	}
 
-	requestID := createRequestID(invokeID, call.ID)
-
 	if tool.IsIdempotent() {
-		return e.executeIdempotent(ctx, tool, requestID, call.Args)
+		return e.executeIdempotent(ctx, tool, invokeID, call.ID, call.Args)
 	}
 
-	return e.executeNotIdempotent(ctx, tool, requestID, call.Args)
+	return e.executeNotIdempotent(ctx, tool, invokeID, call.ID, call.Args)
 }
 
 // lookup resolves a registered tool and checks role permission under the read lock.
@@ -48,19 +46,19 @@ func (e *Executor) lookup(name string, role providers.Role) (tools.Tool, error) 
 	return tool, nil
 }
 
-func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, requestID libjournal.RequestID, args json.RawMessage) (json.RawMessage, error) {
+func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, args json.RawMessage) (json.RawMessage, error) {
 	toolName := tool.Definition().Name
 	argsHash := hashArgs(args)
 
-	complete, fail, err := e.journal.Register(parent, requestID, toolName, argsHash)
+	complete, fail, err := e.journal.Register(parent, toJournalID(callID), toJournalID(invokeID), toolName, argsHash)
 	if err != nil {
 		if _, ok := errors.AsType[journal.AlreadyRegistered](err); ok {
-			return e.resolveAlreadyRegistered(parent, toolName, requestID, argsHash)
+			return e.resolveAlreadyRegistered(parent, toolName, callID, invokeID, argsHash)
 		}
 		return nil, err
 	}
 
-	ctx, cancel, err := execution.NewExecutionContext(parent, requestID, complete, fail)
+	ctx, cancel, err := execution.NewExecutionContext(parent, toJournalID(callID), toJournalID(invokeID), complete, fail)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +67,8 @@ func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool,
 	return tool.Execute(ctx, args)
 }
 
-func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string, requestID libjournal.RequestID, argsHash []byte) (json.RawMessage, error) {
-	req, err := e.journal.Find(ctx, requestID)
+func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string, callID, invokeID string, argsHash []byte) (json.RawMessage, error) {
+	req, err := e.journal.Find(ctx, toJournalID(callID), toJournalID(invokeID))
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +95,8 @@ func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string
 	}
 }
 
-func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, requestID libjournal.RequestID, args json.RawMessage) (json.RawMessage, error) {
-	ctx, cancel := execution.NewExecutionContextWithoutCallback(parent, requestID)
+func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, args json.RawMessage) (json.RawMessage, error) {
+	ctx, cancel := execution.NewExecutionContextWithoutCallback(parent, toJournalID(callID), toJournalID(invokeID))
 	defer cancel()
 
 	return tool.Execute(ctx, args)

@@ -103,7 +103,7 @@ func (mj *MapJournal) Fail(_ context.Context, requestID, groupRequestID libjourn
 	}
 
 	request.Status = libjournal.Status_Failed
-	request.Error = cause
+	request.Error = libjournal.ErrorTextFrom(cause)
 	return group.Swap(request)
 }
 

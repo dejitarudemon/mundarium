@@ -61,7 +61,7 @@ func TestMapJournal_RegisterAndFind(t *testing.T) {
 	if got2.ArgsHash[0] != 0x01 {
 		t.Fatal("Find must return a copy of ArgsHash")
 	}
-	if got.Result != (libjournal.Result{}) || got.Error != nil {
+	if got.Result != (libjournal.Result{}) || got.Error.Err() != nil {
 		t.Fatalf("running request must have empty outcome: %+v", got)
 	}
 }
@@ -250,7 +250,7 @@ func TestMapJournal_Fail(t *testing.T) {
 	if got.Status != libjournal.Status_Failed {
 		t.Fatalf("want failed, got %v", got.Status)
 	}
-	if got.Error == nil || got.Error.Error() != "failed op" {
+	if got.Error.Err() == nil || got.Error.Error() != "failed op" {
 		t.Fatalf("unexpected error: %v", got.Error)
 	}
 }
@@ -295,7 +295,7 @@ func TestMapJournal_Fail_AlreadyFailed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find: %v", err)
 	}
-	if got.Error == nil || got.Error.Error() != "first" {
+	if got.Error.Err() == nil || got.Error.Error() != "first" {
 		t.Fatalf("failed request must keep first error: %v", got.Error)
 	}
 }

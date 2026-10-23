@@ -5,18 +5,18 @@ import "time"
 // Request is a journaled tool invocation and its outcome.
 // Result is set when Status is completed; Error is set when Status is failed.
 type Request struct {
-	ID      RequestID `json:"id"`
-	GroupID RequestID `json:"group_id"`
+	ID      RequestID `gorm:"primaryKey;type:text" json:"id"`
+	GroupID RequestID `gorm:"primaryKey;type:text;index" json:"group_id"`
 
-	CreatedAt time.Time  `json:"created_at"`
-	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	CreatedAt time.Time  `gorm:"not null" json:"created_at"`
+	ExpiresAt *time.Time `gorm:"index" json:"expires_at,omitempty"`
 
-	Status   Status `json:"status"`
-	Tool     string `json:"tool"`      // tool name, e.g. "create_location"
-	ArgsHash []byte `json:"args_hash"` // blake2b digest of tool args; computed by the executor
+	Status   Status `gorm:"not null;type:text" json:"status"`
+	Tool     string `gorm:"not null;type:text" json:"tool"` // tool name, e.g. "create_location"
+	ArgsHash []byte `gorm:"type:bytea" json:"args_hash"`    // blake2b digest of tool args; computed by the executor
 
-	Result Result `json:"result"`
-	Error  error  `json:"error,omitempty"`
+	Result Result    `gorm:"serializer:json;type:jsonb" json:"result"`
+	Error  ErrorText `gorm:"column:error;type:text" json:"error,omitempty"`
 }
 
 // IsExpired reports whether the request is past its soft ExpiresAt and/or hardTTL.

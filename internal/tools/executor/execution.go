@@ -86,8 +86,8 @@ func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string
 	case libjournal.Status_Running:
 		return nil, ErrRequestStillRunning
 	case libjournal.Status_Failed:
-		if req.Error != nil {
-			return nil, req.Error
+		if err := req.Error.Err(); err != nil {
+			return nil, err
 		}
 		return nil, ErrRequestAlreadyFailed
 	default:

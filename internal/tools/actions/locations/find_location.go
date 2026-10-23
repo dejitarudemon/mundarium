@@ -36,9 +36,9 @@ func NewFindLocationsTool(file string, service *servicelocation.Service) (*FindL
 	return &FindLocationsTool{service: service, definition: def}, nil
 }
 
-// Definition returns the loaded tool schema.
+// Definition returns a copy of the loaded tool schema.
 func (t *FindLocationsTool) Definition() definition.Definition {
-	return t.definition
+	return t.definition.Copy()
 }
 
 // IsIdempotent reports that find_locations is safe to retry without journaling.

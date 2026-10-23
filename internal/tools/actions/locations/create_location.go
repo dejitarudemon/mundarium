@@ -37,9 +37,9 @@ func NewCreateLocationTool(file string, service *servicelocation.Service) (*Crea
 	return &CreateLocationTool{service: service, definition: def}, nil
 }
 
-// Definition returns the loaded tool schema.
+// Definition returns a copy of the loaded tool schema.
 func (t *CreateLocationTool) Definition() definition.Definition {
-	return t.definition
+	return t.definition.Copy()
 }
 
 // IsIdempotent reports that create_location is not safe to retry without journaling.

@@ -55,6 +55,14 @@ func TestNewCreateLocationTool_LoadsDefinition(t *testing.T) {
 	if def.Name != "create_location" {
 		t.Fatalf("want definition name create_location, got %q", def.Name)
 	}
+	def.Name = "mutated"
+	if len(def.Parameters) > 0 {
+		def.Parameters[0] ^= 0xff
+	}
+	again := tool.Definition()
+	if again.Name != "create_location" {
+		t.Fatalf("Definition must return a copy, got %q", again.Name)
+	}
 	if tool.IsIdempotent() {
 		t.Fatal("create_location must not be idempotent")
 	}

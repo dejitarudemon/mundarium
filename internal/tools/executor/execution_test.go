@@ -10,12 +10,22 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
 	"golang.org/x/crypto/blake2b"
 )
+
+func masterCall(id, name string, args json.RawMessage) libtools.Call {
+	return libtools.Call{
+		ID:   id,
+		Name: name,
+		Role: providers.Role_Master,
+		Args: args,
+	}
+}
 
 func mustHashArgs(t *testing.T, args json.RawMessage) []byte {
 	t.Helper()
@@ -37,7 +47,7 @@ func newExecutor(t *testing.T, j journal.Journal, tool tools.Tool) *executor.Exe
 		t.Fatalf("NewExecutor: %v", err)
 	}
 	if tool != nil {
-		if err := ex.Register(tool); err != nil {
+		if err := ex.Register(tool, []providers.Role{providers.Role_Master}); err != nil {
 			t.Fatalf("Register: %v", err)
 		}
 	}
@@ -46,9 +56,49 @@ func newExecutor(t *testing.T, j journal.Journal, tool tools.Tool) *executor.Exe
 
 func TestExecute_ToolNotFound(t *testing.T) {
 	ex := newExecutor(t, nil, nil)
-	_, err := ex.Execute(context.Background(), "inv-1", libtools.Call{ID: "c1", Name: "missing"})
+	_, err := ex.Execute(context.Background(), "inv-1", masterCall("c1", "missing", nil))
 	if !errors.Is(err, executor.ErrToolNotFound) {
 		t.Fatalf("want ErrToolNotFound, got %v", err)
+	}
+}
+
+func TestExecute_PermissionDenied(t *testing.T) {
+	resetDB(t)
+
+	ex := newExecutor(t, nil, newCreateLocationTool(t))
+	_, err := ex.Execute(context.Background(), "inv-1", libtools.Call{
+		ID:   "c1",
+		Name: "create_location",
+		Role: providers.Role("guest"),
+		Args: json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`),
+	})
+	if !errors.Is(err, executor.ErrPermissionDenied) {
+		t.Fatalf("want ErrPermissionDenied, got %v", err)
+	}
+}
+
+func TestAllowed(t *testing.T) {
+	resetDB(t)
+
+	ex := newExecutor(t, nil, newCreateLocationTool(t))
+	defs := ex.Allowed(providers.Role_Master)
+	if len(defs) != 1 || defs[0].Name != "create_location" {
+		t.Fatalf("want create_location for master, got %#v", defs)
+	}
+	origParams := string(defs[0].Parameters)
+	defs[0].Name = "mutated"
+	if len(defs[0].Parameters) > 0 {
+		defs[0].Parameters[0] ^= 0xff
+	}
+	again := ex.Allowed(providers.Role_Master)
+	if len(again) != 1 || again[0].Name != "create_location" {
+		t.Fatalf("Allowed must return a copy, got %#v", again)
+	}
+	if string(again[0].Parameters) != origParams {
+		t.Fatalf("Allowed must clone Parameters, got %s want %s", again[0].Parameters, origParams)
+	}
+	if got := ex.Allowed(providers.Role("guest")); len(got) != 0 {
+		t.Fatalf("want no tools for guest, got %#v", got)
 	}
 }
 
@@ -56,17 +106,13 @@ func TestExecuteNotIdempotent_CreateRoot(t *testing.T) {
 	resetDB(t)
 
 	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	got, err := ex.Execute(context.Background(), "inv-1", libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: json.RawMessage(`{
+	got, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", json.RawMessage(`{
 			"name":"World",
 			"parent_id":null,
 			"type":"world",
 			"description":"prime",
 			"details":{"tier":1}
-		}`),
-	})
+		}`)))
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -118,11 +164,7 @@ func TestExecuteNotIdempotent_CreateChild(t *testing.T) {
 	}
 
 	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	got, err := ex.Execute(context.Background(), "inv-1", libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: args,
-	})
+	got, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", args))
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -144,11 +186,7 @@ func TestExecuteNotIdempotent_ReplayCompleted(t *testing.T) {
 	resetDB(t)
 
 	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	call := libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`),
-	}
+	call := masterCall("call-1", "create_location", json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`))
 
 	first, err := ex.Execute(context.Background(), "inv-1", call)
 	if err != nil {
@@ -184,11 +222,7 @@ func TestExecuteNotIdempotent_StillRunning(t *testing.T) {
 		t.Fatalf("seed Register: %v", err)
 	}
 
-	_, err := ex.Execute(context.Background(), "inv-1", libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: args,
-	})
+	_, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", args))
 	if !errors.Is(err, executor.ErrRequestStillRunning) {
 		t.Fatalf("want ErrRequestStillRunning, got %v", err)
 	}
@@ -214,11 +248,7 @@ func TestExecuteNotIdempotent_ToolMismatch(t *testing.T) {
 		t.Fatalf("seed Register: %v", err)
 	}
 
-	_, err := ex.Execute(context.Background(), "inv-1", libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: args,
-	})
+	_, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", args))
 	if !errors.Is(err, executor.ErrRequestToolMismatch) {
 		t.Fatalf("want ErrRequestToolMismatch, got %v", err)
 	}
@@ -228,20 +258,12 @@ func TestExecuteNotIdempotent_ArgsMismatch(t *testing.T) {
 	resetDB(t)
 
 	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	first := libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`),
-	}
+	first := masterCall("call-1", "create_location", json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`))
 	if _, err := ex.Execute(context.Background(), "inv-1", first); err != nil {
 		t.Fatalf("first Execute: %v", err)
 	}
 
-	_, err := ex.Execute(context.Background(), "inv-1", libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: json.RawMessage(`{"name":"Other","parent_id":null,"type":"world"}`),
-	})
+	_, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", json.RawMessage(`{"name":"Other","parent_id":null,"type":"world"}`)))
 	if !errors.Is(err, executor.ErrRequestArgsMismatch) {
 		t.Fatalf("want ErrRequestArgsMismatch, got %v", err)
 	}
@@ -259,11 +281,7 @@ func TestExecuteNotIdempotent_AlreadyFailed(t *testing.T) {
 	resetDB(t)
 
 	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	call := libtools.Call{
-		ID:   "call-1",
-		Name: "create_location",
-		Args: json.RawMessage(`{"name":"X","parent_id":0,"type":"region"}`),
-	}
+	call := masterCall("call-1", "create_location", json.RawMessage(`{"name":"X","parent_id":0,"type":"region"}`))
 
 	_, err := ex.Execute(context.Background(), "inv-1", call)
 	if err == nil || err.Error() != "parent id is zero" {

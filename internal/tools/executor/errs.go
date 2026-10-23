@@ -19,4 +19,7 @@ var (
 	ErrRequestAlreadyFailed = errors.New("request already failed")
 	// ErrUnexpectedRequestStatus is returned when a journaled request has an unknown status.
 	ErrUnexpectedRequestStatus = errors.New("unexpected request status")
+
+	// ErrPermissionDenied is returned when the caller's role may not invoke the tool.
+	ErrPermissionDenied = errors.New("tool call denied")
 )

@@ -5,20 +5,23 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools"
+	"github.com/dejitarudemon/mundarium/internal/tools/definition"
 )
 
 // Execute runs call against a registered tool.
 // Non-idempotent tools are journaled by request id derived from invokeID and call.ID.
 func (e *Executor) Execute(ctx context.Context, invokeID string, call libtools.Call) (json.RawMessage, error) {
-	tool, ok := e.tools[call.Name]
-	if !ok {
-		return nil, ErrToolNotFound
+	tool, err := e.lookup(call.Name, call.Role)
+	if err != nil {
+		return nil, err
 	}
 
 	requestID := createRequestID(invokeID, call.ID)
@@ -28,6 +31,21 @@ func (e *Executor) Execute(ctx context.Context, invokeID string, call libtools.C
 	}
 
 	return e.executeNotIdempotent(ctx, tool, requestID, call.Args)
+}
+
+// lookup resolves a registered tool and checks role permission under the read lock.
+func (e *Executor) lookup(name string, role providers.Role) (tools.Tool, error) {
+	e.mx.RLock()
+	defer e.mx.RUnlock()
+
+	tool, ok := e.tools[name]
+	if !ok {
+		return nil, ErrToolNotFound
+	}
+	if err := e.checkPermission(role, tool.Definition()); err != nil {
+		return nil, err
+	}
+	return tool, nil
 }
 
 func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, requestID libjournal.RequestID, args json.RawMessage) (json.RawMessage, error) {
@@ -84,4 +102,19 @@ func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, re
 	defer cancel()
 
 	return tool.Execute(ctx, args)
+}
+
+func (e *Executor) checkPermission(role providers.Role, def definition.Definition) error {
+	defs, ok := e.allowed[role]
+	if !ok {
+		return ErrPermissionDenied
+	}
+
+	if !slices.ContainsFunc(defs, func(d definition.Definition) bool {
+		return d.Name == def.Name
+	}) {
+		return ErrPermissionDenied
+	}
+
+	return nil
 }

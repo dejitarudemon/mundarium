@@ -1,6 +1,7 @@
 package journal
 
 import (
+	"errors"
 	"fmt"
 
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
@@ -11,6 +12,11 @@ var (
 	_ JournalError = AlreadyRegistered{}
 	_ JournalError = NotFound{}
 	_ JournalError = StatusConflict{}
+)
+
+var (
+	// ErrGroupIsClosed is returned when registering into a group that was already closed.
+	ErrGroupIsClosed = errors.New("group is closed")
 )
 
 // JournalError is a journal domain error that carries a traceback id.
@@ -27,11 +33,11 @@ func generateTracebackID() uuid.UUID {
 // AlreadyRegistered indicates a request id is already present in the journal.
 type AlreadyRegistered struct {
 	tracebackID uuid.UUID
-	Request     Request
+	Request     libjournal.Request
 }
 
 // NewAlreadyRegistered creates an AlreadyRegistered error for request.
-func NewAlreadyRegistered(request Request) AlreadyRegistered {
+func NewAlreadyRegistered(request libjournal.Request) AlreadyRegistered {
 	return AlreadyRegistered{
 		tracebackID: generateTracebackID(),
 		Request:     request,
@@ -39,7 +45,7 @@ func NewAlreadyRegistered(request Request) AlreadyRegistered {
 }
 
 // NewAlreadyRegisteredWithTracebackID creates an AlreadyRegistered error with a fixed traceback id.
-func NewAlreadyRegisteredWithTracebackID(request Request, tracebackID uuid.UUID) AlreadyRegistered {
+func NewAlreadyRegisteredWithTracebackID(request libjournal.Request, tracebackID uuid.UUID) AlreadyRegistered {
 	return AlreadyRegistered{
 		tracebackID: tracebackID,
 		Request:     request,
@@ -47,7 +53,7 @@ func NewAlreadyRegisteredWithTracebackID(request Request, tracebackID uuid.UUID)
 }
 
 func (e AlreadyRegistered) Error() string {
-	return fmt.Sprintf("request (%s) is already registered", e.Request.ID)
+	return fmt.Sprintf("request (%s from group %s) is already registered", e.Request.ID, e.Request.GroupID)
 }
 
 // TracebackID returns the error traceback identifier.
@@ -57,28 +63,31 @@ func (e AlreadyRegistered) TracebackID() uuid.UUID {
 
 // NotFound indicates a request id is missing from the journal.
 type NotFound struct {
-	tracebackID uuid.UUID
-	ID          libjournal.RequestID
+	tracebackID    uuid.UUID
+	GroupRequestID libjournal.RequestID
+	RequestID      libjournal.RequestID
 }
 
 // NewNotFound creates a NotFound error for id.
-func NewNotFound(id libjournal.RequestID) NotFound {
+func NewNotFound(requestID, groupRequestID libjournal.RequestID) NotFound {
 	return NotFound{
-		tracebackID: generateTracebackID(),
-		ID:          id,
+		tracebackID:    generateTracebackID(),
+		RequestID:      requestID,
+		GroupRequestID: groupRequestID,
 	}
 }
 
 // NewNotFoundWithTracebackID creates a NotFound error with a fixed traceback id.
-func NewNotFoundWithTracebackID(id libjournal.RequestID, tracebackID uuid.UUID) NotFound {
+func NewNotFoundWithTracebackID(requestID, groupRequestID libjournal.RequestID, tracebackID uuid.UUID) NotFound {
 	return NotFound{
-		tracebackID: tracebackID,
-		ID:          id,
+		tracebackID:    tracebackID,
+		RequestID:      requestID,
+		GroupRequestID: groupRequestID,
 	}
 }
 
 func (e NotFound) Error() string {
-	return fmt.Sprintf("request (%s) not found", e.ID)
+	return fmt.Sprintf("request (%s from group %s) not found", e.RequestID, e.GroupRequestID)
 }
 
 // TracebackID returns the error traceback identifier.
@@ -88,34 +97,37 @@ func (e NotFound) TracebackID() uuid.UUID {
 
 // StatusConflict indicates an illegal status transition for a request.
 type StatusConflict struct {
-	tracebackID uuid.UUID
-	ID          libjournal.RequestID
-	Actual      libjournal.Status
-	Got         libjournal.Status
+	tracebackID    uuid.UUID
+	RequestID      libjournal.RequestID
+	GroupRequestID libjournal.RequestID
+	Actual         libjournal.Status
+	Got            libjournal.Status
 }
 
 // NewStatusConflict creates a StatusConflict for attempting to set got while actual is present.
-func NewStatusConflict(id libjournal.RequestID, got, actual libjournal.Status) StatusConflict {
+func NewStatusConflict(requestID, groupRequestID libjournal.RequestID, got, actual libjournal.Status) StatusConflict {
 	return StatusConflict{
-		tracebackID: generateTracebackID(),
-		ID:          id,
-		Actual:      actual,
-		Got:         got,
+		tracebackID:    generateTracebackID(),
+		RequestID:      requestID,
+		GroupRequestID: groupRequestID,
+		Actual:         actual,
+		Got:            got,
 	}
 }
 
 // NewStatusConflictWithTracebackID creates a StatusConflict with a fixed traceback id.
-func NewStatusConflictWithTracebackID(id libjournal.RequestID, got, actual libjournal.Status, tracebackID uuid.UUID) StatusConflict {
+func NewStatusConflictWithTracebackID(requestID, groupRequestID libjournal.RequestID, got, actual libjournal.Status, tracebackID uuid.UUID) StatusConflict {
 	return StatusConflict{
-		tracebackID: tracebackID,
-		ID:          id,
-		Actual:      actual,
-		Got:         got,
+		tracebackID:    tracebackID,
+		RequestID:      requestID,
+		GroupRequestID: groupRequestID,
+		Actual:         actual,
+		Got:            got,
 	}
 }
 
 func (e StatusConflict) Error() string {
-	return fmt.Sprintf("attempt to set %v status, but request (%s) has %v status", e.Got, e.ID, e.Actual)
+	return fmt.Sprintf("attempt to set %v status, but request (%s from group %s) has %v status", e.Got, e.RequestID, e.GroupRequestID, e.Actual)
 }
 
 // TracebackID returns the error traceback identifier.

@@ -4,133 +4,176 @@ package implemented
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"gorm.io/gorm"
 )
 
 var (
 	_ journal.Journal = (*MapJournal)(nil)
 )
 
-// MapJournal is an in-memory Journal backed by a map.
+// MapJournal is an in-memory Journal backed by a map keyed by group then request id.
 type MapJournal struct {
-	m  map[libjournal.RequestID]journal.Request
+	m  map[libjournal.RequestID]*MapGroup
 	mu sync.RWMutex
 }
 
 // NewMapJournal creates an empty MapJournal.
 func NewMapJournal() *MapJournal {
 	return &MapJournal{
-		m: make(map[libjournal.RequestID]journal.Request),
+		m: make(map[libjournal.RequestID]*MapGroup),
 	}
 }
 
-// Register stores a running request for id under tool with argsHash and returns Complete/Fail callbacks.
-// Returns AlreadyRegistered if id is already present.
-func (mj *MapJournal) Register(_ context.Context, id libjournal.RequestID, tool string, argsHash []byte) (journal.CompleteFunc, journal.FailFunc, error) {
+// Register stores a running request under groupRequestID and returns Complete/Fail callbacks.
+// Returns AlreadyRegistered if requestID is already present, or ErrGroupIsClosed if the group is closed.
+func (mj *MapJournal) Register(_ context.Context, requestID, groupRequestID libjournal.RequestID, tool string, argsHash []byte) (journal.CompleteFunc, journal.FailFunc, error) {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
-	if request, ok := mj.m[id]; ok {
+	if _, ok := mj.m[groupRequestID]; !ok {
+		mj.m[groupRequestID] = NewMapGroup(groupRequestID)
+	}
+
+	group := mj.m[groupRequestID]
+	if request, ok := group.Get(requestID); ok {
 		return nil, nil, journal.NewAlreadyRegistered(cloneRequest(request))
 	}
 
-	mj.m[id] = journal.Request{
-		ID:       id,
-		Tool:     tool,
-		ArgsHash: cloneBytes(argsHash),
-		Status:   libjournal.Status_Running,
+	if err := group.Add(libjournal.Request{
+		ID:        requestID,
+		GroupID:   groupRequestID,
+		CreatedAt: time.Now(),
+		Tool:      tool,
+		ArgsHash:  argsHash,
+		Status:    libjournal.Status_Running,
+	}); err != nil {
+		return nil, nil, err
 	}
 
 	return mj.Complete, mj.Fail, nil
 }
 
 // Complete marks a running request as completed and stores result.
-// Returns NotFound if id is missing, or StatusConflict if the request is not running.
-func (mj *MapJournal) Complete(_ context.Context, id libjournal.RequestID, result journal.Result) error {
+// Returns NotFound if the request is missing, or StatusConflict if it is not running.
+func (mj *MapJournal) Complete(_ context.Context, requestID, groupRequestID libjournal.RequestID, result libjournal.Result, _ *gorm.DB) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
-	request, ok := mj.m[id]
+	group, ok := mj.m[groupRequestID]
 	if !ok {
-		return journal.NewNotFound(id)
+		return journal.NewNotFound(requestID, groupRequestID)
+	}
+
+	request, ok := group.Get(requestID)
+	if !ok {
+		return journal.NewNotFound(requestID, groupRequestID)
 	}
 
 	if request.Status != libjournal.Status_Running {
-		return journal.NewStatusConflict(id, libjournal.Status_Completed, request.Status)
+		return journal.NewStatusConflict(requestID, groupRequestID, libjournal.Status_Completed, request.Status)
 	}
 
-	mj.m[id] = journal.Request{
-		ID:       request.ID,
-		Tool:     request.Tool,
-		ArgsHash: request.ArgsHash,
-		Status:   libjournal.Status_Completed,
-		Result:   result,
-	}
-
-	return nil
+	request.Status = libjournal.Status_Completed
+	request.Result = result
+	return group.Swap(request)
 }
 
 // Fail marks a running request as failed and stores cause.
-// Returns NotFound if id is missing, or StatusConflict if the request is not running.
-func (mj *MapJournal) Fail(_ context.Context, id libjournal.RequestID, cause error) error {
+// Returns NotFound if the request is missing, or StatusConflict if it is not running.
+func (mj *MapJournal) Fail(_ context.Context, requestID, groupRequestID libjournal.RequestID, cause error, _ *gorm.DB) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
-	request, ok := mj.m[id]
+	group, ok := mj.m[groupRequestID]
 	if !ok {
-		return journal.NewNotFound(id)
+		return journal.NewNotFound(requestID, groupRequestID)
+	}
+
+	request, ok := group.Get(requestID)
+	if !ok {
+		return journal.NewNotFound(requestID, groupRequestID)
 	}
 
 	if request.Status != libjournal.Status_Running {
-		return journal.NewStatusConflict(id, libjournal.Status_Failed, request.Status)
+		return journal.NewStatusConflict(requestID, groupRequestID, libjournal.Status_Failed, request.Status)
 	}
 
-	mj.m[id] = journal.Request{
-		ID:       request.ID,
-		Tool:     request.Tool,
-		ArgsHash: request.ArgsHash,
-		Status:   libjournal.Status_Failed,
-		Error:    cause,
-	}
-
-	return nil
+	request.Status = libjournal.Status_Failed
+	request.Error = cause
+	return group.Swap(request)
 }
 
-// Find returns a copy of the request for id.
-// Returns NotFound if id is missing.
-func (mj *MapJournal) Find(_ context.Context, id libjournal.RequestID) (journal.Request, error) {
+// Find returns a copy of the request for requestID within groupRequestID.
+// Returns NotFound if the group or request is missing.
+func (mj *MapJournal) Find(_ context.Context, requestID, groupRequestID libjournal.RequestID) (libjournal.Request, error) {
 	mj.mu.RLock()
 	defer mj.mu.RUnlock()
 
-	request, ok := mj.m[id]
+	group, ok := mj.m[groupRequestID]
 	if !ok {
-		return journal.Request{}, journal.NewNotFound(id)
+		return libjournal.Request{}, journal.NewNotFound(requestID, groupRequestID)
 	}
 
-	return cloneRequest(request), nil
+	if request, ok := group.Get(requestID); ok {
+		return cloneRequest(request), nil
+	}
+
+	return libjournal.Request{}, journal.NewNotFound(requestID, groupRequestID)
 }
 
-// Delete removes the request for id. Missing ids are ignored.
-func (mj *MapJournal) Delete(_ context.Context, id libjournal.RequestID) error {
+// Close sets ExpiresAt on every request in the group and rejects new registrations.
+// Missing groups are ignored.
+func (mj *MapJournal) Close(_ context.Context, groupRequestID libjournal.RequestID, deadline time.Time) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
-	delete(mj.m, id)
+	group, ok := mj.m[groupRequestID]
+	if !ok {
+		return nil
+	}
+
+	group.Close(deadline)
+
 	return nil
 }
 
-func cloneBytes(b []byte) []byte {
-	if b == nil {
-		return nil
+// IsGroupFree reports whether the group has no requests.
+// Returns false if at least one request exists, regardless of expiry.
+func (mj *MapJournal) IsGroupFree(_ context.Context, groupRequestID libjournal.RequestID) (bool, error) {
+	mj.mu.RLock()
+	defer mj.mu.RUnlock()
+
+	group, ok := mj.m[groupRequestID]
+	if !ok {
+		return true, nil
 	}
-	out := make([]byte, len(b))
-	copy(out, b)
-	return out
+
+	return group.Len() == 0, nil
 }
 
-func cloneRequest(req journal.Request) journal.Request {
-	req.ArgsHash = cloneBytes(req.ArgsHash)
-	return req
+// DeleteAllExpired removes every group for which all requests are expired under hardTTL.
+// Respects ctx cancellation before and between groups.
+func (mj *MapJournal) DeleteAllExpired(ctx context.Context, hardTTL time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	mj.mu.Lock()
+	defer mj.mu.Unlock()
+
+	now := time.Now()
+	for groupID, group := range mj.m {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if group.IsExpired(now, hardTTL) {
+			delete(mj.m, groupID)
+		}
+	}
+
+	return nil
 }

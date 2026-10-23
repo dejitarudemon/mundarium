@@ -4,10 +4,13 @@ import (
 	"context"
 
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"gorm.io/gorm"
 )
 
-// CompleteFunc is invoked when an operation finishes successfully enough to report a Result.
-type CompleteFunc func(ctx context.Context, id libjournal.RequestID, result Result) error
+// CompleteFunc records a successful outcome for requestID within groupRequestID.
+// tx is the optional GORM transaction the caller wants associated with the journal write.
+type CompleteFunc func(ctx context.Context, requestID, groupRequestID libjournal.RequestID, result libjournal.Result, tx *gorm.DB) error
 
-// FailFunc is invoked when an operation fails and should be recorded as failed.
-type FailFunc func(ctx context.Context, id libjournal.RequestID, cause error) error
+// FailFunc records a failure for requestID within groupRequestID.
+// tx is the optional GORM transaction the caller wants associated with the journal write.
+type FailFunc func(ctx context.Context, requestID, groupRequestID libjournal.RequestID, cause error, tx *gorm.DB) error

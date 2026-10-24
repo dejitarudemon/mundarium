@@ -37,7 +37,7 @@ func toCreatedMessage(message types.Message) (output.CreateMessageOutput, error)
 	return output.CreateMessageOutput{
 		ID:       message.ID,
 		InvokeID: message.InvokeID,
-		Order:    message.Order,
+		SeqNum:   message.SeqNum,
 	}, nil
 }
 
@@ -50,7 +50,7 @@ func toGotMessage(message types.Message) (output.GetMessageOutput, error) {
 	return output.GetMessageOutput{
 		ID:          message.ID,
 		InvokeID:    message.InvokeID,
-		Order:       message.Order,
+		SeqNum:      message.SeqNum,
 		Text:        message.Text,
 		From:        string(message.From),
 		CreatedAt:   message.CreatedAt,

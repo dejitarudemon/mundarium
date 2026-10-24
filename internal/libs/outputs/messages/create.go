@@ -7,5 +7,5 @@ import "github.com/dejitarudemon/mundarium/internal/libs/types"
 type CreateMessageOutput struct {
 	ID       types.ID `json:"id"`
 	InvokeID string   `json:"invoke_id"`
-	Order    uint     `json:"order"` // 0-based order within InvokeID
+	SeqNum   uint     `json:"seq_num"` // 0-based sequence within InvokeID
 }

@@ -83,17 +83,18 @@ func (s *Service) GetMessage(ctx execution.ExecutionContext, id types.ID) (outpu
 	return result, nil
 }
 
-// GetMessages loads all messages for invokeID ordered by message_order and completes the execution context.
+// GetMessages loads messages for invokeID ordered by seq_num and completes the execution context.
+// When startFrom is non-nil, messages with SeqNum < *startFrom are omitted (SQL-side filter).
 // Returns an error if invokeID is empty.
-// Idempotent: repeated calls with the same invokeID return the same ordered set.
-func (s *Service) GetMessages(ctx execution.ExecutionContext, invokeID string) (output.GetMessagesOutput, error) {
+// Idempotent: repeated calls with the same invokeID and startFrom return the same ordered set.
+func (s *Service) GetMessages(ctx execution.ExecutionContext, invokeID string, startFrom *uint) (output.GetMessagesOutput, error) {
 	if invokeID == "" {
 		err := errors.New("invoke id is empty")
 		_ = ctx.Fail(err, s.connection.DB())
 		return nil, err
 	}
 
-	messages, err := s.repository().GetMessages(ctx, invokeID)
+	messages, err := s.repository().GetMessages(ctx, invokeID, startFrom)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
 		return nil, err

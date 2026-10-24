@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func TestMessage_BeforeCreate_OrderPerInvokeID(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:message_order?mode=memory&cache=shared"), &gorm.Config{
+func TestMessage_BeforeCreate_SeqNumPerInvokeID(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file:message_seq?mode=memory&cache=shared"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
@@ -26,8 +26,8 @@ func TestMessage_BeforeCreate_OrderPerInvokeID(t *testing.T) {
 		if err := db.Create(&msg).Error; err != nil {
 			t.Fatalf("Create #%d: %v", want, err)
 		}
-		if msg.Order != want {
-			t.Fatalf("inv-1 order: want %d, got %d", want, msg.Order)
+		if msg.SeqNum != want {
+			t.Fatalf("inv-1 seq_num: want %d, got %d", want, msg.SeqNum)
 		}
 	}
 
@@ -35,7 +35,7 @@ func TestMessage_BeforeCreate_OrderPerInvokeID(t *testing.T) {
 	if err := db.Create(&other).Error; err != nil {
 		t.Fatalf("Create inv-2: %v", err)
 	}
-	if other.Order != 0 {
-		t.Fatalf("inv-2 must restart at 0, got %d", other.Order)
+	if other.SeqNum != 0 {
+		t.Fatalf("inv-2 must restart at 0, got %d", other.SeqNum)
 	}
 }

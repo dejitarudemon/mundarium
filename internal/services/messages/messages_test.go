@@ -24,7 +24,7 @@ func TestCreateMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateMessage: %v", err)
 	}
-	if out.ID == 0 || out.InvokeID != "inv-1" || out.Order != 0 {
+	if out.ID == 0 || out.InvokeID != "inv-1" || out.SeqNum != 0 {
 		t.Fatalf("unexpected output: %+v", out)
 	}
 	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Create || rec.calls[0].Entity != "MESSAGE" {
@@ -39,8 +39,8 @@ func TestCreateMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateMessage second: %v", err)
 	}
-	if second.Order != 1 || second.ID == out.ID {
-		t.Fatalf("create is not idempotent; want new row order=1, got %+v", second)
+	if second.SeqNum != 1 || second.ID == out.ID {
+		t.Fatalf("create is not idempotent; want new row seq_num=1, got %+v", second)
 	}
 }
 
@@ -109,7 +109,7 @@ func TestGetMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetMessage: %v", err)
 	}
-	if out.ID != msg.ID || out.InvokeID != "inv-1" || out.Text != "hello" || out.From != "master" || out.Order != 0 {
+	if out.ID != msg.ID || out.InvokeID != "inv-1" || out.Text != "hello" || out.From != "master" || out.SeqNum != 0 {
 		t.Fatalf("unexpected output: %+v", out)
 	}
 	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
@@ -138,15 +138,34 @@ func TestGetMessages(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	out, err := testSvc.GetMessages(ctx, "inv-1")
+	out, err := testSvc.GetMessages(ctx, "inv-1", nil)
 	if err != nil {
 		t.Fatalf("GetMessages: %v", err)
 	}
-	if len(out) != 2 || out[0].Text != "first" || out[0].Order != 0 || out[1].Text != "second" || out[1].Order != 1 {
+	if len(out) != 2 || out[0].Text != "first" || out[0].SeqNum != 0 || out[1].Text != "second" || out[1].SeqNum != 1 {
 		t.Fatalf("unexpected output: %+v", out)
 	}
 	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
+	}
+}
+
+func TestGetMessages_StartFrom(t *testing.T) {
+	resetDB(t)
+	_ = seedMessage(t, "inv-1", "first")
+	_ = seedMessage(t, "inv-1", "second")
+	_ = seedMessage(t, "inv-1", "third")
+
+	ctx, cancel := newExecCtx(t, nil)
+	defer cancel()
+
+	startFrom := uint(1)
+	out, err := testSvc.GetMessages(ctx, "inv-1", &startFrom)
+	if err != nil {
+		t.Fatalf("GetMessages: %v", err)
+	}
+	if len(out) != 2 || out[0].Text != "second" || out[0].SeqNum != 1 || out[1].Text != "third" || out[1].SeqNum != 2 {
+		t.Fatalf("unexpected output: %+v", out)
 	}
 }
 
@@ -156,7 +175,7 @@ func TestGetMessages_EmptyInvokeID(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	_, err := testSvc.GetMessages(ctx, "")
+	_, err := testSvc.GetMessages(ctx, "", nil)
 	if err == nil || err.Error() != "invoke id is empty" {
 		t.Fatalf("want invoke id is empty, got %v", err)
 	}
@@ -230,7 +249,7 @@ func TestDeleteMessages(t *testing.T) {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 
-	left, err := testRepo.GetMessages(ctx, "inv-1")
+	left, err := testRepo.GetMessages(ctx, "inv-1", nil)
 	if err != nil {
 		t.Fatalf("GetMessages inv-1: %v", err)
 	}
@@ -238,7 +257,7 @@ func TestDeleteMessages(t *testing.T) {
 		t.Fatalf("want inv-1 empty, got %+v", left)
 	}
 
-	other, err := testRepo.GetMessages(ctx, "inv-2")
+	other, err := testRepo.GetMessages(ctx, "inv-2", nil)
 	if err != nil {
 		t.Fatalf("GetMessages inv-2: %v", err)
 	}

@@ -9,13 +9,13 @@ import (
 
 // Message is one turn in an invoke conversation.
 //
-// Order is unique together with InvokeID (column message_order) and is assigned
+// SeqNum is unique together with InvokeID (column seq_num) and is assigned
 // automatically in BeforeCreate as the next 0-based index for that invoke.
 type Message struct {
 	ID ID `gorm:"primaryKey" json:"id"`
 
-	InvokeID string `gorm:"not null;uniqueIndex:idx_messages_invoke_order" json:"invoke_id"`
-	Order    uint   `gorm:"column:message_order;not null;uniqueIndex:idx_messages_invoke_order" json:"order"`
+	InvokeID string `gorm:"not null;uniqueIndex:idx_messages_invoke_seq" json:"invoke_id"`
+	SeqNum   uint   `gorm:"column:seq_num;not null;uniqueIndex:idx_messages_invoke_seq" json:"seq_num"`
 
 	Text string `gorm:"type:text;not null" json:"text"`
 
@@ -28,12 +28,12 @@ type Message struct {
 	DeliveredAt *time.Time `json:"delivered_at,omitempty"`
 }
 
-// BeforeCreate assigns Order as the next 0-based index within InvokeID.
+// BeforeCreate assigns SeqNum as the next 0-based index within InvokeID.
 func (m *Message) BeforeCreate(tx *gorm.DB) error {
 	var n int64
 	if err := tx.Model(&Message{}).Where("invoke_id = ?", m.InvokeID).Count(&n).Error; err != nil {
 		return err
 	}
-	m.Order = uint(n)
+	m.SeqNum = uint(n)
 	return nil
 }

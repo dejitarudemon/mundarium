@@ -26,7 +26,7 @@ func NewMessagesRepository(db *gorm.DB) (*MessagesRepository, error) {
 }
 
 // CreateMessage inserts a new message and returns the persisted record
-// (including the generated ID, CreatedAt, and Order from BeforeCreate).
+// (including the generated ID, CreatedAt, and SeqNum from BeforeCreate).
 func (r *MessagesRepository) CreateMessage(ctx context.Context, message *types.Message) (*types.Message, error) {
 	if err := r.db.WithContext(ctx).Create(message).Error; err != nil {
 		return nil, err
@@ -47,15 +47,19 @@ func (r *MessagesRepository) GetMessage(ctx context.Context, id types.ID) (*type
 	return &message, nil
 }
 
-// GetMessages returns all messages for invokeID ordered by message_order ascending
-// (0-based Order within the invoke). An empty slice is returned when none match.
-func (r *MessagesRepository) GetMessages(ctx context.Context, invokeID string) ([]types.Message, error) {
+// GetMessages returns messages for invokeID ordered by seq_num ascending
+// (0-based SeqNum within the invoke). An empty slice is returned when none match.
+// When startFrom is non-nil, only rows with seq_num >= *startFrom are returned
+// (filter applied in SQL).
+func (r *MessagesRepository) GetMessages(ctx context.Context, invokeID string, startFrom *uint) ([]types.Message, error) {
 	var messages []types.Message
 
-	if err := r.db.WithContext(ctx).
-		Where("invoke_id = ?", invokeID).
-		Order("message_order ASC").
-		Find(&messages).Error; err != nil {
+	q := r.db.WithContext(ctx).Where("invoke_id = ?", invokeID)
+	if startFrom != nil {
+		q = q.Where("seq_num >= ?", *startFrom)
+	}
+
+	if err := q.Order("seq_num ASC").Find(&messages).Error; err != nil {
 		return nil, err
 	}
 

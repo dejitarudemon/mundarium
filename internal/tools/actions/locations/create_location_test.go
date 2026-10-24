@@ -9,6 +9,7 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -34,6 +35,7 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
 		context.Background(),
 		libjournal.RequestID("test-request"),
 		libjournal.RequestID("test-group"),
+		providers.Role_Master,
 		complete,
 		fail,
 	)

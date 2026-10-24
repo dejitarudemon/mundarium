@@ -7,6 +7,7 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
@@ -33,9 +34,10 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 
 	requestID := libjournal.RequestID("test-request")
 	groupID := libjournal.RequestID("test-group")
+	role := providers.Role_Master
 
 	if rec == nil {
-		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), requestID, groupID)
+		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), requestID, groupID, role)
 		return ctx, cancel
 	}
 
@@ -43,6 +45,7 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 		context.Background(),
 		requestID,
 		groupID,
+		role,
 		rec.complete,
 		rec.fail,
 	)

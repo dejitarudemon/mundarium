@@ -7,22 +7,26 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	libprovider "github.com/dejitarudemon/mundarium/internal/libs/providers"
 	"gorm.io/gorm"
 )
 
-// ExecutionContext carries request-scoped context, journal request/group IDs, and optional complete/fail callbacks.
+// ExecutionContext carries request-scoped context for a tool call:
+// call/invoke journal IDs, caller role, and optional complete/fail callbacks.
 type ExecutionContext struct {
 	context.Context
 
-	requestID        libjournal.RequestID
-	groupRequestID   libjournal.RequestID
+	callID           libjournal.RequestID
+	invokeID         libjournal.RequestID
+	role             libprovider.Role
 	callbackComplete journal.CompleteFunc
 	callbackFail     journal.FailFunc
 }
 
 // NewExecutionContext creates an ExecutionContext with required complete and fail callbacks.
+// callID is the journal request id; invokeID is the invoke/group id; role is the caller role.
 // Returns an error if either callback is nil. A nil parent is replaced with context.Background.
-func NewExecutionContext(parent context.Context, requestID, groupRequestID libjournal.RequestID, complete journal.CompleteFunc, fail journal.FailFunc) (ExecutionContext, context.CancelFunc, error) {
+func NewExecutionContext(parent context.Context, callID, invokeID libjournal.RequestID, role libprovider.Role, complete journal.CompleteFunc, fail journal.FailFunc) (ExecutionContext, context.CancelFunc, error) {
 	if complete == nil || fail == nil {
 		return ExecutionContext{}, nil, errors.New("nil callback")
 	}
@@ -34,16 +38,18 @@ func NewExecutionContext(parent context.Context, requestID, groupRequestID libjo
 
 	return ExecutionContext{
 		Context:          ctx,
-		requestID:        requestID,
-		groupRequestID:   groupRequestID,
+		callID:           callID,
+		invokeID:         invokeID,
 		callbackComplete: complete,
 		callbackFail:     fail,
+		role:             role,
 	}, cancel, nil
 }
 
 // NewExecutionContextWithoutCallback creates an ExecutionContext without callbacks.
+// callID, invokeID, and role are still stored for InvokeID/Role accessors.
 // Complete and Fail become no-ops. A nil parent is replaced with context.Background.
-func NewExecutionContextWithoutCallback(parent context.Context, requestID, groupRequestID libjournal.RequestID) (ExecutionContext, context.CancelFunc) {
+func NewExecutionContextWithoutCallback(parent context.Context, callID, invokeID libjournal.RequestID, role libprovider.Role) (ExecutionContext, context.CancelFunc) {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -51,9 +57,10 @@ func NewExecutionContextWithoutCallback(parent context.Context, requestID, group
 	ctx, cancel := context.WithCancel(parent)
 
 	return ExecutionContext{
-		Context:        ctx,
-		requestID:      requestID,
-		groupRequestID: groupRequestID,
+		Context:  ctx,
+		callID:   callID,
+		invokeID: invokeID,
+		role:     role,
 	}, cancel
 }
 
@@ -64,7 +71,7 @@ func (e ExecutionContext) Complete(result libjournal.Result, tx *gorm.DB) error 
 		return nil
 	}
 
-	return e.callbackComplete(e.Context, e.requestID, e.groupRequestID, result, tx)
+	return e.callbackComplete(e.Context, e.callID, e.invokeID, result, tx)
 }
 
 // Fail reports cause through the configured fail callback, if any.
@@ -74,5 +81,15 @@ func (e ExecutionContext) Fail(cause error, tx *gorm.DB) error {
 		return nil
 	}
 
-	return e.callbackFail(e.Context, e.requestID, e.groupRequestID, cause, tx)
+	return e.callbackFail(e.Context, e.callID, e.invokeID, cause, tx)
+}
+
+// InvokeID returns the invoke / conversation group id for this execution.
+func (e ExecutionContext) InvokeID() libjournal.RequestID {
+	return e.invokeID
+}
+
+// Role returns the caller role for this execution.
+func (e ExecutionContext) Role() libprovider.Role {
+	return e.role
 }

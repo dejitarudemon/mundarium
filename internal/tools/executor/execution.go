@@ -18,6 +18,7 @@ import (
 
 // Execute runs call against a registered tool.
 // Non-idempotent tools are journaled under group invokeID and request call.ID.
+// The tool's ExecutionContext receives invokeID, call.ID, and call.Role.
 func (e *Executor) Execute(ctx context.Context, invokeID string, call libtools.Call) (json.RawMessage, error) {
 	tool, err := e.lookup(call.Name, call.Role)
 	if err != nil {
@@ -25,10 +26,10 @@ func (e *Executor) Execute(ctx context.Context, invokeID string, call libtools.C
 	}
 
 	if tool.IsIdempotent() {
-		return e.executeIdempotent(ctx, tool, invokeID, call.ID, call.Args)
+		return e.executeIdempotent(ctx, tool, invokeID, call.ID, call.Role, call.Args)
 	}
 
-	return e.executeNotIdempotent(ctx, tool, invokeID, call.ID, call.Args)
+	return e.executeNotIdempotent(ctx, tool, invokeID, call.ID, call.Role, call.Args)
 }
 
 // lookup resolves a registered tool and checks role permission under the read lock.
@@ -46,7 +47,7 @@ func (e *Executor) lookup(name string, role providers.Role) (tools.Tool, error) 
 	return tool, nil
 }
 
-func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, args json.RawMessage) (json.RawMessage, error) {
+func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, role providers.Role, args json.RawMessage) (json.RawMessage, error) {
 	toolName := tool.Definition().Name
 	argsHash := hashArgs(args)
 
@@ -58,7 +59,7 @@ func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool,
 		return nil, err
 	}
 
-	ctx, cancel, err := execution.NewExecutionContext(parent, toJournalID(callID), toJournalID(invokeID), complete, fail)
+	ctx, cancel, err := execution.NewExecutionContext(parent, toJournalID(callID), toJournalID(invokeID), role, complete, fail)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +96,8 @@ func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string
 	}
 }
 
-func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, args json.RawMessage) (json.RawMessage, error) {
-	ctx, cancel := execution.NewExecutionContextWithoutCallback(parent, toJournalID(callID), toJournalID(invokeID))
+func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, role providers.Role, args json.RawMessage) (json.RawMessage, error) {
+	ctx, cancel := execution.NewExecutionContextWithoutCallback(parent, toJournalID(callID), toJournalID(invokeID), role)
 	defer cancel()
 
 	return tool.Execute(ctx, args)

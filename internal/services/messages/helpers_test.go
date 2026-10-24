@@ -33,9 +33,10 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 
 	requestID := libjournal.RequestID("test-request")
 	groupID := libjournal.RequestID("test-group")
+	role := providers.Role_Master
 
 	if rec == nil {
-		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), requestID, groupID)
+		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), requestID, groupID, role)
 		return ctx, cancel
 	}
 
@@ -43,6 +44,7 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 		context.Background(),
 		requestID,
 		groupID,
+		role,
 		rec.complete,
 		rec.fail,
 	)

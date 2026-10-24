@@ -7,6 +7,7 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +16,7 @@ func TestNewExecutionContext_NilCallback(t *testing.T) {
 		context.Background(),
 		"req",
 		"grp",
+		providers.Role_Master,
 		nil,
 		func(context.Context, libjournal.RequestID, libjournal.RequestID, error, *gorm.DB) error { return nil },
 	)
@@ -39,11 +41,15 @@ func TestExecutionContext_CompleteAndFailForwardIDsAndTx(t *testing.T) {
 	}
 
 	tx := &gorm.DB{}
-	ctx, cancel, err := execution.NewExecutionContext(context.Background(), "call-1", "inv-1", complete, fail)
+	ctx, cancel, err := execution.NewExecutionContext(context.Background(), "call-1", "inv-1", providers.Role_Master, complete, fail)
 	if err != nil {
 		t.Fatalf("NewExecutionContext: %v", err)
 	}
 	defer cancel()
+
+	if ctx.InvokeID() != "inv-1" || ctx.Role() != providers.Role_Master {
+		t.Fatalf("want invoke inv-1 role master, got %s %s", ctx.InvokeID(), ctx.Role())
+	}
 
 	result := libjournal.Result{Entity: "LOCATION"}
 	if err := ctx.Complete(result, tx); err != nil {
@@ -63,7 +69,7 @@ func TestExecutionContext_CompleteAndFailForwardIDsAndTx(t *testing.T) {
 }
 
 func TestExecutionContext_WithoutCallbackNoops(t *testing.T) {
-	ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), "call-1", "inv-1")
+	ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), "call-1", "inv-1", providers.Role_Master)
 	defer cancel()
 
 	if err := ctx.Complete(libjournal.Result{}, nil); err != nil {

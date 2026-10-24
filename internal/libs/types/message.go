@@ -22,7 +22,9 @@ type Message struct {
 	// From is the speaker role (for example providers.Role_Master).
 	From providers.Role `gorm:"not null;type:text" json:"from"`
 
-	CreatedAt   time.Time  `gorm:"not null" json:"created_at"`
+	CreatedAt time.Time `gorm:"not null" json:"created_at"`
+
+	// DeliveredAt is set when the message was delivered to the client; nil if not yet.
 	DeliveredAt *time.Time `json:"delivered_at,omitempty"`
 }
 

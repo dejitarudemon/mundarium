@@ -78,3 +78,9 @@ func (r *MessagesRepository) PatchDeliveredAt(ctx context.Context, id types.ID, 
 
 	return nil
 }
+
+// DeleteMessages deletes all messages with the given invokeID.
+// Deleting when none exist is a no-op (idempotent).
+func (r *MessagesRepository) DeleteMessages(ctx context.Context, invokeID string) error {
+	return r.db.WithContext(ctx).Delete(&types.Message{}, "invoke_id = ?", invokeID).Error
+}

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/repositories"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	pgstorage "github.com/dejitarudemon/mundarium/internal/storage/postgres"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -17,7 +17,7 @@ import (
 
 var (
 	testDB   *gorm.DB
-	testRepo *repositories.LocationRepository
+	testRepo *repolocations.LocationRepository
 )
 
 func TestMain(m *testing.M) {
@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	repo, err := repositories.NewLocationRepository(conn.DB())
+	repo, err := repolocations.NewLocationRepository(conn.DB(), 5)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "new repository: %v\n", err)
 		return

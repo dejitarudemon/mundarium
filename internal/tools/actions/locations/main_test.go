@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/repositories"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	pgstorage "github.com/dejitarudemon/mundarium/internal/storage/postgres"
 	"github.com/testcontainers/testcontainers-go"
@@ -20,7 +20,7 @@ import (
 
 var (
 	testConn *pgstorage.Connection
-	testRepo *repositories.LocationRepository
+	testRepo *repolocations.LocationRepository
 	testSvc  *svclocations.Service
 )
 
@@ -62,8 +62,8 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	generator := func(db *gorm.DB) *repositories.LocationRepository {
-		repo, err := repositories.NewLocationRepository(db)
+	generator := func(db *gorm.DB) *repolocations.LocationRepository {
+		repo, err := repolocations.NewLocationRepository(db, 5)
 		if err != nil {
 			panic(err)
 		}

@@ -3,14 +3,14 @@ package locations_test
 import (
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/repositories"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"gorm.io/gorm"
 )
 
 func TestNewService(t *testing.T) {
-	generator := func(db *gorm.DB) *repositories.LocationRepository {
-		repo, err := repositories.NewLocationRepository(db)
+	generator := func(db *gorm.DB) *repolocations.LocationRepository {
+		repo, err := repolocations.NewLocationRepository(db, 5)
 		if err != nil {
 			t.Fatalf("NewLocationRepository: %v", err)
 		}

@@ -81,13 +81,14 @@ func (s *Service) GetLocation(ctx execution.ExecutionContext, id types.ID) (outp
 
 // FindLocations searches locations under a scope with optional filters and completes the execution context.
 func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLocationsInput) (output.FindLocationsOutput, error) {
-	filter, limit, err := toFindLocationsFilter(in)
+	repo := s.repository()
+	filter, limit, err := toFindLocationsFilter(in, repo.MaxDepth())
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
 		return output.FindLocationsOutput{}, err
 	}
 
-	locs, err := s.repository().FindLocations(ctx, filter)
+	locs, err := repo.FindLocations(ctx, filter)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
 		return output.FindLocationsOutput{}, err

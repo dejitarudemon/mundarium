@@ -4,14 +4,14 @@ package locations
 import (
 	"errors"
 
-	"github.com/dejitarudemon/mundarium/internal/repositories"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/storage/postgres"
 	"gorm.io/gorm"
 )
 
 // LocationRepositoryGenerator builds a LocationRepository bound to the given DB handle.
 // Pass the connection root DB or a transaction handle.
-type LocationRepositoryGenerator func(*gorm.DB) *repositories.LocationRepository
+type LocationRepositoryGenerator func(*gorm.DB) *repolocations.LocationRepository
 
 // Service coordinates location use cases against storage and execution callbacks.
 type Service struct {
@@ -37,6 +37,6 @@ func NewService(generator LocationRepositoryGenerator, connection *postgres.Conn
 }
 
 // repository returns a LocationRepository using the connection root DB.
-func (s *Service) repository() *repositories.LocationRepository {
+func (s *Service) repository() *repolocations.LocationRepository {
 	return s.generator(s.connection.DB())
 }

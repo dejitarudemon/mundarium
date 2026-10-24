@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
+	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
 
@@ -38,7 +38,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 	}
 	_ = createLocation(t, idPtr(root.ID), "South")
 
-	depth0, err := testRepo.FindLocations(ctx, repositories.FindLocationsFilter{
+	depth0, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   0,
 	})
@@ -49,7 +49,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 		t.Fatalf("depth 0: want only scope, got %#v", depth0)
 	}
 
-	depth1, err := testRepo.FindLocations(ctx, repositories.FindLocationsFilter{
+	depth1, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   1,
 	})
@@ -61,7 +61,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 	}
 
 	query := "Gate"
-	found, err := testRepo.FindLocations(ctx, repositories.FindLocationsFilter{
+	found, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   2,
 		Query:   &query,
@@ -93,7 +93,7 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 	}
 	_ = createLocation(t, idPtr(root.ID), "Square")
 
-	byType, err := testRepo.FindLocations(ctx, repositories.FindLocationsFilter{
+	byType, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   1,
 		Type:    typePtr(types.LocationType_STRUCTURE),
@@ -105,7 +105,7 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 		t.Fatalf("by type: want scope+tavern, got %#v", byType)
 	}
 
-	bySubtype, err := testRepo.FindLocations(ctx, repositories.FindLocationsFilter{
+	bySubtype, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
 		ScopeID:   root.ID,
 		Depth:     1,
 		SubtypeID: &subtypeID,
@@ -122,17 +122,17 @@ func TestFindLocations_NotFoundAndDepthRange(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
-	_, err := testRepo.FindLocations(ctx, repositories.FindLocationsFilter{ScopeID: 999, Depth: 1})
+	_, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{ScopeID: 999, Depth: 1})
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("want ErrRecordNotFound, got %v", err)
 	}
 
 	root := createRoot(t, "world")
-	_, err = testRepo.FindLocations(ctx, repositories.FindLocationsFilter{ScopeID: root.ID, Depth: 6})
+	_, err = testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{ScopeID: root.ID, Depth: 6})
 	if err == nil || err.Error() != "depth out of range" {
 		t.Fatalf("want depth out of range, got %v", err)
 	}
-	_, err = testRepo.FindLocations(ctx, repositories.FindLocationsFilter{ScopeID: root.ID, Depth: -1})
+	_, err = testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{ScopeID: root.ID, Depth: -1})
 	if err == nil || err.Error() != "depth out of range" {
 		t.Fatalf("want depth out of range, got %v", err)
 	}

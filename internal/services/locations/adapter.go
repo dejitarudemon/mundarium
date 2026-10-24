@@ -3,11 +3,11 @@ package locations
 import (
 	"errors"
 
+	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/types"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 )
 
 // toNewLocation maps CreateLocationInput to a domain Location ready for insert.
@@ -90,20 +90,21 @@ const (
 )
 
 // toFindLocationsFilter maps FindLocationsInput to a repository filter and page limit.
-func toFindLocationsFilter(in input.FindLocationsInput) (repositories.FindLocationsFilter, int, error) {
+// maxDepth is the inclusive upper bound for Depth (from LocationRepository.MaxDepth).
+func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (filterslocations.FindLocationsFilter, int, error) {
 	if in.ScopeID == 0 {
-		return repositories.FindLocationsFilter{}, 0, errors.New("scope id is zero")
+		return filterslocations.FindLocationsFilter{}, 0, errors.New("scope id is zero")
 	}
 	if in.SubtypeID != nil && *in.SubtypeID == 0 {
-		return repositories.FindLocationsFilter{}, 0, errors.New("subtype id is zero")
+		return filterslocations.FindLocationsFilter{}, 0, errors.New("subtype id is zero")
 	}
 
 	depth := defaultFindLocationsDepth
 	if in.Depth != nil {
 		depth = *in.Depth
 	}
-	if depth < 0 || depth > 5 {
-		return repositories.FindLocationsFilter{}, 0, errors.New("depth out of range")
+	if depth < 0 || depth > maxDepth {
+		return filterslocations.FindLocationsFilter{}, 0, errors.New("depth out of range")
 	}
 
 	limit := defaultFindLocationsLimit
@@ -111,10 +112,10 @@ func toFindLocationsFilter(in input.FindLocationsInput) (repositories.FindLocati
 		limit = *in.Limit
 	}
 	if limit < 1 || limit > maxFindLocationsLimit {
-		return repositories.FindLocationsFilter{}, 0, errors.New("limit out of range")
+		return filterslocations.FindLocationsFilter{}, 0, errors.New("limit out of range")
 	}
 
-	filter := repositories.FindLocationsFilter{
+	filter := filterslocations.FindLocationsFilter{
 		ScopeID:   in.ScopeID,
 		Query:     in.Query,
 		SubtypeID: in.SubtypeID,
@@ -124,7 +125,7 @@ func toFindLocationsFilter(in input.FindLocationsInput) (repositories.FindLocati
 	if in.Type != nil && *in.Type != "" {
 		t, err := types.NewLocationType(*in.Type)
 		if err != nil {
-			return repositories.FindLocationsFilter{}, 0, err
+			return filterslocations.FindLocationsFilter{}, 0, err
 		}
 		filter.Type = &t
 	}
@@ -135,7 +136,7 @@ func toFindLocationsFilter(in input.FindLocationsInput) (repositories.FindLocati
 // toFoundLocations maps a FindLocationsResult to FindLocationsOutput.
 // Limit applies only to matching descendants (scope is always included).
 // HasMore is the number of matching descendants omitted due to limit.
-func toFoundLocations(found repositories.FindLocationsResult, limit int) (output.FindLocationsOutput, error) {
+func toFoundLocations(found filterslocations.FindLocationsResult, limit int) (output.FindLocationsOutput, error) {
 	scope, err := toGotLocation(found.Scope)
 	if err != nil {
 		return output.FindLocationsOutput{}, err

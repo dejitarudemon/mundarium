@@ -1,0 +1,180 @@
+package messages
+
+import (
+	"errors"
+	"time"
+
+	"github.com/dejitarudemon/mundarium/internal/libs/execution"
+	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/messages"
+	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/messages"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"gorm.io/gorm"
+)
+
+const messageEntity = "MESSAGE"
+
+// CreateMessage creates a message inside a transaction and completes the execution context.
+// Not idempotent: each successful call inserts a new message.
+func (s *Service) CreateMessage(ctx execution.ExecutionContext, in input.CreateMessageInput) (output.CreateMessageOutput, error) {
+	message, err := toNewMessage(in)
+	if err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return output.CreateMessageOutput{}, err
+	}
+
+	result := output.CreateMessageOutput{}
+
+	if err := s.connection.WithTransaction(
+		ctx,
+		func(tx *gorm.DB) error {
+			created, err := s.generator(tx).CreateMessage(ctx, message)
+			if err != nil {
+				return err
+			}
+
+			result, err = toCreatedMessage(*created)
+			if err != nil {
+				return err
+			}
+
+			return ctx.Complete(
+				libjournal.Result{
+					Action: libjournal.Action_Create,
+					Entity: messageEntity,
+					Data:   result,
+				}, tx,
+			)
+		},
+	); err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return output.CreateMessageOutput{}, err
+	}
+
+	return result, nil
+}
+
+// GetMessage loads a message by id, maps it to output, and completes the execution context.
+// Idempotent: repeated calls with the same id return the same row.
+func (s *Service) GetMessage(ctx execution.ExecutionContext, id types.ID) (output.GetMessageOutput, error) {
+	message, err := s.repository().GetMessage(ctx, id)
+	if err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return output.GetMessageOutput{}, err
+	}
+
+	result, err := toGotMessage(*message)
+	if err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return output.GetMessageOutput{}, err
+	}
+
+	if err := ctx.Complete(
+		libjournal.Result{
+			Action: libjournal.Action_Get,
+			Entity: messageEntity,
+			Data:   result,
+		}, s.connection.DB(),
+	); err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return output.GetMessageOutput{}, err
+	}
+
+	return result, nil
+}
+
+// GetMessages loads all messages for invokeID ordered by message_order and completes the execution context.
+// Returns an error if invokeID is empty.
+// Idempotent: repeated calls with the same invokeID return the same ordered set.
+func (s *Service) GetMessages(ctx execution.ExecutionContext, invokeID string) (output.GetMessagesOutput, error) {
+	if invokeID == "" {
+		err := errors.New("invoke id is empty")
+		_ = ctx.Fail(err, s.connection.DB())
+		return nil, err
+	}
+
+	messages, err := s.repository().GetMessages(ctx, invokeID)
+	if err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return nil, err
+	}
+
+	result, err := toGotMessages(messages)
+	if err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return nil, err
+	}
+
+	if err := ctx.Complete(
+		libjournal.Result{
+			Action: libjournal.Action_Get,
+			Entity: messageEntity,
+			Data:   result,
+		}, s.connection.DB(),
+	); err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// SetDeliveredAt updates delivered_at for the message identified by id inside a transaction
+// and completes the execution context. A nil deliveredAt clears the field.
+// Idempotent: repeating the same id and timestamp yields the same stored value.
+func (s *Service) SetDeliveredAt(ctx execution.ExecutionContext, id types.ID, deliveredAt *time.Time) error {
+	if err := s.connection.WithTransaction(
+		ctx,
+		func(tx *gorm.DB) error {
+			if err := s.generator(tx).PatchDeliveredAt(ctx, id, deliveredAt); err != nil {
+				return err
+			}
+
+			return ctx.Complete(
+				libjournal.Result{
+					Action: libjournal.Action_Patch,
+					Entity: messageEntity,
+					Data:   id,
+				}, tx,
+			)
+		},
+	); err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return err
+	}
+
+	return nil
+}
+
+// DeleteMessages deletes all messages for invokeID inside a transaction and completes the execution context.
+// Returns an error if invokeID is empty.
+// Idempotent: repeating the same invokeID when no rows remain succeeds.
+func (s *Service) DeleteMessages(ctx execution.ExecutionContext, invokeID string) error {
+	if invokeID == "" {
+		err := errors.New("invoke id is empty")
+		_ = ctx.Fail(err, s.connection.DB())
+		return err
+	}
+
+	if err := s.connection.WithTransaction(
+		ctx,
+		func(tx *gorm.DB) error {
+			if err := s.generator(tx).DeleteMessages(ctx, invokeID); err != nil {
+				return err
+			}
+
+			return ctx.Complete(
+				libjournal.Result{
+					Action: libjournal.Action_Delete,
+					Entity: messageEntity,
+					Data:   invokeID,
+				}, tx,
+			)
+		},
+	); err != nil {
+		_ = ctx.Fail(err, s.connection.DB())
+		return err
+	}
+
+	return nil
+}

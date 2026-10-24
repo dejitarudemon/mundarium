@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -15,7 +16,7 @@ type Connection struct {
 	db *gorm.DB
 }
 
-// Open connects to PostgreSQL using the given DSN, runs locations auto-migration,
+// Open connects to PostgreSQL using the given DSN, runs domain auto-migration,
 // and returns a Connection.
 func Open(dsn string) (*Connection, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -23,21 +24,22 @@ func Open(dsn string) (*Connection, error) {
 		return nil, fmt.Errorf("open postgres: %w", err)
 	}
 
-	if err := migrateLocations(db); err != nil {
+	if err := migrate(db); err != nil {
 		return nil, err
 	}
 
 	return &Connection{db: db}, nil
 }
 
-// migrateLocations creates or updates tables for location domain models.
-func migrateLocations(db *gorm.DB) error {
+// migrate creates or updates tables for persisted domain models.
+func migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&locations.LocationSubtype{},
 		&locations.Location{},
 		&locations.Connection{},
+		&types.Message{},
 	); err != nil {
-		return fmt.Errorf("migrate locations: %w", err)
+		return fmt.Errorf("migrate: %w", err)
 	}
 
 	return nil

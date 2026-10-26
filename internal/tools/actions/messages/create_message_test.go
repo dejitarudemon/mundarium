@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolsmessages "github.com/dejitarudemon/mundarium/internal/tools/actions/messages"
@@ -91,9 +91,9 @@ func TestCreateMessageTool_Execute(t *testing.T) {
 	}
 
 	var out struct {
-		ID       types.ID `json:"id"`
-		InvokeID string   `json:"invoke_id"`
-		SeqNum   uint     `json:"seq_num"`
+		ID       repositories.ID `json:"id"`
+		InvokeID string          `json:"invoke_id"`
+		SeqNum   uint            `json:"seq_num"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("unmarshal output: %v", err)

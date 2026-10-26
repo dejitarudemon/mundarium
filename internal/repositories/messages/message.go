@@ -1,9 +1,10 @@
-package types
+package messages
 
 import (
 	"time"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
 
@@ -12,7 +13,7 @@ import (
 // SeqNum is unique together with InvokeID (column seq_num) and is assigned
 // automatically in BeforeCreate as the next 0-based index for that invoke.
 type Message struct {
-	ID ID `gorm:"primaryKey" json:"id"`
+	ID repositories.ID `gorm:"primaryKey" json:"id"`
 
 	InvokeID string `gorm:"not null;uniqueIndex:idx_messages_invoke_seq" json:"invoke_id"`
 	SeqNum   uint   `gorm:"column:seq_num;not null;uniqueIndex:idx_messages_invoke_seq" json:"seq_num"`

@@ -2,11 +2,11 @@ package locations_test
 
 import (
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
@@ -22,7 +22,7 @@ func TestCreateLocation(t *testing.T) {
 		Type:        "region",
 		Name:        "North",
 		Description: "cold",
-		Details:     types.JSON(`{"climate":"arctic"}`),
+		Details:     repositories.JSON(`{"climate":"arctic"}`),
 	})
 	if err != nil {
 		t.Fatalf("CreateLocation: %v", err)
@@ -81,7 +81,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 
 	t.Run("zero subtype id", func(t *testing.T) {
 		before := len(rec.failCalls)
-		zero := types.ID(0)
+		zero := repositories.ID(0)
 		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
 			ParentID:  idPtr(root.ID),
 			Type:      "region",
@@ -360,7 +360,7 @@ func TestUpdateLocationDetails(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	details := types.JSON(`{"a":1}`)
+	details := repositories.JSON(`{"a":1}`)
 	if err := testSvc.UpdateLocationDetails(ctx, loc.ID, details); err != nil {
 		t.Fatalf("UpdateLocationDetails: %v", err)
 	}
@@ -382,7 +382,7 @@ func TestUpdateLocationDetails_NotFound(t *testing.T) {
 	ctx, cancel := newExecCtx(t, nil)
 	defer cancel()
 
-	err := testSvc.UpdateLocationDetails(ctx, 999, types.JSON(`{}`))
+	err := testSvc.UpdateLocationDetails(ctx, 999, repositories.JSON(`{}`))
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected ErrRecordNotFound, got %v", err)
 	}

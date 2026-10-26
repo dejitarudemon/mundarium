@@ -5,7 +5,7 @@ import (
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
 
@@ -52,7 +52,7 @@ func (s *Service) CreateLocation(ctx execution.ExecutionContext, input input.Cre
 }
 
 // GetLocation loads a location by id, maps it to output, and completes the execution context.
-func (s *Service) GetLocation(ctx execution.ExecutionContext, id types.ID) (output.GetLocationOutput, error) {
+func (s *Service) GetLocation(ctx execution.ExecutionContext, id repositories.ID) (output.GetLocationOutput, error) {
 	location, err := s.repository().GetLocation(ctx, id)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
@@ -116,7 +116,7 @@ func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLoc
 
 // FindChildLocations returns descendants of id grouped by depth and completes the execution context.
 // Depth semantics match the repository: 0 or less yields an empty map; 1 is direct children.
-func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id types.ID, depth int) (output.FindChildLocationsOutput, error) {
+func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id repositories.ID, depth int) (output.FindChildLocationsOutput, error) {
 	children, err := s.repository().FindChildLocations(ctx, id, depth, false)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
@@ -145,7 +145,7 @@ func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id types.ID
 
 // MoveLocation reparents a location to parentID inside a transaction and completes the execution context.
 // A nil parentID makes the location a root.
-func (s *Service) MoveLocation(ctx execution.ExecutionContext, id types.ID, parentID *types.ID) error {
+func (s *Service) MoveLocation(ctx execution.ExecutionContext, id repositories.ID, parentID *repositories.ID) error {
 	if err := s.connection.WithTransaction(
 		ctx,
 		func(tx *gorm.DB) error {
@@ -170,7 +170,7 @@ func (s *Service) MoveLocation(ctx execution.ExecutionContext, id types.ID, pare
 }
 
 // RenameLocation updates a location's name inside a transaction and completes the execution context.
-func (s *Service) RenameLocation(ctx execution.ExecutionContext, id types.ID, name string) error {
+func (s *Service) RenameLocation(ctx execution.ExecutionContext, id repositories.ID, name string) error {
 	if err := s.connection.WithTransaction(
 		ctx,
 		func(tx *gorm.DB) error {
@@ -195,7 +195,7 @@ func (s *Service) RenameLocation(ctx execution.ExecutionContext, id types.ID, na
 }
 
 // UpdateLocationDetails updates a location's details inside a transaction and completes the execution context.
-func (s *Service) UpdateLocationDetails(ctx execution.ExecutionContext, id types.ID, details types.JSON) error {
+func (s *Service) UpdateLocationDetails(ctx execution.ExecutionContext, id repositories.ID, details repositories.JSON) error {
 	if err := s.connection.WithTransaction(
 		ctx,
 		func(tx *gorm.DB) error {
@@ -220,7 +220,7 @@ func (s *Service) UpdateLocationDetails(ctx execution.ExecutionContext, id types
 }
 
 // UpdateLocationDescription updates a location's description inside a transaction and completes the execution context.
-func (s *Service) UpdateLocationDescription(ctx execution.ExecutionContext, id types.ID, description string) error {
+func (s *Service) UpdateLocationDescription(ctx execution.ExecutionContext, id repositories.ID, description string) error {
 	if err := s.connection.WithTransaction(
 		ctx,
 		func(tx *gorm.DB) error {

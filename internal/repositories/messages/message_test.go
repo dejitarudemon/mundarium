@@ -1,10 +1,10 @@
-package types_test
+package messages_test
 
 import (
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"github.com/dejitarudemon/mundarium/internal/repositories/messages"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -17,12 +17,12 @@ func TestMessage_BeforeCreate_SeqNumPerInvokeID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&types.Message{}); err != nil {
+	if err := db.AutoMigrate(&messages.Message{}); err != nil {
 		t.Fatalf("AutoMigrate: %v", err)
 	}
 
 	for want := uint(0); want < 3; want++ {
-		msg := types.Message{InvokeID: "inv-1", Text: "x", From: providers.Role_Master}
+		msg := messages.Message{InvokeID: "inv-1", Text: "x", From: providers.Role_Master}
 		if err := db.Create(&msg).Error; err != nil {
 			t.Fatalf("Create #%d: %v", want, err)
 		}
@@ -31,7 +31,7 @@ func TestMessage_BeforeCreate_SeqNumPerInvokeID(t *testing.T) {
 		}
 	}
 
-	other := types.Message{InvokeID: "inv-2", Text: "y", From: providers.Role_Master}
+	other := messages.Message{InvokeID: "inv-2", Text: "y", From: providers.Role_Master}
 	if err := db.Create(&other).Error; err != nil {
 		t.Fatalf("Create inv-2: %v", err)
 	}

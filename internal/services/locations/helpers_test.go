@@ -2,13 +2,13 @@ package locations_test
 
 import (
 	"context"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
@@ -55,7 +55,7 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 	return ctx, cancel
 }
 
-func idPtr(id types.ID) *types.ID {
+func idPtr(id repositories.ID) *repositories.ID {
 	return &id
 }
 
@@ -64,7 +64,7 @@ func seedRoot(t *testing.T, name string) *locations.Location {
 
 	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: nil,
-		Type:     types.LocationType_WORLD,
+		Type:     repositories.LocationType_WORLD,
 		Name:     name,
 	})
 	if err != nil {
@@ -73,12 +73,12 @@ func seedRoot(t *testing.T, name string) *locations.Location {
 	return loc
 }
 
-func seedChild(t *testing.T, parentID types.ID, name string) *locations.Location {
+func seedChild(t *testing.T, parentID repositories.ID, name string) *locations.Location {
 	t.Helper()
 
 	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: idPtr(parentID),
-		Type:     types.LocationType_REGION,
+		Type:     repositories.LocationType_REGION,
 		Name:     name,
 	})
 	if err != nil {

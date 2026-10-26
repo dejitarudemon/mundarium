@@ -1,4 +1,4 @@
-package types
+package repositories
 
 import (
 	"database/sql/driver"
@@ -21,7 +21,7 @@ func (j JSON) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON implements json.Unmarshaler.
 func (j *JSON) UnmarshalJSON(data []byte) error {
 	if j == nil {
-		return errors.New("types.JSON: UnmarshalJSON on nil pointer")
+		return errors.New("repositories.JSON: UnmarshalJSON on nil pointer")
 	}
 	*j = append((*j)[0:0], data...)
 	return nil

@@ -3,15 +3,15 @@ package locations_test
 import (
 	"context"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
-func createSubtype(t *testing.T, key string, locType types.LocationType, description string) *locations.LocationSubtype {
+func createSubtype(t *testing.T, key string, locType repositories.LocationType, description string) *locations.LocationSubtype {
 	t.Helper()
 
 	subtype := &locations.LocationSubtype{
@@ -31,13 +31,13 @@ func TestCreateAndGetSubtype(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
-	created := createSubtype(t, "tavern", types.LocationType_STRUCTURE, "inn")
+	created := createSubtype(t, "tavern", repositories.LocationType_STRUCTURE, "inn")
 
 	got, err := testRepo.GetSubtype(ctx, created.ID)
 	if err != nil {
 		t.Fatalf("GetSubtype: %v", err)
 	}
-	if got.ID != created.ID || got.Key != "tavern" || got.Type != types.LocationType_STRUCTURE {
+	if got.ID != created.ID || got.Key != "tavern" || got.Type != repositories.LocationType_STRUCTURE {
 		t.Fatalf("unexpected subtype: %+v", got)
 	}
 	if len(got.DefiningTags) != 1 || got.DefiningTags[0] != "tag-a" {
@@ -61,9 +61,9 @@ func TestFindSubtypes_Filters(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
-	tavern := createSubtype(t, "tavern", types.LocationType_STRUCTURE, "inn")
-	castle := createSubtype(t, "castle", types.LocationType_STRUCTURE, "fort")
-	cave := createSubtype(t, "cave", types.LocationType_ROOM, "dark")
+	tavern := createSubtype(t, "tavern", repositories.LocationType_STRUCTURE, "inn")
+	castle := createSubtype(t, "castle", repositories.LocationType_STRUCTURE, "fort")
+	cave := createSubtype(t, "cave", repositories.LocationType_ROOM, "dark")
 
 	all, err := testRepo.FindSubtypes(ctx, nil, nil)
 	if err != nil {
@@ -81,7 +81,7 @@ func TestFindSubtypes_Filters(t *testing.T) {
 		t.Fatalf("want 2 by key, got %#v", byKey)
 	}
 
-	byType, err := testRepo.FindSubtypes(ctx, nil, []types.LocationType{types.LocationType_STRUCTURE})
+	byType, err := testRepo.FindSubtypes(ctx, nil, []repositories.LocationType{repositories.LocationType_STRUCTURE})
 	if err != nil {
 		t.Fatalf("FindSubtypes by type: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestFindSubtypes_Filters(t *testing.T) {
 		t.Fatalf("want 2 structures, got %#v", byType)
 	}
 
-	byBoth, err := testRepo.FindSubtypes(ctx, []string{"castle", "cave"}, []types.LocationType{types.LocationType_STRUCTURE})
+	byBoth, err := testRepo.FindSubtypes(ctx, []string{"castle", "cave"}, []repositories.LocationType{repositories.LocationType_STRUCTURE})
 	if err != nil {
 		t.Fatalf("FindSubtypes by both: %v", err)
 	}
@@ -105,12 +105,12 @@ func TestGetLocation_PreloadsSubtype(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
-	subtype := createSubtype(t, "tavern", types.LocationType_STRUCTURE, "inn")
+	subtype := createSubtype(t, "tavern", repositories.LocationType_STRUCTURE, "inn")
 	root := createRoot(t, "town")
 	id := subtype.ID
 	loc, err := testRepo.CreateLocation(ctx, &locations.Location{
 		ParentID:  idPtr(root.ID),
-		Type:      types.LocationType_STRUCTURE,
+		Type:      repositories.LocationType_STRUCTURE,
 		SubtypeID: &id,
 		Name:      "The Boar",
 	})

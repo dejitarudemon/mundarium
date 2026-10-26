@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolslocations "github.com/dejitarudemon/mundarium/internal/tools/actions/locations"
@@ -52,7 +52,7 @@ func TestFindLocationsTool_Execute(t *testing.T) {
 
 	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: nil,
-		Type:     types.LocationType_WORLD,
+		Type:     repositories.LocationType_WORLD,
 		Name:     "World",
 	})
 	if err != nil {
@@ -60,7 +60,7 @@ func TestFindLocationsTool_Execute(t *testing.T) {
 	}
 	north, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: &root.ID,
-		Type:     types.LocationType_REGION,
+		Type:     repositories.LocationType_REGION,
 		Name:     "North",
 	})
 	if err != nil {
@@ -68,7 +68,7 @@ func TestFindLocationsTool_Execute(t *testing.T) {
 	}
 	if _, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: &north.ID,
-		Type:     types.LocationType_SITE,
+		Type:     repositories.LocationType_SITE,
 		Name:     "North Gate",
 	}); err != nil {
 		t.Fatalf("seed gate: %v", err)

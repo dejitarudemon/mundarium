@@ -1,11 +1,11 @@
 package locations
 
 import (
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
 	liblocations "github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 )
 
 func TestFindLocationsMatch(t *testing.T) {
@@ -14,8 +14,8 @@ func TestFindLocationsMatch(t *testing.T) {
 		t.Fatalf("empty filter: sql=%q args=%v", sql, args)
 	}
 
-	locType := types.LocationType_REGION
-	subtype := types.ID(3)
+	locType := repositories.LocationType_REGION
+	subtype := repositories.ID(3)
 	query := "gate"
 	sql, args = findLocationsMatch(filterslocations.FindLocationsFilter{
 		Type:      &locType,

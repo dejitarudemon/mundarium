@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolslocations "github.com/dejitarudemon/mundarium/internal/tools/actions/locations"
@@ -98,9 +98,9 @@ func TestCreateLocationTool_Execute_Root(t *testing.T) {
 	}
 
 	var out struct {
-		ID       types.ID  `json:"id"`
-		ParentID *types.ID `json:"parent_id"`
-		Name     string    `json:"name"`
+		ID       repositories.ID  `json:"id"`
+		ParentID *repositories.ID `json:"parent_id"`
+		Name     string           `json:"name"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("unmarshal output: %v", err)
@@ -113,7 +113,7 @@ func TestCreateLocationTool_Execute_Root(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if got.ParentID != nil || got.Type != types.LocationType_WORLD {
+	if got.ParentID != nil || got.Type != repositories.LocationType_WORLD {
 		t.Fatalf("unexpected persisted location: %+v", got)
 	}
 	if string(got.Details) != `{"tier":1}` {
@@ -126,7 +126,7 @@ func TestCreateLocationTool_Execute_Child(t *testing.T) {
 
 	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: nil,
-		Type:     types.LocationType_WORLD,
+		Type:     repositories.LocationType_WORLD,
 		Name:     "root",
 	})
 	if err != nil {
@@ -157,9 +157,9 @@ func TestCreateLocationTool_Execute_Child(t *testing.T) {
 	}
 
 	var out struct {
-		ID       types.ID  `json:"id"`
-		ParentID *types.ID `json:"parent_id"`
-		Name     string    `json:"name"`
+		ID       repositories.ID  `json:"id"`
+		ParentID *repositories.ID `json:"parent_id"`
+		Name     string           `json:"name"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("unmarshal output: %v", err)

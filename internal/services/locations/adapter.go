@@ -2,12 +2,12 @@ package locations
 
 import (
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 
 	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 )
 
 // toNewLocation maps CreateLocationInput to a domain Location ready for insert.
@@ -16,7 +16,7 @@ func toNewLocation(input input.CreateLocationInput) (*locations.Location, error)
 		return nil, errors.New("parent id is zero")
 	}
 
-	t, err := types.NewLocationType(input.Type)
+	t, err := repositories.NewLocationType(input.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (filterslo
 	}
 
 	if in.Type != nil && *in.Type != "" {
-		t, err := types.NewLocationType(*in.Type)
+		t, err := repositories.NewLocationType(*in.Type)
 		if err != nil {
 			return filterslocations.FindLocationsFilter{}, 0, err
 		}

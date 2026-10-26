@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
 	"golang.org/x/crypto/blake2b"
@@ -107,7 +107,7 @@ func TestExecuteIdempotent_FindLocations(t *testing.T) {
 
 	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: nil,
-		Type:     types.LocationType_WORLD,
+		Type:     repositories.LocationType_WORLD,
 		Name:     "World",
 	})
 	if err != nil {
@@ -157,9 +157,9 @@ func TestExecuteNotIdempotent_CreateRoot(t *testing.T) {
 	}
 
 	var out struct {
-		ID       types.ID  `json:"id"`
-		ParentID *types.ID `json:"parent_id"`
-		Name     string    `json:"name"`
+		ID       repositories.ID  `json:"id"`
+		ParentID *repositories.ID `json:"parent_id"`
+		Name     string           `json:"name"`
 	}
 	if err := json.Unmarshal(got, &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
@@ -172,7 +172,7 @@ func TestExecuteNotIdempotent_CreateRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if loc.ParentID != nil || loc.Type != types.LocationType_WORLD {
+	if loc.ParentID != nil || loc.Type != repositories.LocationType_WORLD {
 		t.Fatalf("unexpected persisted location: %+v", loc)
 	}
 	if string(loc.Details) != `{"tier":1}` {
@@ -185,7 +185,7 @@ func TestExecuteNotIdempotent_CreateChild(t *testing.T) {
 
 	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: nil,
-		Type:     types.LocationType_WORLD,
+		Type:     repositories.LocationType_WORLD,
 		Name:     "root",
 	})
 	if err != nil {
@@ -209,9 +209,9 @@ func TestExecuteNotIdempotent_CreateChild(t *testing.T) {
 	}
 
 	var out struct {
-		ID       types.ID  `json:"id"`
-		ParentID *types.ID `json:"parent_id"`
-		Name     string    `json:"name"`
+		ID       repositories.ID  `json:"id"`
+		ParentID *repositories.ID `json:"parent_id"`
+		Name     string           `json:"name"`
 	}
 	if err := json.Unmarshal(got, &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)

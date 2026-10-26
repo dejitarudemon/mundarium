@@ -3,7 +3,7 @@ package locations
 
 import (
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 )
 
 // FindLocationsFilter selects locations under ScopeID with optional filters.
@@ -13,10 +13,10 @@ import (
 //   - 1: scope + direct children
 //   - n: scope + descendants up to relative depth n (capped by the repository max depth)
 type FindLocationsFilter struct {
-	ScopeID   types.ID
+	ScopeID   repositories.ID
 	Query     *string
-	Type      *types.LocationType
-	SubtypeID *types.ID
+	Type      *repositories.LocationType
+	SubtypeID *repositories.ID
 	Depth     int
 }
 

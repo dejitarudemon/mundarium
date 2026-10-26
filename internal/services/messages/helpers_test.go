@@ -2,12 +2,12 @@ package messages_test
 
 import (
 	"context"
+	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
@@ -54,10 +54,10 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 	return ctx, cancel
 }
 
-func seedMessage(t *testing.T, invokeID, text string) *types.Message {
+func seedMessage(t *testing.T, invokeID, text string) *repomessages.Message {
 	t.Helper()
 
-	msg, err := testRepo.CreateMessage(context.Background(), &types.Message{
+	msg, err := testRepo.CreateMessage(context.Background(), &repomessages.Message{
 		InvokeID: invokeID,
 		Text:     text,
 		From:     providers.Role_Master,

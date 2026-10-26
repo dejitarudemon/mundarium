@@ -4,9 +4,9 @@ package postgres
 import (
 	"context"
 	"fmt"
+	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -37,7 +37,7 @@ func migrate(db *gorm.DB) error {
 		&locations.LocationSubtype{},
 		&locations.Location{},
 		&locations.Connection{},
-		&types.Message{},
+		&repomessages.Message{},
 	); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}

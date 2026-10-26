@@ -3,14 +3,14 @@ package locations_test
 import (
 	"context"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
-func createConnection(t *testing.T, fromID, toID types.ID, description string) *locations.Connection {
+func createConnection(t *testing.T, fromID, toID repositories.ID, description string) *locations.Connection {
 	t.Helper()
 
 	conn := &locations.Connection{
@@ -85,7 +85,7 @@ func TestFindInderectConnections(t *testing.T) {
 		t.Fatalf("want 2 A->B connections, got %#v", got)
 	}
 
-	ids := map[types.ID]struct{}{got[0].ID: {}, got[1].ID: {}}
+	ids := map[repositories.ID]struct{}{got[0].ID: {}, got[1].ID: {}}
 	if _, ok := ids[ab1.ID]; !ok {
 		t.Fatalf("missing ab-1 in %#v", got)
 	}
@@ -117,8 +117,8 @@ func TestPutConnection(t *testing.T) {
 	conn.Bidirectional = true
 	conn.Description = "new"
 	conn.ExpiresAt = &expires
-	conn.Details = types.JSON(`{"k":"v"}`)
-	conn.State = types.JSON(`{"open":true}`)
+	conn.Details = repositories.JSON(`{"k":"v"}`)
+	conn.State = repositories.JSON(`{"open":true}`)
 
 	if err := testRepo.PutConnection(ctx, conn); err != nil {
 		t.Fatalf("PutConnection: %v", err)

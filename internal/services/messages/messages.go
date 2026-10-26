@@ -2,13 +2,13 @@ package messages
 
 import (
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"time"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/messages"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/messages"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
@@ -56,7 +56,7 @@ func (s *Service) CreateMessage(ctx execution.ExecutionContext, in input.CreateM
 
 // GetMessage loads a message by id, maps it to output, and completes the execution context.
 // Idempotent: repeated calls with the same id return the same row.
-func (s *Service) GetMessage(ctx execution.ExecutionContext, id types.ID) (output.GetMessageOutput, error) {
+func (s *Service) GetMessage(ctx execution.ExecutionContext, id repositories.ID) (output.GetMessageOutput, error) {
 	message, err := s.repository().GetMessage(ctx, id)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
@@ -123,7 +123,7 @@ func (s *Service) GetMessages(ctx execution.ExecutionContext, invokeID string, s
 // SetDeliveredAt updates delivered_at for the message identified by id inside a transaction
 // and completes the execution context. A nil deliveredAt clears the field.
 // Idempotent: repeating the same id and timestamp yields the same stored value.
-func (s *Service) SetDeliveredAt(ctx execution.ExecutionContext, id types.ID, deliveredAt *time.Time) error {
+func (s *Service) SetDeliveredAt(ctx execution.ExecutionContext, id repositories.ID, deliveredAt *time.Time) error {
 	if err := s.connection.WithTransaction(
 		ctx,
 		func(tx *gorm.DB) error {

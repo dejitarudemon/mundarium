@@ -3,23 +3,23 @@ package locations_test
 import (
 	"context"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
-func idPtr(id types.ID) *types.ID {
+func idPtr(id repositories.ID) *repositories.ID {
 	return &id
 }
 
-func createLocation(t *testing.T, parentID *types.ID, name string) *locations.Location {
+func createLocation(t *testing.T, parentID *repositories.ID, name string) *locations.Location {
 	t.Helper()
 
 	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: parentID,
-		Type:     types.LocationType_REGION,
+		Type:     repositories.LocationType_REGION,
 		Name:     name,
 	})
 	if err != nil {

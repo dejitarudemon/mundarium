@@ -3,10 +3,10 @@ package postgres_test
 import (
 	"context"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	pgstorage "github.com/dejitarudemon/mundarium/internal/storage/postgres"
 	"gorm.io/gorm"
 )
@@ -70,11 +70,11 @@ func TestWithTransaction_Commits(t *testing.T) {
 	truncate(t, conn.DB())
 	ctx := context.Background()
 
-	var id types.ID
+	var id repositories.ID
 	err := conn.WithTransaction(ctx, func(tx *gorm.DB) error {
 		loc := &locations.Location{
 			ParentID: nil,
-			Type:     types.LocationType_REGION,
+			Type:     repositories.LocationType_REGION,
 			Name:     "committed",
 		}
 		if err := tx.Create(loc).Error; err != nil {
@@ -101,11 +101,11 @@ func TestWithTransaction_RollsBackOnError(t *testing.T) {
 	truncate(t, conn.DB())
 	ctx := context.Background()
 
-	var id types.ID
+	var id repositories.ID
 	err := conn.WithTransaction(ctx, func(tx *gorm.DB) error {
 		loc := &locations.Location{
 			ParentID: nil,
-			Type:     types.LocationType_REGION,
+			Type:     repositories.LocationType_REGION,
 			Name:     "rolled-back",
 		}
 		if err := tx.Create(loc).Error; err != nil {

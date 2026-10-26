@@ -3,15 +3,15 @@ package locations_test
 import (
 	"context"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
 	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
-func typePtr(t types.LocationType) *types.LocationType { return &t }
+func typePtr(t repositories.LocationType) *repositories.LocationType { return &t }
 
 func childCount(children map[int][]locations.Location) int {
 	n := 0
@@ -29,7 +29,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 	north := createLocation(t, idPtr(root.ID), "North")
 	gate, err := testRepo.CreateLocation(ctx, &locations.Location{
 		ParentID:    idPtr(north.ID),
-		Type:        types.LocationType_SITE,
+		Type:        repositories.LocationType_SITE,
 		Name:        "North Gate",
 		Description: "stone arch",
 	})
@@ -79,12 +79,12 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 	ctx := context.Background()
 
 	root := createRoot(t, "town")
-	subtype := createSubtype(t, "tavern", types.LocationType_STRUCTURE, "inn")
+	subtype := createSubtype(t, "tavern", repositories.LocationType_STRUCTURE, "inn")
 	subtypeID := subtype.ID
 
 	tavern, err := testRepo.CreateLocation(ctx, &locations.Location{
 		ParentID:  idPtr(root.ID),
-		Type:      types.LocationType_STRUCTURE,
+		Type:      repositories.LocationType_STRUCTURE,
 		SubtypeID: &subtypeID,
 		Name:      "The Boar",
 	})
@@ -96,7 +96,7 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 	byType, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   1,
-		Type:    typePtr(types.LocationType_STRUCTURE),
+		Type:    typePtr(repositories.LocationType_STRUCTURE),
 	})
 	if err != nil {
 		t.Fatalf("by type: %v", err)

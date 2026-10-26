@@ -2,15 +2,15 @@ package messages
 
 import (
 	"errors"
+	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/messages"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/messages"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 )
 
 // toNewMessage maps CreateMessageInput to a domain Message ready for insert.
-func toNewMessage(in input.CreateMessageInput) (*types.Message, error) {
+func toNewMessage(in input.CreateMessageInput) (*repomessages.Message, error) {
 	if in.InvokeID == "" {
 		return nil, errors.New("invoke id is empty")
 	}
@@ -21,7 +21,7 @@ func toNewMessage(in input.CreateMessageInput) (*types.Message, error) {
 		return nil, errors.New("from is empty")
 	}
 
-	return &types.Message{
+	return &repomessages.Message{
 		InvokeID: in.InvokeID,
 		Text:     in.Text,
 		From:     providers.Role(in.From),
@@ -29,7 +29,7 @@ func toNewMessage(in input.CreateMessageInput) (*types.Message, error) {
 }
 
 // toCreatedMessage maps a persisted Message to CreateMessageOutput.
-func toCreatedMessage(message types.Message) (output.CreateMessageOutput, error) {
+func toCreatedMessage(message repomessages.Message) (output.CreateMessageOutput, error) {
 	if err := checkMessage(message); err != nil {
 		return output.CreateMessageOutput{}, err
 	}
@@ -42,7 +42,7 @@ func toCreatedMessage(message types.Message) (output.CreateMessageOutput, error)
 }
 
 // toGotMessage maps a persisted Message to GetMessageOutput.
-func toGotMessage(message types.Message) (output.GetMessageOutput, error) {
+func toGotMessage(message repomessages.Message) (output.GetMessageOutput, error) {
 	if err := checkMessage(message); err != nil {
 		return output.GetMessageOutput{}, err
 	}
@@ -59,7 +59,7 @@ func toGotMessage(message types.Message) (output.GetMessageOutput, error) {
 }
 
 // toGotMessages maps persisted messages to GetMessagesOutput.
-func toGotMessages(messages []types.Message) (output.GetMessagesOutput, error) {
+func toGotMessages(messages []repomessages.Message) (output.GetMessagesOutput, error) {
 	result := make(output.GetMessagesOutput, 0, len(messages))
 	for _, msg := range messages {
 		item, err := toGotMessage(msg)
@@ -72,7 +72,7 @@ func toGotMessages(messages []types.Message) (output.GetMessagesOutput, error) {
 }
 
 // checkMessage validates required identity fields on a Message.
-func checkMessage(message types.Message) error {
+func checkMessage(message repomessages.Message) error {
 	if message.ID == 0 {
 		return errors.New("message id is zero")
 	}

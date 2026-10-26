@@ -4,9 +4,9 @@ package locations
 import (
 	"context"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 
 	liblocations "github.com/dejitarudemon/mundarium/internal/libs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"gorm.io/gorm"
 )
 
@@ -49,7 +49,7 @@ func (r *LocationRepository) CreateLocation(ctx context.Context, location *liblo
 
 // GetLocation returns the location with the given id, preloading its Subtype.
 // Returns gorm.ErrRecordNotFound if no row exists.
-func (r *LocationRepository) GetLocation(ctx context.Context, id types.ID) (*liblocations.Location, error) {
+func (r *LocationRepository) GetLocation(ctx context.Context, id repositories.ID) (*liblocations.Location, error) {
 	var location liblocations.Location
 
 	if err := r.db.
@@ -74,7 +74,7 @@ func (r *LocationRepository) GetLocation(ctx context.Context, id types.ID) (*lib
 // Each level is loaded with one query ordered by id. Already seen IDs are
 // skipped to break parent_id cycles. When loadSubtypes is true, each level
 // preloads Subtype.
-func (r *LocationRepository) FindChildLocations(ctx context.Context, id types.ID, depth int, loadSubtypes bool) (map[int][]liblocations.Location, error) {
+func (r *LocationRepository) FindChildLocations(ctx context.Context, id repositories.ID, depth int, loadSubtypes bool) (map[int][]liblocations.Location, error) {
 	result := make(map[int][]liblocations.Location)
 	if depth <= 0 {
 		return result, nil
@@ -88,8 +88,8 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id types.ID
 		return nil, gorm.ErrRecordNotFound
 	}
 
-	seen := map[types.ID]struct{}{id: {}}
-	parentIDs := []types.ID{id}
+	seen := map[repositories.ID]struct{}{id: {}}
+	parentIDs := []repositories.ID{id}
 
 	for d := 1; d <= depth; d++ {
 		if len(parentIDs) == 0 {
@@ -178,7 +178,7 @@ func (r *LocationRepository) PutLocation(ctx context.Context, location *liblocat
 //
 // Returns an error with message "location would create a cycle" if the new
 // parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
-func (r *LocationRepository) PatchLocationParent(ctx context.Context, id types.ID, parentID *types.ID) error {
+func (r *LocationRepository) PatchLocationParent(ctx context.Context, id repositories.ID, parentID *repositories.ID) error {
 	cycle, err := r.checkCircle(ctx, id, parentID)
 	if err != nil {
 		return err
@@ -202,7 +202,7 @@ func (r *LocationRepository) PatchLocationParent(ctx context.Context, id types.I
 
 // PatchLocationName sets the name of the location identified by id.
 // Returns gorm.ErrRecordNotFound if no row was updated.
-func (r *LocationRepository) PatchLocationName(ctx context.Context, id types.ID, name string) error {
+func (r *LocationRepository) PatchLocationName(ctx context.Context, id repositories.ID, name string) error {
 	query := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Update("name", name)
 
 	if err := query.Error; err != nil {
@@ -218,7 +218,7 @@ func (r *LocationRepository) PatchLocationName(ctx context.Context, id types.ID,
 
 // PatchLocationDetails sets the details of the location identified by id.
 // Returns gorm.ErrRecordNotFound if no row was updated.
-func (r *LocationRepository) PatchLocationDetails(ctx context.Context, id types.ID, details types.JSON) error {
+func (r *LocationRepository) PatchLocationDetails(ctx context.Context, id repositories.ID, details repositories.JSON) error {
 	query := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Update("details", details)
 
 	if err := query.Error; err != nil {
@@ -234,7 +234,7 @@ func (r *LocationRepository) PatchLocationDetails(ctx context.Context, id types.
 
 // PatchLocationDescription sets the description of the location identified by id.
 // Returns gorm.ErrRecordNotFound if no row was updated.
-func (r *LocationRepository) PatchLocationDescription(ctx context.Context, id types.ID, description string) error {
+func (r *LocationRepository) PatchLocationDescription(ctx context.Context, id repositories.ID, description string) error {
 	query := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Update("description", description)
 
 	if err := query.Error; err != nil {
@@ -255,7 +255,7 @@ func (r *LocationRepository) CreateSubtype(ctx context.Context, subtype *libloca
 
 // GetSubtype returns the location subtype with the given id.
 // Returns gorm.ErrRecordNotFound if no row exists.
-func (r *LocationRepository) GetSubtype(ctx context.Context, id types.ID) (*liblocations.LocationSubtype, error) {
+func (r *LocationRepository) GetSubtype(ctx context.Context, id repositories.ID) (*liblocations.LocationSubtype, error) {
 	var subtype liblocations.LocationSubtype
 
 	if err := r.db.
@@ -269,7 +269,7 @@ func (r *LocationRepository) GetSubtype(ctx context.Context, id types.ID) (*libl
 
 // FindSubtypes returns subtypes matching any of the given keys and/or location types.
 // Empty keys or types means that filter is not applied. If both are empty, all subtypes are returned.
-func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, types []types.LocationType) ([]liblocations.LocationSubtype, error) {
+func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, types []repositories.LocationType) ([]liblocations.LocationSubtype, error) {
 	var subtypes []liblocations.LocationSubtype
 
 	query := r.db.WithContext(ctx).Model(liblocations.LocationSubtype{})
@@ -297,7 +297,7 @@ func (r *LocationRepository) CreateConnection(ctx context.Context, connection *l
 
 // GetConnection returns the connection with the given id.
 // Returns gorm.ErrRecordNotFound if no row exists.
-func (r *LocationRepository) GetConnection(ctx context.Context, id types.ID) (*liblocations.Connection, error) {
+func (r *LocationRepository) GetConnection(ctx context.Context, id repositories.ID) (*liblocations.Connection, error) {
 	var connection liblocations.Connection
 
 	if err := r.db.WithContext(ctx).First(&connection, "id = ?", id).Error; err != nil {
@@ -308,7 +308,7 @@ func (r *LocationRepository) GetConnection(ctx context.Context, id types.ID) (*l
 }
 
 // FindInderectConnections returns connections directed from fromID to toID.
-func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID, toID types.ID) ([]liblocations.Connection, error) {
+func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID, toID repositories.ID) ([]liblocations.Connection, error) {
 	connections := make([]liblocations.Connection, 0)
 
 	if err := r.db.WithContext(ctx).Find(&connections, "from_id = ? AND to_id = ?", fromID, toID).Error; err != nil {
@@ -352,7 +352,7 @@ func (r *LocationRepository) PutConnection(ctx context.Context, connection *libl
 }
 
 // DeleteConnection deletes the connection with the given id.
-func (r *LocationRepository) DeleteConnection(ctx context.Context, id types.ID) error {
+func (r *LocationRepository) DeleteConnection(ctx context.Context, id repositories.ID) error {
 	return r.db.WithContext(ctx).Delete(liblocations.Connection{}, "id = ?", id).Error
 }
 
@@ -362,7 +362,7 @@ func (r *LocationRepository) DeleteConnection(ctx context.Context, id types.ID) 
 // Returns true if a cycle would be created, false otherwise.
 // A nil newParent means becoming a root and is never a cycle.
 // A nil parent_id on an ancestor ends the walk as a tree root.
-func (r *LocationRepository) checkCircle(ctx context.Context, id types.ID, newParent *types.ID) (bool, error) {
+func (r *LocationRepository) checkCircle(ctx context.Context, id repositories.ID, newParent *repositories.ID) (bool, error) {
 	if newParent == nil {
 		return false, nil
 	}
@@ -374,13 +374,13 @@ func (r *LocationRepository) checkCircle(ctx context.Context, id types.ID, newPa
 	}
 
 	next := *newParent
-	seen := map[types.ID]struct{}{
+	seen := map[repositories.ID]struct{}{
 		id:   {},
 		next: {},
 	}
 
 	for ctx.Err() == nil {
-		var parentID *types.ID
+		var parentID *repositories.ID
 		if err := r.db.WithContext(ctx).
 			Model(&liblocations.Location{}).
 			Select("parent_id").

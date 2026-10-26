@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	svcerrs "github.com/dejitarudemon/mundarium/internal/services/errs"
 	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
-	"gorm.io/gorm"
 )
 
 func TestFindLocations(t *testing.T) {
@@ -67,8 +67,8 @@ func TestFindLocations_ValidationError(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{ScopeID: 0})
-	if err == nil || err.Error() != "scope id is zero" {
-		t.Fatalf("want scope id is zero, got %v", err)
+	if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+		t.Fatalf("want errs.InvalidRequest for scope id, got %v", err)
 	}
 	if len(rec.failCalls) == 0 {
 		t.Fatal("want Fail called")
@@ -123,8 +123,8 @@ func TestFindChildLocations_NotFound(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.FindChildLocations(ctx, 999, 1)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("expected errs.NotFound, got %v", err)
 	}
 }
 

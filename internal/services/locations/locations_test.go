@@ -6,8 +6,8 @@ import (
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
+	svcerrs "github.com/dejitarudemon/mundarium/internal/services/errs"
 	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
-	"gorm.io/gorm"
 )
 
 func TestCreateLocation(t *testing.T) {
@@ -56,8 +56,8 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 			Type:     "region",
 			Name:     "x",
 		})
-		if err == nil || err.Error() != "parent id is zero" {
-			t.Fatalf("want parent id is zero, got %v", err)
+		if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+			t.Fatalf("want errs.InvalidRequest for parent id, got %v", err)
 		}
 		if len(rec.failCalls) == 0 {
 			t.Fatal("want Fail called on validation error")
@@ -87,8 +87,8 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 			SubtypeID: new(repositories.ID(0)),
 			Name:      "x",
 		})
-		if err == nil || err.Error() != "subtype id is zero" {
-			t.Fatalf("want subtype id is zero, got %v", err)
+		if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+			t.Fatalf("want errs.InvalidRequest for subtype id, got %v", err)
 		}
 		if len(rec.failCalls) <= before {
 			t.Fatal("want Fail called on validation error")
@@ -99,7 +99,8 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 func TestCreateLocation_CompleteError(t *testing.T) {
 	resetDB(t)
 	root := seedRoot(t, "world")
-	rec := &completeRecorder{err: errors.New("callback failed")}
+	cause := errors.New("callback failed")
+	rec := &completeRecorder{err: cause}
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
@@ -108,11 +109,14 @@ func TestCreateLocation_CompleteError(t *testing.T) {
 		Type:     "region",
 		Name:     "X",
 	})
-	if err == nil || err.Error() != "callback failed" {
-		t.Fatalf("want callback failed, got %v", err)
+	if _, ok := errors.AsType[svcerrs.InternalError](err); !ok || !errors.Is(err, cause) {
+		t.Fatalf("want errs.InternalError wrapping callback failed, got %v", err)
 	}
-	if len(rec.failCalls) != 1 || rec.failCalls[0].Error() != "callback failed" {
-		t.Fatalf("want Fail called once with callback failed, got %#v", rec.failCalls)
+	if len(rec.failCalls) != 1 {
+		t.Fatalf("want Fail called once, got %#v", rec.failCalls)
+	}
+	if _, ok := errors.AsType[svcerrs.InternalError](rec.failCalls[0]); !ok || !errors.Is(rec.failCalls[0], cause) {
+		t.Fatalf("want Fail with InternalError wrapping cause, got %#v", rec.failCalls)
 	}
 
 	var count int64
@@ -150,7 +154,7 @@ func TestGetLocation_NotFound(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.GetLocation(ctx, 999)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("expected errs.NotFound, got %v", err)
 	}
 }

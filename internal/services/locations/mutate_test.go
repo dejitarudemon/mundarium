@@ -6,8 +6,7 @@ import (
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
-	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
-	"gorm.io/gorm"
+	svcerrs "github.com/dejitarudemon/mundarium/internal/services/errs"
 )
 
 func TestMoveLocation(t *testing.T) {
@@ -45,8 +44,8 @@ func TestMoveLocation_RejectsCycle(t *testing.T) {
 	defer cancel()
 
 	err := testSvc.MoveLocation(ctx, root.ID, new(child.ID))
-	if !errors.Is(err, repolocations.ErrLocationWouldCreateCycle) {
-		t.Fatalf("want ErrLocationWouldCreateCycle, got %v", err)
+	if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+		t.Fatalf("want errs.InvalidRequest for cycle, got %v", err)
 	}
 }
 
@@ -79,8 +78,8 @@ func TestRenameLocation_NotFound(t *testing.T) {
 	defer cancel()
 
 	err := testSvc.RenameLocation(ctx, 999, "x")
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("expected errs.NotFound, got %v", err)
 	}
 }
 
@@ -114,8 +113,8 @@ func TestUpdateLocationDetails_NotFound(t *testing.T) {
 	defer cancel()
 
 	err := testSvc.UpdateLocationDetails(ctx, 999, repositories.JSON(`{}`))
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("expected errs.NotFound, got %v", err)
 	}
 }
 
@@ -148,7 +147,7 @@ func TestUpdateLocationDescription_NotFound(t *testing.T) {
 	defer cancel()
 
 	err := testSvc.UpdateLocationDescription(ctx, 999, "x")
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("expected errs.NotFound, got %v", err)
 	}
 }

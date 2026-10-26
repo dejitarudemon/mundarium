@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"strings"
 	"testing"
-
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	mapjournal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution/implemented/map"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
@@ -340,12 +340,12 @@ func TestExecuteNotIdempotent_AlreadyFailed(t *testing.T) {
 	call := masterCall("call-1", "create_location", json.RawMessage(`{"name":"X","parent_id":0,"type":"region"}`))
 
 	_, err := ex.Execute(context.Background(), "inv-1", call)
-	if err == nil || err.Error() != "parent id is zero" {
+	if err == nil || !strings.Contains(err.Error(), "parent id is zero") {
 		t.Fatalf("want parent id is zero, got %v", err)
 	}
 
 	_, err = ex.Execute(context.Background(), "inv-1", call)
-	if err == nil || err.Error() != "parent id is zero" {
+	if err == nil || !strings.Contains(err.Error(), "parent id is zero") {
 		t.Fatalf("want replayed parent id is zero, got %v", err)
 	}
 

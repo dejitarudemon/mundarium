@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
+	"strings"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -200,7 +201,7 @@ func TestCreateLocationTool_Execute_ZeroParent(t *testing.T) {
 		"parent_id":0,
 		"type":"region"
 	}`))
-	if err == nil || err.Error() != "parent id is zero" {
+	if err == nil || !strings.Contains(err.Error(), "parent id is zero") {
 		t.Fatalf("want parent id is zero, got %v", err)
 	}
 }

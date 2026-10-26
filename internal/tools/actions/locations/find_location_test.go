@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
@@ -125,7 +126,7 @@ func TestFindLocationsTool_Execute_ZeroScope(t *testing.T) {
 	defer cancel()
 
 	_, err = tool.Execute(ctx, json.RawMessage(`{"scope_id":0}`))
-	if err == nil || err.Error() != "scope id is zero" {
+	if err == nil || !strings.Contains(err.Error(), "scope id is zero") {
 		t.Fatalf("want scope id is zero, got %v", err)
 	}
 }

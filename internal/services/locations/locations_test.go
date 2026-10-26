@@ -2,11 +2,11 @@ package locations_test
 
 import (
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
-	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"testing"
 
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
+	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"gorm.io/gorm"
 )
 
@@ -18,7 +18,7 @@ func TestCreateLocation(t *testing.T) {
 	defer cancel()
 
 	out, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-		ParentID:    idPtr(root.ID),
+		ParentID:    new(root.ID),
 		Type:        "region",
 		Name:        "North",
 		Description: "cold",
@@ -52,7 +52,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 
 	t.Run("zero parent", func(t *testing.T) {
 		_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-			ParentID: idPtr(0),
+			ParentID: new(repositories.ID(0)),
 			Type:     "region",
 			Name:     "x",
 		})
@@ -67,7 +67,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 	t.Run("unknown type", func(t *testing.T) {
 		before := len(rec.failCalls)
 		_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-			ParentID: idPtr(root.ID),
+			ParentID: new(root.ID),
 			Type:     "not-a-type",
 			Name:     "x",
 		})
@@ -81,11 +81,10 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 
 	t.Run("zero subtype id", func(t *testing.T) {
 		before := len(rec.failCalls)
-		zero := repositories.ID(0)
 		_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-			ParentID:  idPtr(root.ID),
+			ParentID:  new(root.ID),
 			Type:      "region",
-			SubtypeID: &zero,
+			SubtypeID: new(repositories.ID(0)),
 			Name:      "x",
 		})
 		if err == nil || err.Error() != "subtype id is zero" {
@@ -105,7 +104,7 @@ func TestCreateLocation_CompleteError(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-		ParentID: idPtr(root.ID),
+		ParentID: new(root.ID),
 		Type:     "region",
 		Name:     "X",
 	})
@@ -151,272 +150,6 @@ func TestGetLocation_NotFound(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.GetLocation(ctx, 999)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
-	}
-}
-
-func TestFindLocations(t *testing.T) {
-	resetDB(t)
-	root := seedRoot(t, "World")
-	north := seedChild(t, root.ID, "North")
-	_ = seedChild(t, north.ID, "North Gate")
-	_ = seedChild(t, root.ID, "South")
-
-	rec := &completeRecorder{}
-	ctx, cancel := newExecCtx(t, rec)
-	defer cancel()
-
-	depth := 2
-	query := "Gate"
-	out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
-		ScopeID: root.ID,
-		Query:   &query,
-		Depth:   &depth,
-	})
-	if err != nil {
-		t.Fatalf("FindLocations: %v", err)
-	}
-	if out.Scope.Name != "World" || len(out.Children[2]) != 1 || out.Children[2][0].Name != "North Gate" || out.HasMore != 0 {
-		t.Fatalf("want World scope + North Gate at depth 2, got %#v", out)
-	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
-		t.Fatalf("unexpected complete calls: %#v", rec.calls)
-	}
-}
-
-func TestFindLocations_HasMore(t *testing.T) {
-	resetDB(t)
-	root := seedRoot(t, "World")
-	_ = seedChild(t, root.ID, "A")
-	_ = seedChild(t, root.ID, "B")
-	_ = seedChild(t, root.ID, "C")
-
-	ctx, cancel := newExecCtx(t, &completeRecorder{})
-	defer cancel()
-
-	limit := 2
-	depth := 1
-	out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
-		ScopeID: root.ID,
-		Depth:   &depth,
-		Limit:   &limit,
-	})
-	if err != nil {
-		t.Fatalf("FindLocations: %v", err)
-	}
-	// 3 children, limit 2 => 2 returned, has_more = 1
-	if out.Scope.Name != "World" || len(out.Children[1]) != 2 || out.HasMore != 1 {
-		t.Fatalf("want scope + 2 children and has_more=1, got %#v", out)
-	}
-}
-
-func TestFindLocations_ValidationError(t *testing.T) {
-	resetDB(t)
-	rec := &completeRecorder{}
-	ctx, cancel := newExecCtx(t, rec)
-	defer cancel()
-
-	_, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{ScopeID: 0})
-	if err == nil || err.Error() != "scope id is zero" {
-		t.Fatalf("want scope id is zero, got %v", err)
-	}
-	if len(rec.failCalls) == 0 {
-		t.Fatal("want Fail called")
-	}
-}
-
-func TestFindChildLocations(t *testing.T) {
-	resetDB(t)
-	root := seedRoot(t, "root")
-	a := seedChild(t, root.ID, "A")
-	_ = seedChild(t, root.ID, "B")
-	_ = seedChild(t, a.ID, "A1")
-
-	rec := &completeRecorder{}
-	ctx, cancel := newExecCtx(t, rec)
-	defer cancel()
-
-	depth0, err := testSvc.FindChildLocations(ctx, root.ID, 0)
-	if err != nil {
-		t.Fatalf("depth 0: %v", err)
-	}
-	if len(depth0) != 0 {
-		t.Fatalf("depth 0 want empty, got %#v", depth0)
-	}
-
-	depth1, err := testSvc.FindChildLocations(ctx, root.ID, 1)
-	if err != nil {
-		t.Fatalf("depth 1: %v", err)
-	}
-	if len(depth1[1]) != 2 {
-		t.Fatalf("depth 1 want 2, got %#v", depth1)
-	}
-
-	depth2, err := testSvc.FindChildLocations(ctx, root.ID, 2)
-	if err != nil {
-		t.Fatalf("depth 2: %v", err)
-	}
-	if len(depth2[1]) != 2 || len(depth2[2]) != 1 {
-		t.Fatalf("depth 2 want 2+1, got %#v", depth2)
-	}
-	if depth2[2][0].Name != "A1" {
-		t.Fatalf("want grandchild A1, got %+v", depth2[2][0])
-	}
-	if len(rec.calls) < 1 {
-		t.Fatal("expected Complete to be called")
-	}
-}
-
-func TestFindChildLocations_NotFound(t *testing.T) {
-	resetDB(t)
-	ctx, cancel := newExecCtx(t, nil)
-	defer cancel()
-
-	_, err := testSvc.FindChildLocations(ctx, 999, 1)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
-	}
-}
-
-func TestMoveLocation(t *testing.T) {
-	resetDB(t)
-	root := seedRoot(t, "root")
-	other := seedRoot(t, "other")
-	child := seedChild(t, root.ID, "child")
-
-	rec := &completeRecorder{}
-	ctx, cancel := newExecCtx(t, rec)
-	defer cancel()
-
-	if err := testSvc.MoveLocation(ctx, child.ID, idPtr(other.ID)); err != nil {
-		t.Fatalf("MoveLocation: %v", err)
-	}
-
-	got, err := testRepo.GetLocation(ctx, child.ID)
-	if err != nil {
-		t.Fatalf("GetLocation: %v", err)
-	}
-	if got.ParentID == nil || *got.ParentID != other.ID {
-		t.Fatalf("want parent %d, got %v", other.ID, got.ParentID)
-	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch {
-		t.Fatalf("unexpected complete calls: %#v", rec.calls)
-	}
-}
-
-func TestMoveLocation_RejectsCycle(t *testing.T) {
-	resetDB(t)
-	root := seedRoot(t, "root")
-	child := seedChild(t, root.ID, "child")
-
-	ctx, cancel := newExecCtx(t, nil)
-	defer cancel()
-
-	err := testSvc.MoveLocation(ctx, root.ID, idPtr(child.ID))
-	if err == nil || err.Error() != "location would create a cycle" {
-		t.Fatalf("want cycle error, got %v", err)
-	}
-}
-
-func TestRenameLocation(t *testing.T) {
-	resetDB(t)
-	loc := seedRoot(t, "old")
-	rec := &completeRecorder{}
-	ctx, cancel := newExecCtx(t, rec)
-	defer cancel()
-
-	if err := testSvc.RenameLocation(ctx, loc.ID, "new"); err != nil {
-		t.Fatalf("RenameLocation: %v", err)
-	}
-
-	got, err := testRepo.GetLocation(ctx, loc.ID)
-	if err != nil {
-		t.Fatalf("GetLocation: %v", err)
-	}
-	if got.Name != "new" {
-		t.Fatalf("want name %q, got %q", "new", got.Name)
-	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch {
-		t.Fatalf("unexpected complete calls: %#v", rec.calls)
-	}
-}
-
-func TestRenameLocation_NotFound(t *testing.T) {
-	resetDB(t)
-	ctx, cancel := newExecCtx(t, nil)
-	defer cancel()
-
-	err := testSvc.RenameLocation(ctx, 999, "x")
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
-	}
-}
-
-func TestUpdateLocationDetails(t *testing.T) {
-	resetDB(t)
-	loc := seedRoot(t, "place")
-	rec := &completeRecorder{}
-	ctx, cancel := newExecCtx(t, rec)
-	defer cancel()
-
-	details := repositories.JSON(`{"a":1}`)
-	if err := testSvc.UpdateLocationDetails(ctx, loc.ID, details); err != nil {
-		t.Fatalf("UpdateLocationDetails: %v", err)
-	}
-
-	got, err := testRepo.GetLocation(ctx, loc.ID)
-	if err != nil {
-		t.Fatalf("GetLocation: %v", err)
-	}
-	if string(got.Details) != string(details) {
-		t.Fatalf("want details %s, got %s", details, got.Details)
-	}
-	if len(rec.calls) != 1 {
-		t.Fatalf("expected Complete call, got %#v", rec.calls)
-	}
-}
-
-func TestUpdateLocationDetails_NotFound(t *testing.T) {
-	resetDB(t)
-	ctx, cancel := newExecCtx(t, nil)
-	defer cancel()
-
-	err := testSvc.UpdateLocationDetails(ctx, 999, repositories.JSON(`{}`))
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
-	}
-}
-
-func TestUpdateLocationDescription(t *testing.T) {
-	resetDB(t)
-	loc := seedRoot(t, "place")
-	rec := &completeRecorder{}
-	ctx, cancel := newExecCtx(t, rec)
-	defer cancel()
-
-	if err := testSvc.UpdateLocationDescription(ctx, loc.ID, "updated desc"); err != nil {
-		t.Fatalf("UpdateLocationDescription: %v", err)
-	}
-
-	got, err := testRepo.GetLocation(ctx, loc.ID)
-	if err != nil {
-		t.Fatalf("GetLocation: %v", err)
-	}
-	if got.Description != "updated desc" {
-		t.Fatalf("want description updated, got %q", got.Description)
-	}
-	if len(rec.calls) != 1 {
-		t.Fatalf("expected Complete call, got %#v", rec.calls)
-	}
-}
-
-func TestUpdateLocationDescription_NotFound(t *testing.T) {
-	resetDB(t)
-	ctx, cancel := newExecCtx(t, nil)
-	defer cancel()
-
-	err := testSvc.UpdateLocationDescription(ctx, 999, "x")
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected ErrRecordNotFound, got %v", err)
 	}

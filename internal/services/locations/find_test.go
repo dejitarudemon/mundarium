@@ -1,9 +1,132 @@
 package locations_test
 
 import (
-	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
+	"errors"
 	"testing"
+
+	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
+	"gorm.io/gorm"
 )
+
+func TestFindLocations(t *testing.T) {
+	resetDB(t)
+	root := seedRoot(t, "World")
+	north := seedChild(t, root.ID, "North")
+	_ = seedChild(t, north.ID, "North Gate")
+	_ = seedChild(t, root.ID, "South")
+
+	rec := &completeRecorder{}
+	ctx, cancel := newExecCtx(t, rec)
+	defer cancel()
+
+	out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
+		ScopeID: root.ID,
+		Query:   new("Gate"),
+		Depth:   new(2),
+	})
+	if err != nil {
+		t.Fatalf("FindLocations: %v", err)
+	}
+	if out.Scope.Name != "World" || len(out.Children[2]) != 1 || out.Children[2][0].Name != "North Gate" || out.HasMore != 0 {
+		t.Fatalf("want World scope + North Gate at depth 2, got %#v", out)
+	}
+	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
+		t.Fatalf("unexpected complete calls: %#v", rec.calls)
+	}
+}
+
+func TestFindLocations_HasMore(t *testing.T) {
+	resetDB(t)
+	root := seedRoot(t, "World")
+	_ = seedChild(t, root.ID, "A")
+	_ = seedChild(t, root.ID, "B")
+	_ = seedChild(t, root.ID, "C")
+
+	ctx, cancel := newExecCtx(t, &completeRecorder{})
+	defer cancel()
+
+	out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
+		ScopeID: root.ID,
+		Depth:   new(1),
+		Limit:   new(2),
+	})
+	if err != nil {
+		t.Fatalf("FindLocations: %v", err)
+	}
+	// 3 children, limit 2 => 2 returned, has_more = 1
+	if out.Scope.Name != "World" || len(out.Children[1]) != 2 || out.HasMore != 1 {
+		t.Fatalf("want scope + 2 children and has_more=1, got %#v", out)
+	}
+}
+
+func TestFindLocations_ValidationError(t *testing.T) {
+	resetDB(t)
+	rec := &completeRecorder{}
+	ctx, cancel := newExecCtx(t, rec)
+	defer cancel()
+
+	_, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{ScopeID: 0})
+	if err == nil || err.Error() != "scope id is zero" {
+		t.Fatalf("want scope id is zero, got %v", err)
+	}
+	if len(rec.failCalls) == 0 {
+		t.Fatal("want Fail called")
+	}
+}
+
+func TestFindChildLocations(t *testing.T) {
+	resetDB(t)
+	root := seedRoot(t, "root")
+	a := seedChild(t, root.ID, "A")
+	_ = seedChild(t, root.ID, "B")
+	_ = seedChild(t, a.ID, "A1")
+
+	rec := &completeRecorder{}
+	ctx, cancel := newExecCtx(t, rec)
+	defer cancel()
+
+	depth0, err := testSvc.FindChildLocations(ctx, root.ID, 0)
+	if err != nil {
+		t.Fatalf("depth 0: %v", err)
+	}
+	if len(depth0) != 0 {
+		t.Fatalf("depth 0 want empty, got %#v", depth0)
+	}
+
+	depth1, err := testSvc.FindChildLocations(ctx, root.ID, 1)
+	if err != nil {
+		t.Fatalf("depth 1: %v", err)
+	}
+	if len(depth1[1]) != 2 {
+		t.Fatalf("depth 1 want 2, got %#v", depth1)
+	}
+
+	depth2, err := testSvc.FindChildLocations(ctx, root.ID, 2)
+	if err != nil {
+		t.Fatalf("depth 2: %v", err)
+	}
+	if len(depth2[1]) != 2 || len(depth2[2]) != 1 {
+		t.Fatalf("depth 2 want 2+1, got %#v", depth2)
+	}
+	if depth2[2][0].Name != "A1" {
+		t.Fatalf("want grandchild A1, got %+v", depth2[2][0])
+	}
+	if len(rec.calls) < 1 {
+		t.Fatal("expected Complete to be called")
+	}
+}
+
+func TestFindChildLocations_NotFound(t *testing.T) {
+	resetDB(t)
+	ctx, cancel := newExecCtx(t, nil)
+	defer cancel()
+
+	_, err := testSvc.FindChildLocations(ctx, 999, 1)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	}
+}
 
 // namesAt returns location names at the given relative depth, in response order.
 func namesAt(out svclocations.FindLocationsOutput, depth int) []string {
@@ -48,7 +171,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	}
 
 	north, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-		ParentID:    idPtr(world.ID),
+		ParentID:    new(world.ID),
 		Type:        "region",
 		Name:        "North",
 		Description: "cold marches",
@@ -61,7 +184,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	}
 
 	gate, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-		ParentID:    idPtr(north.ID),
+		ParentID:    new(north.ID),
 		Type:        "site",
 		Name:        "North Gate",
 		Description: "stone arch",
@@ -74,7 +197,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	}
 
 	south, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
-		ParentID: idPtr(world.ID),
+		ParentID: new(world.ID),
 		Type:     "region",
 		Name:     "South",
 	})
@@ -82,14 +205,10 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		t.Fatalf("create South: %v", err)
 	}
 
-	depth := func(d int) *int { return &d }
-	limit := func(n int) *int { return &n }
-	str := func(s string) *string { return &s }
-
 	t.Run("depth0_only_scope", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Depth:   depth(0),
+			Depth:   new(0),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -102,7 +221,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	t.Run("depth1_direct_children", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Depth:   depth(1),
+			Depth:   new(1),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -123,7 +242,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	t.Run("depth2_all_descendants", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Depth:   depth(2),
+			Depth:   new(2),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -143,8 +262,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		// North does not match "Gate", but traversal must still reach North Gate.
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Query:   str("Gate"),
-			Depth:   depth(2),
+			Query:   new("Gate"),
+			Depth:   new(2),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -163,8 +282,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	t.Run("query_gate_depth1_misses_grandchild", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Query:   str("Gate"),
-			Depth:   depth(1),
+			Query:   new("Gate"),
+			Depth:   new(1),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -178,8 +297,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		// "stone" matches Gate description; avoid "arch" — it is also a substring of North's "marches".
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Query:   str("STONE"),
-			Depth:   depth(2),
+			Query:   new("STONE"),
+			Depth:   new(2),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -192,8 +311,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	t.Run("query_north_matches_region_and_gate", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Query:   str("North"),
-			Depth:   depth(2),
+			Query:   new("North"),
+			Depth:   new(2),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -216,8 +335,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	t.Run("type_site", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Type:    str("site"),
-			Depth:   depth(2),
+			Type:    new("site"),
+			Depth:   new(2),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -233,8 +352,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	t.Run("type_region", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Type:    str("region"),
-			Depth:   depth(2),
+			Type:    new("region"),
+			Depth:   new(2),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -252,7 +371,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		// Searching from the middle node: Gate is a direct child (relative depth 1).
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: north.ID,
-			Depth:   depth(1),
+			Depth:   new(1),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -266,8 +385,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		// depth 2 without filters: North, South, North Gate (3 descendants). limit 1 → has_more=2.
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Depth:   depth(2),
-			Limit:   limit(1),
+			Depth:   new(2),
+			Limit:   new(1),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)
@@ -288,8 +407,8 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	t.Run("scope_always_present_even_if_filters_exclude_all", func(t *testing.T) {
 		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
-			Query:   str("no-such-place"),
-			Depth:   depth(2),
+			Query:   new("no-such-place"),
+			Depth:   new(2),
 		})
 		if err != nil {
 			t.Fatalf("FindLocations: %v", err)

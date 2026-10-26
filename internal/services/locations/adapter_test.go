@@ -7,17 +7,12 @@ import (
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 )
 
-func idPtr(id repositories.ID) *repositories.ID {
-	return &id
-}
-
 func TestToNewLocation(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
-		subtypeID := repositories.ID(7)
 		loc, err := toNewLocation(CreateLocationInput{
-			ParentID:    idPtr(3),
+			ParentID:    new(repositories.ID(3)),
 			Type:        "structure",
-			SubtypeID:   &subtypeID,
+			SubtypeID:   new(repositories.ID(7)),
 			Name:        "Tavern",
 			Description: "warm",
 			Details:     repositories.JSON(`{"x":1}`),
@@ -44,25 +39,24 @@ func TestToNewLocation(t *testing.T) {
 	})
 
 	t.Run("zero parent", func(t *testing.T) {
-		_, err := toNewLocation(CreateLocationInput{ParentID: idPtr(0), Type: "region", Name: "x"})
+		_, err := toNewLocation(CreateLocationInput{ParentID: new(repositories.ID(0)), Type: "region", Name: "x"})
 		if err == nil || err.Error() != "parent id is zero" {
 			t.Fatalf("want parent id is zero, got %v", err)
 		}
 	})
 
 	t.Run("bad type", func(t *testing.T) {
-		_, err := toNewLocation(CreateLocationInput{ParentID: idPtr(1), Type: "nope", Name: "x"})
+		_, err := toNewLocation(CreateLocationInput{ParentID: new(repositories.ID(1)), Type: "nope", Name: "x"})
 		if err == nil {
 			t.Fatal("expected error")
 		}
 	})
 
 	t.Run("zero subtype", func(t *testing.T) {
-		zero := repositories.ID(0)
 		_, err := toNewLocation(CreateLocationInput{
-			ParentID:  idPtr(1),
+			ParentID:  new(repositories.ID(1)),
 			Type:      "region",
-			SubtypeID: &zero,
+			SubtypeID: new(repositories.ID(0)),
 			Name:      "x",
 		})
 		if err == nil || err.Error() != "subtype id is zero" {
@@ -99,10 +93,10 @@ func TestToCreatedAndGotLocation(t *testing.T) {
 }
 
 func TestCheckLocation(t *testing.T) {
-	if err := checkLocation(repolocations.Location{ID: 0, ParentID: idPtr(1)}); err == nil || err.Error() != "location id is zero" {
+	if err := checkLocation(repolocations.Location{ID: 0, ParentID: new(repositories.ID(1))}); err == nil || err.Error() != "location id is zero" {
 		t.Fatalf("want location id is zero, got %v", err)
 	}
-	if err := checkLocation(repolocations.Location{ID: 1, ParentID: idPtr(0)}); err == nil || err.Error() != "parent id is zero" {
+	if err := checkLocation(repolocations.Location{ID: 1, ParentID: new(repositories.ID(0))}); err == nil || err.Error() != "parent id is zero" {
 		t.Fatalf("want parent id is zero, got %v", err)
 	}
 	if err := checkLocation(repolocations.Location{ID: 1, ParentID: nil}); err != nil {
@@ -112,8 +106,8 @@ func TestCheckLocation(t *testing.T) {
 
 func TestToGotChildLocations(t *testing.T) {
 	children := map[int][]repolocations.Location{
-		1: {{ID: 2, ParentID: idPtr(1), Type: repolocations.LocationType_REGION, Name: "A"}},
-		2: {{ID: 3, ParentID: idPtr(2), Type: repolocations.LocationType_SITE, Name: "A1"}},
+		1: {{ID: 2, ParentID: new(repositories.ID(1)), Type: repolocations.LocationType_REGION, Name: "A"}},
+		2: {{ID: 3, ParentID: new(repositories.ID(2)), Type: repolocations.LocationType_SITE, Name: "A1"}},
 	}
 
 	out, err := toGotChildLocations(children)
@@ -125,7 +119,7 @@ func TestToGotChildLocations(t *testing.T) {
 	}
 
 	_, err = toGotChildLocations(map[int][]repolocations.Location{
-		1: {{ID: 0, ParentID: idPtr(1), Name: "bad"}},
+		1: {{ID: 0, ParentID: new(repositories.ID(1)), Name: "bad"}},
 	})
 	if err == nil {
 		t.Fatal("expected validation error")
@@ -133,17 +127,13 @@ func TestToGotChildLocations(t *testing.T) {
 }
 
 func TestToFindLocationsFilter(t *testing.T) {
-	depth := 2
-	locType := "region"
-	query := "north"
-
 	const maxDepth = 5
 
 	got, limit, err := toFindLocationsFilter(FindLocationsInput{
 		ScopeID: 7,
-		Query:   &query,
-		Type:    &locType,
-		Depth:   &depth,
+		Query:   new("north"),
+		Type:    new("region"),
+		Depth:   new(2),
 	}, maxDepth)
 	if err != nil {
 		t.Fatalf("toFindLocationsFilter: %v", err)
@@ -171,14 +161,12 @@ func TestToFindLocationsFilter(t *testing.T) {
 		t.Fatalf("want depth=1 limit=20, got %+v %d", defaults, limit)
 	}
 
-	badDepth := 6
-	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Depth: &badDepth}, maxDepth)
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Depth: new(6)}, maxDepth)
 	if err == nil || err.Error() != "depth out of range" {
 		t.Fatalf("want depth out of range, got %v", err)
 	}
 
-	badLimit := 0
-	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Limit: &badLimit}, maxDepth)
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Limit: new(0)}, maxDepth)
 	if err == nil || err.Error() != "limit out of range" {
 		t.Fatalf("want limit out of range, got %v", err)
 	}

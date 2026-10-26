@@ -55,10 +55,6 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 	return ctx, cancel
 }
 
-func idPtr(id repositories.ID) *repositories.ID {
-	return &id
-}
-
 func seedRoot(t *testing.T, name string) *repolocations.Location {
 	t.Helper()
 
@@ -77,7 +73,7 @@ func seedChild(t *testing.T, parentID repositories.ID, name string) *repolocatio
 	t.Helper()
 
 	loc, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
-		ParentID: idPtr(parentID),
+		ParentID: new(parentID),
 		Type:     repolocations.LocationType_REGION,
 		Name:     name,
 	})

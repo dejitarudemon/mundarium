@@ -6,32 +6,36 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dejitarudemon/mundarium/internal/libs/logger"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
 
 // MessagesRepository persists and queries Message records.
 type MessagesRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger logger.Logger
 }
 
 // NewMessagesRepository creates a MessagesRepository backed by db.
-// Returns an error if db is nil.
-func NewMessagesRepository(db *gorm.DB) (*MessagesRepository, error) {
+// Returns an error if db is nil. logger may be nil.
+func NewMessagesRepository(db *gorm.DB, logger logger.Logger) (*MessagesRepository, error) {
 	if db == nil {
 		return nil, errors.New("expected *gorm.DB, got nil")
 	}
 
-	return &MessagesRepository{db: db}, nil
+	return &MessagesRepository{db: db, logger: logger}, nil
 }
 
 // CreateMessage inserts a new message and returns the persisted record
 // (including the generated ID, CreatedAt, and SeqNum from BeforeCreate).
 func (r *MessagesRepository) CreateMessage(ctx context.Context, message *Message) (*Message, error) {
 	if err := r.db.WithContext(ctx).Create(message).Error; err != nil {
+		r.error("failed to create message", "type", "MessagesRepository", "func", "CreateMessage", "data", message, "error", err)
 		return nil, err
 	}
 
+	r.info("message is created", "type", "MessagesRepository", "func", "CreateMessage", "data", message)
 	return message, nil
 }
 
@@ -41,9 +45,11 @@ func (r *MessagesRepository) GetMessage(ctx context.Context, id repositories.ID)
 	var message Message
 
 	if err := r.db.WithContext(ctx).First(&message, "id = ?", id).Error; err != nil {
+		r.error("failed to get message", "type", "MessagesRepository", "func", "GetMessage", "id", id, "error", err)
 		return nil, err
 	}
 
+	r.debug("got message", "type", "MessagesRepository", "func", "GetMessage", "data", &message)
 	return &message, nil
 }
 
@@ -60,9 +66,11 @@ func (r *MessagesRepository) GetMessages(ctx context.Context, invokeID string, s
 	}
 
 	if err := q.Order("seq_num ASC").Find(&messages).Error; err != nil {
+		r.error("failed to get messages", "type", "MessagesRepository", "func", "GetMessages", "invoke_id", invokeID, "error", err)
 		return nil, err
 	}
 
+	r.debug("got messages", "type", "MessagesRepository", "func", "GetMessages", "invoke_id", invokeID, "count", len(messages))
 	return messages, nil
 }
 
@@ -73,18 +81,26 @@ func (r *MessagesRepository) PatchDeliveredAt(ctx context.Context, id repositori
 	query := r.db.WithContext(ctx).Model(&Message{}).Where("id = ?", id).Update("delivered_at", deliveredAt)
 
 	if err := query.Error; err != nil {
+		r.error("failed to patch delivered_at", "type", "MessagesRepository", "func", "PatchDeliveredAt", "id", id, "error", err)
 		return err
 	}
 
 	if query.RowsAffected == 0 {
+		r.error("failed to patch delivered_at", "type", "MessagesRepository", "func", "PatchDeliveredAt", "id", id, "error", gorm.ErrRecordNotFound)
 		return gorm.ErrRecordNotFound
 	}
 
+	r.info("delivered_at is patched", "type", "MessagesRepository", "func", "PatchDeliveredAt", "id", id)
 	return nil
 }
 
 // DeleteMessages deletes all messages with the given invokeID.
 // Deleting when none exist is a no-op (idempotent).
 func (r *MessagesRepository) DeleteMessages(ctx context.Context, invokeID string) error {
-	return r.db.WithContext(ctx).Delete(&Message{}, "invoke_id = ?", invokeID).Error
+	if err := r.db.WithContext(ctx).Delete(&Message{}, "invoke_id = ?", invokeID).Error; err != nil {
+		r.error("failed to delete messages", "type", "MessagesRepository", "func", "DeleteMessages", "invoke_id", invokeID, "error", err)
+		return err
+	}
+	r.info("messages are deleted", "type", "MessagesRepository", "func", "DeleteMessages", "invoke_id", invokeID)
+	return nil
 }

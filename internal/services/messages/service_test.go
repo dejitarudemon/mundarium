@@ -10,7 +10,7 @@ import (
 
 func TestNewService(t *testing.T) {
 	generator := func(db *gorm.DB) *repomessages.MessagesRepository {
-		repo, err := repomessages.NewMessagesRepository(db)
+		repo, err := repomessages.NewMessagesRepository(db, nil)
 		if err != nil {
 			t.Fatalf("NewMessagesRepository: %v", err)
 		}

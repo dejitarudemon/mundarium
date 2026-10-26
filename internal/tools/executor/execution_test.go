@@ -42,7 +42,7 @@ func newExecutor(t *testing.T, j journal.Journal, tool tools.Tool) *executor.Exe
 		j = mapjournal.NewMapJournal()
 	}
 
-	ex, err := executor.NewExecutor(j)
+	ex, err := executor.NewExecutor(j, nil)
 	if err != nil {
 		t.Fatalf("NewExecutor: %v", err)
 	}

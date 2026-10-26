@@ -118,7 +118,7 @@ func findLocationsDefinitionPath(t *testing.T) string {
 func newCreateLocationTool(t *testing.T) *toolslocations.CreateLocationTool {
 	t.Helper()
 
-	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewCreateLocationTool: %v", err)
 	}
@@ -128,7 +128,7 @@ func newCreateLocationTool(t *testing.T) *toolslocations.CreateLocationTool {
 func newFindLocationsTool(t *testing.T) *toolslocations.FindLocationsTool {
 	t.Helper()
 
-	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewFindLocationsTool: %v", err)
 	}

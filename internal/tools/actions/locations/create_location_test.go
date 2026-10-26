@@ -47,14 +47,14 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext[journal.Result], conte
 }
 
 func TestNewCreateLocationTool_NilService(t *testing.T) {
-	_, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), nil)
+	_, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), nil, nil)
 	if !errors.Is(err, toolerrs.ErrServiceIsNil) {
 		t.Fatalf("want ErrServiceIsNil, got %v", err)
 	}
 }
 
 func TestNewCreateLocationTool_LoadsDefinition(t *testing.T) {
-	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewCreateLocationTool: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestNewCreateLocationTool_LoadsDefinition(t *testing.T) {
 func TestCreateLocationTool_Execute_Root(t *testing.T) {
 	resetDB(t)
 
-	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewCreateLocationTool: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestCreateLocationTool_Execute_Child(t *testing.T) {
 		t.Fatalf("seed root: %v", err)
 	}
 
-	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewCreateLocationTool: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestCreateLocationTool_Execute_Child(t *testing.T) {
 }
 
 func TestCreateLocationTool_Execute_InvalidJSON(t *testing.T) {
-	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewCreateLocationTool: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestCreateLocationTool_Execute_InvalidJSON(t *testing.T) {
 func TestCreateLocationTool_Execute_ZeroParent(t *testing.T) {
 	resetDB(t)
 
-	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewCreateLocationTool: %v", err)
 	}

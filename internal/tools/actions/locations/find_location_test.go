@@ -18,14 +18,14 @@ var (
 )
 
 func TestNewFindLocationsTool_NilService(t *testing.T) {
-	_, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), nil)
+	_, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), nil, nil)
 	if !errors.Is(err, toolerrs.ErrServiceIsNil) {
 		t.Fatalf("want ErrServiceIsNil, got %v", err)
 	}
 }
 
 func TestNewFindLocationsTool_LoadsDefinition(t *testing.T) {
-	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewFindLocationsTool: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestFindLocationsTool_Execute(t *testing.T) {
 		t.Fatalf("seed gate: %v", err)
 	}
 
-	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewFindLocationsTool: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestFindLocationsTool_Execute(t *testing.T) {
 func TestFindLocationsTool_Execute_ZeroScope(t *testing.T) {
 	resetDB(t)
 
-	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc)
+	tool, err := toolslocations.NewFindLocationsTool(findLocationsDefinitionPath(t), testSvc, nil)
 	if err != nil {
 		t.Fatalf("NewFindLocationsTool: %v", err)
 	}

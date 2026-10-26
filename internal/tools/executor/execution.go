@@ -21,14 +21,27 @@ import (
 func (e *Executor) Execute(ctx context.Context, invokeID string, call tools.Call) (json.RawMessage, error) {
 	tool, err := e.lookup(call.Name, call.Role)
 	if err != nil {
+		e.error("failed to execute tool", "type", "Executor", "func", "Execute", "tool", call.Name, "role", call.Role, "invoke_id", invokeID, "call_id", call.ID, "error", err)
 		return nil, err
 	}
 
 	if tool.IsIdempotent() {
-		return e.executeIdempotent(ctx, tool, invokeID, call.ID, call.Role, call.Args)
+		raw, err := e.executeIdempotent(ctx, tool, invokeID, call.ID, call.Role, call.Args)
+		if err != nil {
+			e.error("failed to execute tool", "type", "Executor", "func", "Execute", "tool", call.Name, "role", call.Role, "invoke_id", invokeID, "call_id", call.ID, "error", err)
+			return nil, err
+		}
+		e.debug("tool is executed", "type", "Executor", "func", "Execute", "tool", call.Name, "role", call.Role, "invoke_id", invokeID, "call_id", call.ID, "idempotent", true)
+		return raw, nil
 	}
 
-	return e.executeNotIdempotent(ctx, tool, invokeID, call.ID, call.Role, call.Args)
+	raw, err := e.executeNotIdempotent(ctx, tool, invokeID, call.ID, call.Role, call.Args)
+	if err != nil {
+		e.error("failed to execute tool", "type", "Executor", "func", "Execute", "tool", call.Name, "role", call.Role, "invoke_id", invokeID, "call_id", call.ID, "error", err)
+		return nil, err
+	}
+	e.info("tool is executed", "type", "Executor", "func", "Execute", "tool", call.Name, "role", call.Role, "invoke_id", invokeID, "call_id", call.ID, "idempotent", false)
+	return raw, nil
 }
 
 // lookup resolves a registered tool and checks role permission under the read lock.
@@ -86,6 +99,7 @@ func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string
 		if err != nil {
 			return nil, toolerrs.NewInvalidRequest(err)
 		}
+		e.debug("tool result replayed", "type", "Executor", "func", "resolveAlreadyRegistered", "tool", toolName, "invoke_id", invokeID, "call_id", callID)
 		return raw, nil
 	case journal.Status_Running:
 		return nil, toolerrs.NewRequestStillRunning()

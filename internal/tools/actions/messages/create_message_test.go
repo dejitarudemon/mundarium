@@ -47,14 +47,14 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext[journal.Result], conte
 }
 
 func TestNewCreateMessageTool_NilService(t *testing.T) {
-	_, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), nil, nil)
+	_, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), nil, nil, nil)
 	if !errors.Is(err, toolerrs.ErrServiceIsNil) {
 		t.Fatalf("want ErrServiceIsNil, got %v", err)
 	}
 }
 
 func TestNewCreateMessageTool_LoadsDefinition(t *testing.T) {
-	tool, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), testSvc, nil)
+	tool, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), testSvc, nil, nil)
 	if err != nil {
 		t.Fatalf("NewCreateMessageTool: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestCreateMessageTool_Execute(t *testing.T) {
 	resetDB(t)
 
 	al := alarm.NewAlarm(1)
-	tool, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), testSvc, al)
+	tool, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), testSvc, al, nil)
 	if err != nil {
 		t.Fatalf("NewCreateMessageTool: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestCreateMessageTool_Execute(t *testing.T) {
 }
 
 func TestCreateMessageTool_Execute_InvalidJSON(t *testing.T) {
-	tool, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), testSvc, nil)
+	tool, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), testSvc, nil, nil)
 	if err != nil {
 		t.Fatalf("NewCreateMessageTool: %v", err)
 	}

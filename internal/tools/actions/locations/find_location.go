@@ -5,6 +5,7 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	"github.com/dejitarudemon/mundarium/internal/libs/logger"
 	servicelocation "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -20,10 +21,12 @@ var (
 type FindLocationsTool struct {
 	service    *servicelocation.Service
 	definition definition.Definition
+	logger     logger.Logger
 }
 
 // NewFindLocationsTool loads the tool definition from file and binds service.
-func NewFindLocationsTool(file string, service *servicelocation.Service) (*FindLocationsTool, error) {
+// logger may be nil.
+func NewFindLocationsTool(file string, service *servicelocation.Service, logger logger.Logger) (*FindLocationsTool, error) {
 	if service == nil {
 		return nil, toolerrs.ErrServiceIsNil
 	}
@@ -33,7 +36,7 @@ func NewFindLocationsTool(file string, service *servicelocation.Service) (*FindL
 		return nil, err
 	}
 
-	return &FindLocationsTool{service: service, definition: def}, nil
+	return &FindLocationsTool{service: service, definition: def, logger: logger}, nil
 }
 
 // Definition returns a copy of the loaded tool schema.
@@ -50,15 +53,25 @@ func (t *FindLocationsTool) IsIdempotent() bool {
 func (t *FindLocationsTool) Execute(ctx execution.ExecutionContext[journal.Result], args json.RawMessage) (json.RawMessage, error) {
 	in, err := t.unmarshal(args)
 	if err != nil {
+		errorf(t.logger, "failed to execute find_locations", "type", "FindLocationsTool", "func", "Execute", "error", err)
 		return nil, err
 	}
 
 	result, err := t.service.FindLocations(ctx, in)
 	if err != nil {
-		return nil, toolerrs.From(err)
+		err = toolerrs.From(err)
+		errorf(t.logger, "failed to execute find_locations", "type", "FindLocationsTool", "func", "Execute", "error", err)
+		return nil, err
 	}
 
-	return t.marshal(result)
+	raw, err := t.marshal(result)
+	if err != nil {
+		errorf(t.logger, "failed to execute find_locations", "type", "FindLocationsTool", "func", "Execute", "error", err)
+		return nil, err
+	}
+
+	debug(t.logger, "find_locations is executed", "type", "FindLocationsTool", "func", "Execute", "scope_id", in.ScopeID)
+	return raw, nil
 }
 
 func (t *FindLocationsTool) unmarshal(args json.RawMessage) (servicelocation.FindLocationsInput, error) {

@@ -8,6 +8,7 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/libs/alarm"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	"github.com/dejitarudemon/mundarium/internal/libs/logger"
 	servicemessage "github.com/dejitarudemon/mundarium/internal/services/messages"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -24,13 +25,14 @@ var (
 type CreateMessageTool struct {
 	service    *servicemessage.Service
 	definition definition.Definition
+	logger     logger.Logger
 
 	alarm *alarm.Alarm
 }
 
 // NewCreateMessageTool loads the tool definition from file and binds service.
-// alarm may be nil; in that case Execute skips notification.
-func NewCreateMessageTool(file string, service *servicemessage.Service, alarm *alarm.Alarm) (*CreateMessageTool, error) {
+// alarm and logger may be nil; a nil alarm skips notification.
+func NewCreateMessageTool(file string, service *servicemessage.Service, alarm *alarm.Alarm, logger logger.Logger) (*CreateMessageTool, error) {
 	if service == nil {
 		return nil, toolerrs.ErrServiceIsNil
 	}
@@ -40,7 +42,7 @@ func NewCreateMessageTool(file string, service *servicemessage.Service, alarm *a
 		return nil, err
 	}
 
-	return &CreateMessageTool{service: service, definition: def, alarm: alarm}, nil
+	return &CreateMessageTool{service: service, definition: def, alarm: alarm, logger: logger}, nil
 }
 
 // Definition returns a copy of the loaded tool schema.
@@ -58,6 +60,7 @@ func (t *CreateMessageTool) IsIdempotent() bool {
 func (t *CreateMessageTool) Execute(ctx execution.ExecutionContext[journal.Result], args json.RawMessage) (json.RawMessage, error) {
 	message, err := t.unmarshal(args)
 	if err != nil {
+		t.error("failed to execute create_message", "type", "CreateMessageTool", "func", "Execute", "error", err)
 		return nil, err
 	}
 
@@ -66,13 +69,24 @@ func (t *CreateMessageTool) Execute(ctx execution.ExecutionContext[journal.Resul
 
 	result, err := t.service.CreateMessage(ctx, message)
 	if err != nil {
-		return nil, toolerrs.From(err)
+		err = toolerrs.From(err)
+		t.error("failed to execute create_message", "type", "CreateMessageTool", "func", "Execute", "error", err)
+		return nil, err
 	}
 
 	// Message is already persisted; a Ring failure must not fail the tool result.
-	_ = t.notify(ctx)
+	if err := t.notify(ctx); err != nil {
+		t.warn("failed to ring alarm after create_message", "type", "CreateMessageTool", "func", "Execute", "error", err)
+	}
 
-	return t.marshal(result)
+	raw, err := t.marshal(result)
+	if err != nil {
+		t.error("failed to execute create_message", "type", "CreateMessageTool", "func", "Execute", "error", err)
+		return nil, err
+	}
+
+	t.info("create_message is executed", "type", "CreateMessageTool", "func", "Execute", "data", result)
+	return raw, nil
 }
 
 // unmarshal decodes provider args into CreateMessageInput (text).

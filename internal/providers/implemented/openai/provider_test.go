@@ -36,7 +36,7 @@ func (testTool) Execute(ctx execution.ExecutionContext[journal.Result], args jso
 
 func newTestExecutor(t *testing.T) *executor.Executor {
 	t.Helper()
-	ex, err := executor.NewExecutor(mapjournal.NewMapJournal())
+	ex, err := executor.NewExecutor(mapjournal.NewMapJournal(), nil)
 	if err != nil {
 		t.Fatalf("NewExecutor: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestNewOpenAICompatibleProvider_Validation(t *testing.T) {
 		t.Fatalf("want ErrNoExecutor, got %v", err)
 	}
 
-	ex, err := executor.NewExecutor(mapjournal.NewMapJournal())
+	ex, err := executor.NewExecutor(mapjournal.NewMapJournal(), nil)
 	if err != nil {
 		t.Fatalf("NewExecutor: %v", err)
 	}

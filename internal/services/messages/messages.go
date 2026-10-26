@@ -2,11 +2,11 @@ package messages
 
 import (
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"time"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
 
@@ -17,7 +17,9 @@ const messageEntity = "MESSAGE"
 func (s *Service) CreateMessage(ctx execution.ExecutionContext[journal.Result], in CreateMessageInput) (CreateMessageOutput, error) {
 	message, err := toNewMessage(in)
 	if err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapRequestErr(err)
+		s.error("failed to create message", "type", "Service", "func", "CreateMessage", "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "CreateMessage")
 		return CreateMessageOutput{}, err
 	}
 
@@ -45,10 +47,13 @@ func (s *Service) CreateMessage(ctx execution.ExecutionContext[journal.Result], 
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapMessageErr(err, result.ID)
+		s.error("failed to create message", "type", "Service", "func", "CreateMessage", "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "CreateMessage")
 		return CreateMessageOutput{}, err
 	}
 
+	s.info("message is created", "type", "Service", "func", "CreateMessage", "data", result)
 	return result, nil
 }
 
@@ -57,13 +62,17 @@ func (s *Service) CreateMessage(ctx execution.ExecutionContext[journal.Result], 
 func (s *Service) GetMessage(ctx execution.ExecutionContext[journal.Result], id repositories.ID) (GetMessageOutput, error) {
 	message, err := s.repository().GetMessage(ctx, id)
 	if err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapMessageErr(err, id)
+		s.error("failed to get message", "type", "Service", "func", "GetMessage", "id", id, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "GetMessage", "id", id)
 		return GetMessageOutput{}, err
 	}
 
 	result, err := toGotMessage(*message)
 	if err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapRequestErr(err)
+		s.error("failed to get message", "type", "Service", "func", "GetMessage", "id", id, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "GetMessage", "id", id)
 		return GetMessageOutput{}, err
 	}
 
@@ -74,10 +83,13 @@ func (s *Service) GetMessage(ctx execution.ExecutionContext[journal.Result], id 
 			Data:   result,
 		}, s.connection.DB(),
 	); err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapMessageErr(err, id)
+		s.error("failed to get message", "type", "Service", "func", "GetMessage", "id", id, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "GetMessage", "id", id)
 		return GetMessageOutput{}, err
 	}
 
+	s.debug("got message", "type", "Service", "func", "GetMessage", "data", result)
 	return result, nil
 }
 
@@ -87,20 +99,25 @@ func (s *Service) GetMessage(ctx execution.ExecutionContext[journal.Result], id 
 // Idempotent: repeated calls with the same invokeID and startFrom return the same ordered set.
 func (s *Service) GetMessages(ctx execution.ExecutionContext[journal.Result], invokeID string, startFrom *uint) (GetMessagesOutput, error) {
 	if invokeID == "" {
-		err := errors.New("invoke id is empty")
-		_ = ctx.Fail(err, s.connection.DB())
+		err := mapRequestErr(errors.New("invoke id is empty"))
+		s.error("failed to get messages", "type", "Service", "func", "GetMessages", "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "GetMessages")
 		return nil, err
 	}
 
 	messages, err := s.repository().GetMessages(ctx, invokeID, startFrom)
 	if err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapMessageKeyErr(err, invokeID)
+		s.error("failed to get messages", "type", "Service", "func", "GetMessages", "invoke_id", invokeID, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "GetMessages", "invoke_id", invokeID)
 		return nil, err
 	}
 
 	result, err := toGotMessages(messages)
 	if err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapRequestErr(err)
+		s.error("failed to get messages", "type", "Service", "func", "GetMessages", "invoke_id", invokeID, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "GetMessages", "invoke_id", invokeID)
 		return nil, err
 	}
 
@@ -111,10 +128,13 @@ func (s *Service) GetMessages(ctx execution.ExecutionContext[journal.Result], in
 			Data:   result,
 		}, s.connection.DB(),
 	); err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapMessageKeyErr(err, invokeID)
+		s.error("failed to get messages", "type", "Service", "func", "GetMessages", "invoke_id", invokeID, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "GetMessages", "invoke_id", invokeID)
 		return nil, err
 	}
 
+	s.debug("got messages", "type", "Service", "func", "GetMessages", "invoke_id", invokeID, "count", len(result))
 	return result, nil
 }
 
@@ -138,10 +158,13 @@ func (s *Service) SetDeliveredAt(ctx execution.ExecutionContext[journal.Result],
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapMessageErr(err, id)
+		s.error("failed to set delivered_at", "type", "Service", "func", "SetDeliveredAt", "id", id, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "SetDeliveredAt", "id", id)
 		return err
 	}
 
+	s.info("delivered_at is set", "type", "Service", "func", "SetDeliveredAt", "id", id)
 	return nil
 }
 
@@ -150,8 +173,9 @@ func (s *Service) SetDeliveredAt(ctx execution.ExecutionContext[journal.Result],
 // Idempotent: repeating the same invokeID when no rows remain succeeds.
 func (s *Service) DeleteMessages(ctx execution.ExecutionContext[journal.Result], invokeID string) error {
 	if invokeID == "" {
-		err := errors.New("invoke id is empty")
-		_ = ctx.Fail(err, s.connection.DB())
+		err := mapRequestErr(errors.New("invoke id is empty"))
+		s.error("failed to delete messages", "type", "Service", "func", "DeleteMessages", "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "DeleteMessages")
 		return err
 	}
 
@@ -171,9 +195,12 @@ func (s *Service) DeleteMessages(ctx execution.ExecutionContext[journal.Result],
 			)
 		},
 	); err != nil {
-		_ = ctx.Fail(err, s.connection.DB())
+		err = mapMessageKeyErr(err, invokeID)
+		s.error("failed to delete messages", "type", "Service", "func", "DeleteMessages", "invoke_id", invokeID, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "DeleteMessages", "invoke_id", invokeID)
 		return err
 	}
 
+	s.info("messages are deleted", "type", "Service", "func", "DeleteMessages", "invoke_id", invokeID)
 	return nil
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
-	"gorm.io/gorm"
+	svcerrs "github.com/dejitarudemon/mundarium/internal/services/errs"
 )
 
 func TestSetDeliveredAt(t *testing.T) {
@@ -52,7 +52,7 @@ func TestSetDeliveredAt_NotFound(t *testing.T) {
 
 	at := time.Now().UTC()
 	err := testSvc.SetDeliveredAt(ctx, 999, &at)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("expected errs.NotFound, got %v", err)
 	}
 }

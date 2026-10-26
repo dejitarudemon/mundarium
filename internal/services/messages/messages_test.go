@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	svcerrs "github.com/dejitarudemon/mundarium/internal/services/errs"
 	svcmessages "github.com/dejitarudemon/mundarium/internal/services/messages"
-	"gorm.io/gorm"
 )
 
 func TestCreateMessage(t *testing.T) {
@@ -52,19 +52,18 @@ func TestCreateMessage_ValidationErrors(t *testing.T) {
 	cases := []struct {
 		name string
 		in   svcmessages.CreateMessageInput
-		want string
 	}{
-		{name: "empty invoke", in: svcmessages.CreateMessageInput{Text: "x", From: "master"}, want: "invoke id is empty"},
-		{name: "empty text", in: svcmessages.CreateMessageInput{InvokeID: "inv", From: "master"}, want: "text is empty"},
-		{name: "empty from", in: svcmessages.CreateMessageInput{InvokeID: "inv", Text: "x"}, want: "from is empty"},
+		{name: "empty invoke", in: svcmessages.CreateMessageInput{Text: "x", From: "master"}},
+		{name: "empty text", in: svcmessages.CreateMessageInput{InvokeID: "inv", From: "master"}},
+		{name: "empty from", in: svcmessages.CreateMessageInput{InvokeID: "inv", Text: "x"}},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			before := len(rec.failCalls)
 			_, err := testSvc.CreateMessage(ctx, tc.in)
-			if err == nil || err.Error() != tc.want {
-				t.Fatalf("want %q, got %v", tc.want, err)
+			if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+				t.Fatalf("want errs.InvalidRequest, got %v", err)
 			}
 			if len(rec.failCalls) <= before {
 				t.Fatal("want Fail called on validation error")
@@ -75,7 +74,8 @@ func TestCreateMessage_ValidationErrors(t *testing.T) {
 
 func TestCreateMessage_CompleteError(t *testing.T) {
 	resetDB(t)
-	rec := &completeRecorder{err: errors.New("callback failed")}
+	cause := errors.New("callback failed")
+	rec := &completeRecorder{err: cause}
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
@@ -84,8 +84,8 @@ func TestCreateMessage_CompleteError(t *testing.T) {
 		Text:     "x",
 		From:     "master",
 	})
-	if err == nil || err.Error() != "callback failed" {
-		t.Fatalf("want callback failed, got %v", err)
+	if _, ok := errors.AsType[svcerrs.InternalError](err); !ok || !errors.Is(err, cause) {
+		t.Fatalf("want errs.InternalError wrapping callback failed, got %v", err)
 	}
 
 	var count int64
@@ -122,8 +122,8 @@ func TestGetMessage_NotFound(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.GetMessage(ctx, 999)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("expected errs.NotFound, got %v", err)
 	}
 }
 
@@ -175,8 +175,8 @@ func TestGetMessages_EmptyInvokeID(t *testing.T) {
 	defer cancel()
 
 	_, err := testSvc.GetMessages(ctx, "", nil)
-	if err == nil || err.Error() != "invoke id is empty" {
-		t.Fatalf("want invoke id is empty, got %v", err)
+	if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+		t.Fatalf("want errs.InvalidRequest, got %v", err)
 	}
 	if len(rec.failCalls) == 0 {
 		t.Fatal("want Fail called")

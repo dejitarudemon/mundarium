@@ -68,7 +68,7 @@ func TestMain(m *testing.M) {
 		return repo
 	}
 
-	svc, err := svcmessages.NewService(generator, conn)
+	svc, err := svcmessages.NewService(generator, conn, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "new service: %v\n", err)
 		return

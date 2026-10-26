@@ -1,9 +1,11 @@
 package messages_test
 
 import (
+	"errors"
 	"testing"
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	svcerrs "github.com/dejitarudemon/mundarium/internal/services/errs"
 )
 
 func TestDeleteMessages(t *testing.T) {
@@ -52,8 +54,8 @@ func TestDeleteMessages_EmptyInvokeID(t *testing.T) {
 	defer cancel()
 
 	err := testSvc.DeleteMessages(ctx, "")
-	if err == nil || err.Error() != "invoke id is empty" {
-		t.Fatalf("want invoke id is empty, got %v", err)
+	if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+		t.Fatalf("want errs.InvalidRequest, got %v", err)
 	}
 	if len(rec.failCalls) == 0 {
 		t.Fatal("want Fail called")

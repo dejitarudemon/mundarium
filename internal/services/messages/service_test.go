@@ -18,7 +18,7 @@ func TestNewService(t *testing.T) {
 	}
 
 	t.Run("ok", func(t *testing.T) {
-		svc, err := svcmessages.NewService(generator, testConn)
+		svc, err := svcmessages.NewService(generator, testConn, nil)
 		if err != nil {
 			t.Fatalf("NewService: %v", err)
 		}
@@ -28,14 +28,14 @@ func TestNewService(t *testing.T) {
 	})
 
 	t.Run("nil generator", func(t *testing.T) {
-		_, err := svcmessages.NewService(nil, testConn)
+		_, err := svcmessages.NewService(nil, testConn, nil)
 		if err == nil || err.Error() != "generator is nil" {
 			t.Fatalf("want generator is nil, got %v", err)
 		}
 	})
 
 	t.Run("nil connection", func(t *testing.T) {
-		_, err := svcmessages.NewService(generator, nil)
+		_, err := svcmessages.NewService(generator, nil, nil)
 		if err == nil || err.Error() != "connection is nil" {
 			t.Fatalf("want connection is nil, got %v", err)
 		}

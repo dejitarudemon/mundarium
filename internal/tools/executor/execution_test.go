@@ -13,6 +13,7 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
+	toolerrs "github.com/dejitarudemon/mundarium/internal/tools/errs"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
 	"golang.org/x/crypto/blake2b"
 )
@@ -56,8 +57,8 @@ func newExecutor(t *testing.T, j journal.Journal, tool tools.Tool) *executor.Exe
 func TestExecute_ToolNotFound(t *testing.T) {
 	ex := newExecutor(t, nil, nil)
 	_, err := ex.Execute(context.Background(), "inv-1", masterCall("c1", "missing", nil))
-	if !errors.Is(err, executor.ErrToolNotFound) {
-		t.Fatalf("want ErrToolNotFound, got %v", err)
+	if _, ok := errors.AsType[toolerrs.ToolNotFound](err); !ok {
+		t.Fatalf("want ToolNotFound, got %v", err)
 	}
 }
 
@@ -71,8 +72,8 @@ func TestExecute_PermissionDenied(t *testing.T) {
 		Role: types.Role("guest"),
 		Args: json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`),
 	})
-	if !errors.Is(err, executor.ErrPermissionDenied) {
-		t.Fatalf("want ErrPermissionDenied, got %v", err)
+	if _, ok := errors.AsType[toolerrs.PermissionDenied](err); !ok {
+		t.Fatalf("want PermissionDenied, got %v", err)
 	}
 }
 
@@ -280,8 +281,8 @@ func TestExecuteNotIdempotent_StillRunning(t *testing.T) {
 	}
 
 	_, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", args))
-	if !errors.Is(err, executor.ErrRequestStillRunning) {
-		t.Fatalf("want ErrRequestStillRunning, got %v", err)
+	if _, ok := errors.AsType[toolerrs.RequestStillRunning](err); !ok {
+		t.Fatalf("want RequestStillRunning, got %v", err)
 	}
 
 	var count int64
@@ -305,8 +306,8 @@ func TestExecuteNotIdempotent_ToolMismatch(t *testing.T) {
 	}
 
 	_, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", args))
-	if !errors.Is(err, executor.ErrRequestToolMismatch) {
-		t.Fatalf("want ErrRequestToolMismatch, got %v", err)
+	if _, ok := errors.AsType[toolerrs.RequestToolMismatch](err); !ok {
+		t.Fatalf("want RequestToolMismatch, got %v", err)
 	}
 }
 
@@ -320,8 +321,8 @@ func TestExecuteNotIdempotent_ArgsMismatch(t *testing.T) {
 	}
 
 	_, err := ex.Execute(context.Background(), "inv-1", masterCall("call-1", "create_location", json.RawMessage(`{"name":"Other","parent_id":null,"type":"world"}`)))
-	if !errors.Is(err, executor.ErrRequestArgsMismatch) {
-		t.Fatalf("want ErrRequestArgsMismatch, got %v", err)
+	if _, ok := errors.AsType[toolerrs.RequestArgsMismatch](err); !ok {
+		t.Fatalf("want RequestArgsMismatch, got %v", err)
 	}
 
 	var count int64

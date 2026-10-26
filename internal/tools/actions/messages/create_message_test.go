@@ -13,8 +13,8 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"github.com/dejitarudemon/mundarium/internal/tools"
-	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolsmessages "github.com/dejitarudemon/mundarium/internal/tools/actions/messages"
+	toolerrs "github.com/dejitarudemon/mundarium/internal/tools/errs"
 	"gorm.io/gorm"
 )
 
@@ -48,7 +48,7 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext[journal.Result], conte
 
 func TestNewCreateMessageTool_NilService(t *testing.T) {
 	_, err := toolsmessages.NewCreateMessageTool(createMessageDefinitionPath(t), nil, nil)
-	if !errors.Is(err, actions.ErrServiceIsNil) {
+	if !errors.Is(err, toolerrs.ErrServiceIsNil) {
 		t.Fatalf("want ErrServiceIsNil, got %v", err)
 	}
 }
@@ -127,7 +127,7 @@ func TestCreateMessageTool_Execute_InvalidJSON(t *testing.T) {
 	defer cancel()
 
 	_, err = tool.Execute(ctx, json.RawMessage(`{`))
-	if err == nil {
-		t.Fatal("expected invalid json error")
+	if _, ok := errors.AsType[toolerrs.InvalidRequest](err); !ok {
+		t.Fatalf("want InvalidRequest, got %v", err)
 	}
 }

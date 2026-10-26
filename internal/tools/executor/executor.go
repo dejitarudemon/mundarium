@@ -1,12 +1,13 @@
 package executor
 
 import (
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"sync"
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
+	toolerrs "github.com/dejitarudemon/mundarium/internal/tools/errs"
 )
 
 type Executor struct {
@@ -19,7 +20,7 @@ type Executor struct {
 
 func NewExecutor(journal journal.Journal) (*Executor, error) {
 	if journal == nil {
-		return nil, ErrJournalIsNil
+		return nil, toolerrs.ErrJournalIsNil
 	}
 
 	return &Executor{
@@ -32,19 +33,19 @@ func NewExecutor(journal journal.Journal) (*Executor, error) {
 // Register adds tool and grants it to each role in allowed.
 func (e *Executor) Register(tool tools.Tool, allowed []types.Role) error {
 	if tool == nil {
-		return ErrToolIsNil
+		return toolerrs.ErrToolIsNil
 	}
 
 	name := tool.Definition().Name
 	if len(name) == 0 {
-		return ErrNoName
+		return toolerrs.ErrNoName
 	}
 
 	e.mx.Lock()
 	defer e.mx.Unlock()
 
 	if _, ok := e.tools[name]; ok {
-		return ErrToolExists
+		return toolerrs.ErrToolExists
 	}
 
 	e.tools[name] = tool

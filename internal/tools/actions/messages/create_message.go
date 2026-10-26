@@ -4,14 +4,15 @@ package messages
 import (
 	"context"
 	"encoding/json"
-	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/alarm"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	servicemessage "github.com/dejitarudemon/mundarium/internal/services/messages"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
+	toolerrs "github.com/dejitarudemon/mundarium/internal/tools/errs"
 )
 
 var (
@@ -31,7 +32,7 @@ type CreateMessageTool struct {
 // alarm may be nil; in that case Execute skips notification.
 func NewCreateMessageTool(file string, service *servicemessage.Service, alarm *alarm.Alarm) (*CreateMessageTool, error) {
 	if service == nil {
-		return nil, actions.ErrServiceIsNil
+		return nil, toolerrs.ErrServiceIsNil
 	}
 
 	def, err := actions.LoadDefinition(file)
@@ -65,7 +66,7 @@ func (t *CreateMessageTool) Execute(ctx execution.ExecutionContext[journal.Resul
 
 	result, err := t.service.CreateMessage(ctx, message)
 	if err != nil {
-		return nil, err
+		return nil, toolerrs.From(err)
 	}
 
 	// Message is already persisted; a Ring failure must not fail the tool result.
@@ -79,14 +80,18 @@ func (t *CreateMessageTool) Execute(ctx execution.ExecutionContext[journal.Resul
 func (t *CreateMessageTool) unmarshal(args json.RawMessage) (servicemessage.CreateMessageInput, error) {
 	var result servicemessage.CreateMessageInput
 	if err := json.Unmarshal(args, &result); err != nil {
-		return servicemessage.CreateMessageInput{}, err
+		return servicemessage.CreateMessageInput{}, toolerrs.NewInvalidRequest(err)
 	}
 
 	return result, nil
 }
 
 func (t *CreateMessageTool) marshal(output servicemessage.CreateMessageOutput) (json.RawMessage, error) {
-	return json.Marshal(output)
+	raw, err := json.Marshal(output)
+	if err != nil {
+		return nil, toolerrs.NewInvalidRequest(err)
+	}
+	return raw, nil
 }
 
 // notify Rings alarm when configured. A nil alarm is a no-op.

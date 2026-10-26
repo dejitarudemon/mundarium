@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"slices"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
+	toolerrs "github.com/dejitarudemon/mundarium/internal/tools/errs"
 )
 
 // Execute runs call against a registered tool.
@@ -37,7 +38,7 @@ func (e *Executor) lookup(name string, role types.Role) (tools.Tool, error) {
 
 	tool, ok := e.tools[name]
 	if !ok {
-		return nil, ErrToolNotFound
+		return nil, toolerrs.NewToolNotFound()
 	}
 	if err := e.checkPermission(role, tool.Definition()); err != nil {
 		return nil, err
@@ -54,12 +55,12 @@ func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool,
 		if _, ok := errors.AsType[journal.AlreadyRegistered](err); ok {
 			return e.resolveAlreadyRegistered(parent, toolName, callID, invokeID, argsHash)
 		}
-		return nil, err
+		return nil, toolerrs.From(err)
 	}
 
 	ctx, cancel, err := execution.NewExecutionContext(parent, toJournalID(callID), toJournalID(invokeID), role, complete, fail)
 	if err != nil {
-		return nil, err
+		return nil, toolerrs.From(err)
 	}
 	defer cancel()
 
@@ -69,28 +70,32 @@ func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool,
 func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string, callID, invokeID string, argsHash []byte) (json.RawMessage, error) {
 	req, err := e.journal.Find(ctx, toJournalID(callID), toJournalID(invokeID))
 	if err != nil {
-		return nil, err
+		return nil, toolerrs.From(err)
 	}
 
 	if req.Tool != toolName {
-		return nil, ErrRequestToolMismatch
+		return nil, toolerrs.NewRequestToolMismatch()
 	}
 	if !bytes.Equal(req.ArgsHash, argsHash) {
-		return nil, ErrRequestArgsMismatch
+		return nil, toolerrs.NewRequestArgsMismatch()
 	}
 
 	switch req.Status {
 	case journal.Status_Completed:
-		return resultPayload(req.Result)
+		raw, err := resultPayload(req.Result)
+		if err != nil {
+			return nil, toolerrs.NewInvalidRequest(err)
+		}
+		return raw, nil
 	case journal.Status_Running:
-		return nil, ErrRequestStillRunning
+		return nil, toolerrs.NewRequestStillRunning()
 	case journal.Status_Failed:
 		if err := req.Error.Err(); err != nil {
-			return nil, err
+			return nil, toolerrs.From(err)
 		}
-		return nil, ErrRequestAlreadyFailed
+		return nil, toolerrs.NewRequestAlreadyFailed()
 	default:
-		return nil, ErrUnexpectedRequestStatus
+		return nil, toolerrs.NewUnexpectedRequestStatus()
 	}
 }
 
@@ -104,13 +109,13 @@ func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, in
 func (e *Executor) checkPermission(role types.Role, def definition.Definition) error {
 	defs, ok := e.allowed[role]
 	if !ok {
-		return ErrPermissionDenied
+		return toolerrs.NewPermissionDenied()
 	}
 
 	if !slices.ContainsFunc(defs, func(d definition.Definition) bool {
 		return d.Name == def.Name
 	}) {
-		return ErrPermissionDenied
+		return toolerrs.NewPermissionDenied()
 	}
 
 	return nil

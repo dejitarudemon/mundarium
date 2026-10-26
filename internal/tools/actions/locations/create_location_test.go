@@ -13,8 +13,8 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
-	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolslocations "github.com/dejitarudemon/mundarium/internal/tools/actions/locations"
+	toolerrs "github.com/dejitarudemon/mundarium/internal/tools/errs"
 	"gorm.io/gorm"
 )
 
@@ -48,7 +48,7 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext[journal.Result], conte
 
 func TestNewCreateLocationTool_NilService(t *testing.T) {
 	_, err := toolslocations.NewCreateLocationTool(createLocationDefinitionPath(t), nil)
-	if !errors.Is(err, actions.ErrServiceIsNil) {
+	if !errors.Is(err, toolerrs.ErrServiceIsNil) {
 		t.Fatalf("want ErrServiceIsNil, got %v", err)
 	}
 }
@@ -180,8 +180,8 @@ func TestCreateLocationTool_Execute_InvalidJSON(t *testing.T) {
 	defer cancel()
 
 	_, err = tool.Execute(ctx, json.RawMessage(`{`))
-	if err == nil {
-		t.Fatal("expected invalid json error")
+	if _, ok := errors.AsType[toolerrs.InvalidRequest](err); !ok {
+		t.Fatalf("want InvalidRequest, got %v", err)
 	}
 }
 

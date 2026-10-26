@@ -3,13 +3,14 @@ package locations
 
 import (
 	"encoding/json"
-	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	servicelocation "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
+	toolerrs "github.com/dejitarudemon/mundarium/internal/tools/errs"
 )
 
 var (
@@ -25,7 +26,7 @@ type CreateLocationTool struct {
 // NewCreateLocationTool loads the tool definition from file and binds service.
 func NewCreateLocationTool(file string, service *servicelocation.Service) (*CreateLocationTool, error) {
 	if service == nil {
-		return nil, actions.ErrServiceIsNil
+		return nil, toolerrs.ErrServiceIsNil
 	}
 
 	def, err := actions.LoadDefinition(file)
@@ -55,7 +56,7 @@ func (t *CreateLocationTool) Execute(ctx execution.ExecutionContext[journal.Resu
 
 	result, err := t.service.CreateLocation(ctx, location)
 	if err != nil {
-		return nil, err
+		return nil, toolerrs.From(err)
 	}
 
 	return t.marshal(result)
@@ -64,12 +65,16 @@ func (t *CreateLocationTool) Execute(ctx execution.ExecutionContext[journal.Resu
 func (t *CreateLocationTool) unmarshal(args json.RawMessage) (servicelocation.CreateLocationInput, error) {
 	result := servicelocation.CreateLocationInput{}
 	if err := json.Unmarshal(args, &result); err != nil {
-		return servicelocation.CreateLocationInput{}, err
+		return servicelocation.CreateLocationInput{}, toolerrs.NewInvalidRequest(err)
 	}
 
 	return result, nil
 }
 
 func (t *CreateLocationTool) marshal(output servicelocation.CreateLocationOutput) (json.RawMessage, error) {
-	return json.Marshal(output)
+	raw, err := json.Marshal(output)
+	if err != nil {
+		return nil, toolerrs.NewInvalidRequest(err)
+	}
+	return raw, nil
 }

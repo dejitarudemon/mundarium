@@ -17,12 +17,12 @@ import (
 
 var idSeq atomic.Uint64
 
-func newID() libjournal.RequestID {
-	return libjournal.RequestID(fmt.Sprintf("req-%d", idSeq.Add(1)))
+func newID() libjournal.ID {
+	return libjournal.ID(fmt.Sprintf("req-%d", idSeq.Add(1)))
 }
 
-func newGroup() libjournal.RequestID {
-	return libjournal.RequestID(fmt.Sprintf("grp-%d", idSeq.Add(1)))
+func newGroup() libjournal.ID {
+	return libjournal.ID(fmt.Sprintf("grp-%d", idSeq.Add(1)))
 }
 
 func TestMapJournal_RegisterAndFind(t *testing.T) {

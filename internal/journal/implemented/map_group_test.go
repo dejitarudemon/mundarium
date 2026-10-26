@@ -11,9 +11,9 @@ import (
 )
 
 func TestMapGroup_AddSwapClose(t *testing.T) {
-	groupID := libjournal.RequestID("grp-1")
+	groupID := libjournal.ID("grp-1")
 	g := implemented.NewMapGroup(groupID)
-	id := libjournal.RequestID("req-1")
+	id := libjournal.ID("req-1")
 
 	if g.Len() != 0 {
 		t.Fatalf("empty Len: want 0, got %d", g.Len())

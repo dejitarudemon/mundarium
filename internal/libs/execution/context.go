@@ -16,8 +16,8 @@ import (
 type ExecutionContext struct {
 	context.Context
 
-	callID           libjournal.RequestID
-	invokeID         libjournal.RequestID
+	callID           libjournal.ID
+	invokeID         libjournal.ID
 	role             libprovider.Role
 	callbackComplete journal.CompleteFunc
 	callbackFail     journal.FailFunc
@@ -26,7 +26,7 @@ type ExecutionContext struct {
 // NewExecutionContext creates an ExecutionContext with required complete and fail callbacks.
 // callID is the journal request id; invokeID is the invoke/group id; role is the caller role.
 // Returns an error if either callback is nil. A nil parent is replaced with context.Background.
-func NewExecutionContext(parent context.Context, callID, invokeID libjournal.RequestID, role libprovider.Role, complete journal.CompleteFunc, fail journal.FailFunc) (ExecutionContext, context.CancelFunc, error) {
+func NewExecutionContext(parent context.Context, callID, invokeID libjournal.ID, role libprovider.Role, complete journal.CompleteFunc, fail journal.FailFunc) (ExecutionContext, context.CancelFunc, error) {
 	if complete == nil || fail == nil {
 		return ExecutionContext{}, nil, errors.New("nil callback")
 	}
@@ -49,7 +49,7 @@ func NewExecutionContext(parent context.Context, callID, invokeID libjournal.Req
 // NewExecutionContextWithoutCallback creates an ExecutionContext without callbacks.
 // callID, invokeID, and role are still stored for InvokeID/Role accessors.
 // Complete and Fail become no-ops. A nil parent is replaced with context.Background.
-func NewExecutionContextWithoutCallback(parent context.Context, callID, invokeID libjournal.RequestID, role libprovider.Role) (ExecutionContext, context.CancelFunc) {
+func NewExecutionContextWithoutCallback(parent context.Context, callID, invokeID libjournal.ID, role libprovider.Role) (ExecutionContext, context.CancelFunc) {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -85,7 +85,7 @@ func (e ExecutionContext) Fail(cause error, tx *gorm.DB) error {
 }
 
 // InvokeID returns the invoke / conversation group id for this execution.
-func (e ExecutionContext) InvokeID() libjournal.RequestID {
+func (e ExecutionContext) InvokeID() libjournal.ID {
 	return e.invokeID
 }
 

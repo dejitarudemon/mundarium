@@ -17,20 +17,20 @@ var (
 
 // MapJournal is an in-memory Journal backed by a map keyed by group then request id.
 type MapJournal struct {
-	m  map[libjournal.RequestID]*MapGroup
+	m  map[libjournal.ID]*MapGroup
 	mu sync.RWMutex
 }
 
 // NewMapJournal creates an empty MapJournal.
 func NewMapJournal() *MapJournal {
 	return &MapJournal{
-		m: make(map[libjournal.RequestID]*MapGroup),
+		m: make(map[libjournal.ID]*MapGroup),
 	}
 }
 
 // Register stores a running request under groupRequestID and returns Complete/Fail callbacks.
 // Returns AlreadyRegistered if requestID is already present, or ErrGroupIsClosed if the group is closed.
-func (mj *MapJournal) Register(_ context.Context, requestID, groupRequestID libjournal.RequestID, tool string, argsHash []byte) (journal.CompleteFunc, journal.FailFunc, error) {
+func (mj *MapJournal) Register(_ context.Context, requestID, groupRequestID libjournal.ID, tool string, argsHash []byte) (journal.CompleteFunc, journal.FailFunc, error) {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
@@ -59,7 +59,7 @@ func (mj *MapJournal) Register(_ context.Context, requestID, groupRequestID libj
 
 // Complete marks a running request as completed and stores result.
 // Returns NotFound if the request is missing, or StatusConflict if it is not running.
-func (mj *MapJournal) Complete(_ context.Context, requestID, groupRequestID libjournal.RequestID, result libjournal.Result, _ *gorm.DB) error {
+func (mj *MapJournal) Complete(_ context.Context, requestID, groupRequestID libjournal.ID, result libjournal.Result, _ *gorm.DB) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
@@ -84,7 +84,7 @@ func (mj *MapJournal) Complete(_ context.Context, requestID, groupRequestID libj
 
 // Fail marks a running request as failed and stores cause.
 // Returns NotFound if the request is missing, or StatusConflict if it is not running.
-func (mj *MapJournal) Fail(_ context.Context, requestID, groupRequestID libjournal.RequestID, cause error, _ *gorm.DB) error {
+func (mj *MapJournal) Fail(_ context.Context, requestID, groupRequestID libjournal.ID, cause error, _ *gorm.DB) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
@@ -109,7 +109,7 @@ func (mj *MapJournal) Fail(_ context.Context, requestID, groupRequestID libjourn
 
 // Find returns a copy of the request for requestID within groupRequestID.
 // Returns NotFound if the group or request is missing.
-func (mj *MapJournal) Find(_ context.Context, requestID, groupRequestID libjournal.RequestID) (libjournal.Request, error) {
+func (mj *MapJournal) Find(_ context.Context, requestID, groupRequestID libjournal.ID) (libjournal.Request, error) {
 	mj.mu.RLock()
 	defer mj.mu.RUnlock()
 
@@ -127,7 +127,7 @@ func (mj *MapJournal) Find(_ context.Context, requestID, groupRequestID libjourn
 
 // Close sets ExpiresAt on every request in the group and rejects new registrations.
 // Missing groups are ignored.
-func (mj *MapJournal) Close(_ context.Context, groupRequestID libjournal.RequestID, deadline time.Time) error {
+func (mj *MapJournal) Close(_ context.Context, groupRequestID libjournal.ID, deadline time.Time) error {
 	mj.mu.Lock()
 	defer mj.mu.Unlock()
 
@@ -143,7 +143,7 @@ func (mj *MapJournal) Close(_ context.Context, groupRequestID libjournal.Request
 
 // IsGroupFree reports whether the group has no requests.
 // Returns false if at least one request exists, regardless of expiry.
-func (mj *MapJournal) IsGroupFree(_ context.Context, groupRequestID libjournal.RequestID) (bool, error) {
+func (mj *MapJournal) IsGroupFree(_ context.Context, groupRequestID libjournal.ID) (bool, error) {
 	mj.mu.RLock()
 	defer mj.mu.RUnlock()
 

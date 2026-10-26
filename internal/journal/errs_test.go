@@ -10,8 +10,8 @@ import (
 )
 
 func TestJournalErrors_IncludeGroup(t *testing.T) {
-	reqID := libjournal.RequestID("call-1")
-	groupID := libjournal.RequestID("inv-1")
+	reqID := libjournal.ID("call-1")
+	groupID := libjournal.ID("inv-1")
 	tb := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 
 	already := journal.NewAlreadyRegisteredWithTracebackID(libjournal.Request{

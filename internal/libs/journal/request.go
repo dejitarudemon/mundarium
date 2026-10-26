@@ -5,8 +5,8 @@ import "time"
 // Request is a journaled tool invocation and its outcome.
 // Result is set when Status is completed; Error is set when Status is failed.
 type Request struct {
-	ID      RequestID `gorm:"primaryKey;type:text" json:"id"`
-	GroupID RequestID `gorm:"primaryKey;type:text;index" json:"group_id"`
+	ID      ID `gorm:"primaryKey;type:text" json:"id"`
+	GroupID ID `gorm:"primaryKey;type:text;index" json:"group_id"`
 
 	CreatedAt time.Time  `gorm:"not null" json:"created_at"`
 	ExpiresAt *time.Time `gorm:"index" json:"expires_at,omitempty"`

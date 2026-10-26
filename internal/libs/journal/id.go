@@ -1,10 +1,9 @@
 package journal
 
-// RequestID identifies a single client or orchestrator request in the journal.
-// The same type is also used for invoke/group ids in execution context.
-type RequestID string
+// ID identifies a journaled request or invoke/group in the journal and execution context.
+type ID string
 
 // String returns the id as a plain string.
-func (id RequestID) String() string {
+func (id ID) String() string {
 	return string(id)
 }

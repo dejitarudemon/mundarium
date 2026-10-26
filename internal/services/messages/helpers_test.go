@@ -18,12 +18,12 @@ type completeRecorder struct {
 	failErr   error
 }
 
-func (r *completeRecorder) complete(ctx context.Context, requestID, groupRequestID libjournal.RequestID, result libjournal.Result, tx *gorm.DB) error {
+func (r *completeRecorder) complete(ctx context.Context, requestID, groupRequestID libjournal.ID, result libjournal.Result, tx *gorm.DB) error {
 	r.calls = append(r.calls, result)
 	return r.err
 }
 
-func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID libjournal.RequestID, cause error, tx *gorm.DB) error {
+func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID libjournal.ID, cause error, tx *gorm.DB) error {
 	r.failCalls = append(r.failCalls, cause)
 	return r.failErr
 }
@@ -31,8 +31,8 @@ func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID l
 func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext, context.CancelFunc) {
 	t.Helper()
 
-	requestID := libjournal.RequestID("test-request")
-	groupID := libjournal.RequestID("test-group")
+	requestID := libjournal.ID("test-request")
+	groupID := libjournal.ID("test-group")
 	role := providers.Role_Master
 
 	if rec == nil {

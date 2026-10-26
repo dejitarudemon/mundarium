@@ -18,7 +18,7 @@ func TestNewExecutionContext_NilCallback(t *testing.T) {
 		"grp",
 		providers.Role_Master,
 		nil,
-		func(context.Context, libjournal.RequestID, libjournal.RequestID, error, *gorm.DB) error { return nil },
+		func(context.Context, libjournal.ID, libjournal.ID, error, *gorm.DB) error { return nil },
 	)
 	if err == nil || err.Error() != "nil callback" {
 		t.Fatalf("want nil callback, got %v", err)
@@ -26,16 +26,16 @@ func TestNewExecutionContext_NilCallback(t *testing.T) {
 }
 
 func TestExecutionContext_CompleteAndFailForwardIDsAndTx(t *testing.T) {
-	var gotReq, gotGroup libjournal.RequestID
+	var gotReq, gotGroup libjournal.ID
 	var gotTX *gorm.DB
 	var gotResult libjournal.Result
 	var gotCause error
 
-	complete := func(ctx context.Context, requestID, groupRequestID libjournal.RequestID, result libjournal.Result, tx *gorm.DB) error {
+	complete := func(ctx context.Context, requestID, groupRequestID libjournal.ID, result libjournal.Result, tx *gorm.DB) error {
 		gotReq, gotGroup, gotResult, gotTX = requestID, groupRequestID, result, tx
 		return nil
 	}
-	fail := func(ctx context.Context, requestID, groupRequestID libjournal.RequestID, cause error, tx *gorm.DB) error {
+	fail := func(ctx context.Context, requestID, groupRequestID libjournal.ID, cause error, tx *gorm.DB) error {
 		gotReq, gotGroup, gotCause, gotTX = requestID, groupRequestID, cause, tx
 		return nil
 	}

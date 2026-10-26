@@ -64,12 +64,12 @@ func (e AlreadyRegistered) TracebackID() uuid.UUID {
 // NotFound indicates a request id is missing from the journal.
 type NotFound struct {
 	tracebackID    uuid.UUID
-	GroupRequestID libjournal.RequestID
-	RequestID      libjournal.RequestID
+	GroupRequestID libjournal.ID
+	RequestID      libjournal.ID
 }
 
 // NewNotFound creates a NotFound error for id.
-func NewNotFound(requestID, groupRequestID libjournal.RequestID) NotFound {
+func NewNotFound(requestID, groupRequestID libjournal.ID) NotFound {
 	return NotFound{
 		tracebackID:    generateTracebackID(),
 		RequestID:      requestID,
@@ -78,7 +78,7 @@ func NewNotFound(requestID, groupRequestID libjournal.RequestID) NotFound {
 }
 
 // NewNotFoundWithTracebackID creates a NotFound error with a fixed traceback id.
-func NewNotFoundWithTracebackID(requestID, groupRequestID libjournal.RequestID, tracebackID uuid.UUID) NotFound {
+func NewNotFoundWithTracebackID(requestID, groupRequestID libjournal.ID, tracebackID uuid.UUID) NotFound {
 	return NotFound{
 		tracebackID:    tracebackID,
 		RequestID:      requestID,
@@ -98,14 +98,14 @@ func (e NotFound) TracebackID() uuid.UUID {
 // StatusConflict indicates an illegal status transition for a request.
 type StatusConflict struct {
 	tracebackID    uuid.UUID
-	RequestID      libjournal.RequestID
-	GroupRequestID libjournal.RequestID
+	RequestID      libjournal.ID
+	GroupRequestID libjournal.ID
 	Actual         libjournal.Status
 	Got            libjournal.Status
 }
 
 // NewStatusConflict creates a StatusConflict for attempting to set got while actual is present.
-func NewStatusConflict(requestID, groupRequestID libjournal.RequestID, got, actual libjournal.Status) StatusConflict {
+func NewStatusConflict(requestID, groupRequestID libjournal.ID, got, actual libjournal.Status) StatusConflict {
 	return StatusConflict{
 		tracebackID:    generateTracebackID(),
 		RequestID:      requestID,
@@ -116,7 +116,7 @@ func NewStatusConflict(requestID, groupRequestID libjournal.RequestID, got, actu
 }
 
 // NewStatusConflictWithTracebackID creates a StatusConflict with a fixed traceback id.
-func NewStatusConflictWithTracebackID(requestID, groupRequestID libjournal.RequestID, got, actual libjournal.Status, tracebackID uuid.UUID) StatusConflict {
+func NewStatusConflictWithTracebackID(requestID, groupRequestID libjournal.ID, got, actual libjournal.Status, tracebackID uuid.UUID) StatusConflict {
 	return StatusConflict{
 		tracebackID:    tracebackID,
 		RequestID:      requestID,

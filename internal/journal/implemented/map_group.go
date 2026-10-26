@@ -11,18 +11,18 @@ import (
 // MapGroup is a thread-safe in-memory store for requests that share one group id.
 // After Close, Add rejects new registrations; Swap may still update existing ones.
 type MapGroup struct {
-	m      map[libjournal.RequestID]libjournal.Request
+	m      map[libjournal.ID]libjournal.Request
 	closed bool
 
-	id libjournal.RequestID
+	id libjournal.ID
 
 	mx sync.RWMutex
 }
 
 // NewMapGroup creates an empty open group bound to id.
-func NewMapGroup(id libjournal.RequestID) *MapGroup {
+func NewMapGroup(id libjournal.ID) *MapGroup {
 	return &MapGroup{
-		m:  make(map[libjournal.RequestID]libjournal.Request),
+		m:  make(map[libjournal.ID]libjournal.Request),
 		id: id,
 	}
 }
@@ -63,7 +63,7 @@ func (g *MapGroup) Swap(request libjournal.Request) error {
 }
 
 // Get returns a copy of the request for id, or false if missing.
-func (g *MapGroup) Get(id libjournal.RequestID) (libjournal.Request, bool) {
+func (g *MapGroup) Get(id libjournal.ID) (libjournal.Request, bool) {
 	g.mx.RLock()
 	defer g.mx.RUnlock()
 

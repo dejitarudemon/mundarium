@@ -7,8 +7,8 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-func toJournalID(id string) libjournal.RequestID {
-	return libjournal.RequestID(id)
+func toJournalID(id string) libjournal.ID {
+	return libjournal.ID(id)
 }
 
 // hashArgs returns a blake2b-256 digest of tool arguments for semantic journal checks.

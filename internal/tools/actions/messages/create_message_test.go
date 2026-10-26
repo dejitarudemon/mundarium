@@ -25,17 +25,17 @@ var (
 func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
 	t.Helper()
 
-	complete := func(context.Context, libjournal.RequestID, libjournal.RequestID, libjournal.Result, *gorm.DB) error {
+	complete := func(context.Context, libjournal.ID, libjournal.ID, libjournal.Result, *gorm.DB) error {
 		return nil
 	}
-	fail := func(context.Context, libjournal.RequestID, libjournal.RequestID, error, *gorm.DB) error {
+	fail := func(context.Context, libjournal.ID, libjournal.ID, error, *gorm.DB) error {
 		return nil
 	}
 
 	ctx, cancel, err := execution.NewExecutionContext(
 		context.Background(),
-		libjournal.RequestID("test-request"),
-		libjournal.RequestID("inv-1"),
+		libjournal.ID("test-request"),
+		libjournal.ID("inv-1"),
 		providers.Role_Master,
 		complete,
 		fail,

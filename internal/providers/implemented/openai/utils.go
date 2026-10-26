@@ -3,19 +3,17 @@ package openai
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
 	"github.com/openai/openai-go/v3"
 )
 
 func endpoint(base, sep string, parts ...string) string {
-	url := base
-
-	for _, part := range parts {
-		url += sep + part
+	if len(parts) == 0 {
+		return base
 	}
-
-	return url
+	return base + sep + strings.Join(parts, sep)
 }
 
 func convertTools(defs []definition.Definition) ([]openai.ChatCompletionToolUnionParam, error) {

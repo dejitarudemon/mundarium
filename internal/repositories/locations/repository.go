@@ -4,21 +4,31 @@ package locations
 import (
 	"context"
 	"errors"
+	"fmt"
+
+	"github.com/dejitarudemon/mundarium/internal/libs/logger"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 
 	"gorm.io/gorm"
+)
+
+var (
+	// ErrLocationWouldCreateCycle is returned when a parent update would form a cycle.
+	ErrLocationWouldCreateCycle = errors.New("location would create a cycle")
 )
 
 // LocationRepository persists and queries Location, LocationSubtype, and Connection records.
 type LocationRepository struct {
 	db       *gorm.DB
 	maxDepth int
+
+	logger logger.Logger
 }
 
 // NewLocationRepository creates a LocationRepository backed by db.
 // maxDepth is the maximum relative depth accepted by FindLocations (inclusive).
-// Returns an error if db is nil or maxDepth is negative.
-func NewLocationRepository(db *gorm.DB, maxDepth int) (*LocationRepository, error) {
+// logger may be nil. Returns an error if db is nil or maxDepth is negative.
+func NewLocationRepository(db *gorm.DB, maxDepth int, logger logger.Logger) (*LocationRepository, error) {
 	if db == nil {
 		return nil, errors.New("expected *gorm.DB, got nil")
 	}
@@ -26,7 +36,7 @@ func NewLocationRepository(db *gorm.DB, maxDepth int) (*LocationRepository, erro
 		return nil, errors.New("max depth must be >= 0")
 	}
 
-	return &LocationRepository{db: db, maxDepth: maxDepth}, nil
+	return &LocationRepository{db: db, maxDepth: maxDepth, logger: logger}, nil
 }
 
 // MaxDepth returns the maximum relative depth accepted by FindLocations.
@@ -40,8 +50,11 @@ func (r *LocationRepository) MaxDepth() int {
 // PatchLocationParent or PutLocation when reparenting an existing location.
 func (r *LocationRepository) CreateLocation(ctx context.Context, location *Location) (*Location, error) {
 	if err := r.db.WithContext(ctx).Create(location).Error; err != nil {
+		r.error("failed to create location", "type", "LocationRepository", "func", "CreateLocation", "data", &location, "error", err)
 		return nil, err
 	}
+
+	r.info("location is created", "type", "LocationRepository", "func", "CreateLocation", "data", &location)
 
 	return location, nil
 }
@@ -56,8 +69,11 @@ func (r *LocationRepository) GetLocation(ctx context.Context, id repositories.ID
 		Where("id = ?", id).
 		Preload("Subtype").
 		First(&location).Error; err != nil {
+		r.error("failed to get location", "type", "LocationRepository", "func", "GetLocation", "id", id, "error", err)
 		return nil, err
 	}
+
+	r.debug("got location", "type", "LocationRepository", "func", "GetLocation", "data", &location)
 
 	return &location, nil
 }
@@ -76,14 +92,17 @@ func (r *LocationRepository) GetLocation(ctx context.Context, id repositories.ID
 func (r *LocationRepository) FindChildLocations(ctx context.Context, id repositories.ID, depth int, loadSubtypes bool) (map[int][]Location, error) {
 	result := make(map[int][]Location)
 	if depth <= 0 {
+		r.error("failed to find location", "type", "LocationRepository", "func", "FindChildLocations", "id", id, "error", fmt.Sprintf("invalid depth %v", depth))
 		return result, nil
 	}
 
 	var exists int64
 	if err := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Count(&exists).Error; err != nil {
+		r.error("failed to find location", "type", "LocationRepository", "func", "FindChildLocations", "id", id, "error", err)
 		return nil, err
 	}
 	if exists == 0 {
+		r.error("failed to find location", "type", "LocationRepository", "func", "FindChildLocations", "id", id, "error", gorm.ErrRecordNotFound)
 		return nil, gorm.ErrRecordNotFound
 	}
 
@@ -105,6 +124,7 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id reposito
 		}
 
 		if err := q.Find(&found).Error; err != nil {
+			r.error("failed to find location children", "type", "LocationRepository", "func", "FindChildLocations", "id", id, "level", d, "depth", depth, "error", err)
 			return nil, err
 		}
 
@@ -125,6 +145,7 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id reposito
 		result[d] = level
 	}
 
+	r.debug("found location", "type", "LocationRepository", "func", "FindChildLocations", "data", result)
 	return result, nil
 }
 
@@ -134,15 +155,17 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id reposito
 // and rejects the update if that parent link would create a cycle.
 // A nil ParentID means the location becomes a root.
 //
-// Returns an error with message "location would create a cycle" if the new
-// parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
+// Returns ErrLocationWouldCreateCycle if the new parent would form a cycle.
+// Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PutLocation(ctx context.Context, location *Location) error {
 	cycle, err := r.checkCircle(ctx, location.ID, location.ParentID)
 	if err != nil {
+		r.error("failed to put location", "type", "LocationRepository", "func", "PutLocation", "id", location.ID, "error", err)
 		return err
 	}
 	if cycle {
-		return errors.New("location would create a cycle")
+		r.error("failed to put location", "type", "LocationRepository", "func", "PutLocation", "id", location.ID, "error", ErrLocationWouldCreateCycle)
+		return ErrLocationWouldCreateCycle
 	}
 
 	result := r.db.WithContext(ctx).
@@ -159,13 +182,16 @@ func (r *LocationRepository) PutLocation(ctx context.Context, location *Location
 		Updates(location)
 
 	if result.Error != nil {
+		r.error("failed to put location", "type", "LocationRepository", "func", "PutLocation", "id", location.ID, "error", result.Error)
 		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
+		r.error("failed to put location", "type", "LocationRepository", "func", "PutLocation", "id", location.ID, "error", gorm.ErrRecordNotFound)
 		return gorm.ErrRecordNotFound
 	}
 
+	r.info("location is updated", "type", "LocationRepository", "func", "PutLocation", "data", location)
 	return nil
 }
 
@@ -175,27 +201,32 @@ func (r *LocationRepository) PutLocation(ctx context.Context, location *Location
 // and rejects the change if that parent link would create a cycle.
 // A nil parentID means the location becomes a root.
 //
-// Returns an error with message "location would create a cycle" if the new
-// parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
+// Returns ErrLocationWouldCreateCycle if the new parent would form a cycle.
+// Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PatchLocationParent(ctx context.Context, id repositories.ID, parentID *repositories.ID) error {
 	cycle, err := r.checkCircle(ctx, id, parentID)
 	if err != nil {
+		r.error("failed to patch location parent", "type", "LocationRepository", "func", "PatchLocationParent", "id", id, "error", err)
 		return err
 	}
 	if cycle {
-		return errors.New("location would create a cycle")
+		r.error("failed to patch location parent", "type", "LocationRepository", "func", "PatchLocationParent", "id", id, "error", ErrLocationWouldCreateCycle)
+		return ErrLocationWouldCreateCycle
 	}
 
 	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("parent_id", parentID)
 
 	if err := query.Error; err != nil {
+		r.error("failed to patch location parent", "type", "LocationRepository", "func", "PatchLocationParent", "id", id, "error", err)
 		return err
 	}
 
 	if query.RowsAffected == 0 {
+		r.error("failed to patch location parent", "type", "LocationRepository", "func", "PatchLocationParent", "id", id, "error", gorm.ErrRecordNotFound)
 		return gorm.ErrRecordNotFound
 	}
 
+	r.info("location parent is patched", "type", "LocationRepository", "func", "PatchLocationParent", "id", id, "parent_id", parentID)
 	return nil
 }
 
@@ -205,13 +236,16 @@ func (r *LocationRepository) PatchLocationName(ctx context.Context, id repositor
 	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("name", name)
 
 	if err := query.Error; err != nil {
+		r.error("failed to patch location name", "type", "LocationRepository", "func", "PatchLocationName", "id", id, "error", err)
 		return err
 	}
 
 	if query.RowsAffected == 0 {
+		r.error("failed to patch location name", "type", "LocationRepository", "func", "PatchLocationName", "id", id, "error", gorm.ErrRecordNotFound)
 		return gorm.ErrRecordNotFound
 	}
 
+	r.info("location name is patched", "type", "LocationRepository", "func", "PatchLocationName", "id", id, "name", name)
 	return nil
 }
 
@@ -221,13 +255,16 @@ func (r *LocationRepository) PatchLocationDetails(ctx context.Context, id reposi
 	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("details", details)
 
 	if err := query.Error; err != nil {
+		r.error("failed to patch location details", "type", "LocationRepository", "func", "PatchLocationDetails", "id", id, "error", err)
 		return err
 	}
 
 	if query.RowsAffected == 0 {
+		r.error("failed to patch location details", "type", "LocationRepository", "func", "PatchLocationDetails", "id", id, "error", gorm.ErrRecordNotFound)
 		return gorm.ErrRecordNotFound
 	}
 
+	r.info("location details are patched", "type", "LocationRepository", "func", "PatchLocationDetails", "id", id)
 	return nil
 }
 
@@ -237,19 +274,27 @@ func (r *LocationRepository) PatchLocationDescription(ctx context.Context, id re
 	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("description", description)
 
 	if err := query.Error; err != nil {
+		r.error("failed to patch location description", "type", "LocationRepository", "func", "PatchLocationDescription", "id", id, "error", err)
 		return err
 	}
 
 	if query.RowsAffected == 0 {
+		r.error("failed to patch location description", "type", "LocationRepository", "func", "PatchLocationDescription", "id", id, "error", gorm.ErrRecordNotFound)
 		return gorm.ErrRecordNotFound
 	}
 
+	r.info("location description is patched", "type", "LocationRepository", "func", "PatchLocationDescription", "id", id)
 	return nil
 }
 
 // CreateSubtype inserts a new location subtype.
 func (r *LocationRepository) CreateSubtype(ctx context.Context, subtype *LocationSubtype) error {
-	return r.db.WithContext(ctx).Create(subtype).Error
+	if err := r.db.WithContext(ctx).Create(subtype).Error; err != nil {
+		r.error("failed to create subtype", "type", "LocationRepository", "func", "CreateSubtype", "data", subtype, "error", err)
+		return err
+	}
+	r.info("subtype is created", "type", "LocationRepository", "func", "CreateSubtype", "data", subtype)
+	return nil
 }
 
 // GetSubtype returns the location subtype with the given id.
@@ -260,9 +305,11 @@ func (r *LocationRepository) GetSubtype(ctx context.Context, id repositories.ID)
 	if err := r.db.
 		WithContext(ctx).
 		First(&subtype, "id = ?", id).Error; err != nil {
+		r.error("failed to get subtype", "type", "LocationRepository", "func", "GetSubtype", "id", id, "error", err)
 		return nil, err
 	}
 
+	r.debug("got subtype", "type", "LocationRepository", "func", "GetSubtype", "data", &subtype)
 	return &subtype, nil
 }
 
@@ -281,9 +328,11 @@ func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, ty
 	}
 
 	if err := query.Find(&subtypes).Error; err != nil {
+		r.error("failed to find subtypes", "type", "LocationRepository", "func", "FindSubtypes", "keys", keys, "types", types, "error", err)
 		return nil, err
 	}
 
+	r.debug("found subtypes", "type", "LocationRepository", "func", "FindSubtypes", "count", len(subtypes))
 	return subtypes, nil
 }
 
@@ -291,7 +340,12 @@ func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, ty
 // The repository does not validate whether the link is logically meaningful;
 // that is left to the caller.
 func (r *LocationRepository) CreateConnection(ctx context.Context, connection *Connection) error {
-	return r.db.WithContext(ctx).Create(connection).Error
+	if err := r.db.WithContext(ctx).Create(connection).Error; err != nil {
+		r.error("failed to create connection", "type", "LocationRepository", "func", "CreateConnection", "data", connection, "error", err)
+		return err
+	}
+	r.info("connection is created", "type", "LocationRepository", "func", "CreateConnection", "data", connection)
+	return nil
 }
 
 // GetConnection returns the connection with the given id.
@@ -300,9 +354,11 @@ func (r *LocationRepository) GetConnection(ctx context.Context, id repositories.
 	var connection Connection
 
 	if err := r.db.WithContext(ctx).First(&connection, "id = ?", id).Error; err != nil {
+		r.error("failed to get connection", "type", "LocationRepository", "func", "GetConnection", "id", id, "error", err)
 		return nil, err
 	}
 
+	r.debug("got connection", "type", "LocationRepository", "func", "GetConnection", "data", &connection)
 	return &connection, nil
 }
 
@@ -311,9 +367,11 @@ func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID
 	connections := make([]Connection, 0)
 
 	if err := r.db.WithContext(ctx).Find(&connections, "from_id = ? AND to_id = ?", fromID, toID).Error; err != nil {
+		r.error("failed to find connections", "type", "LocationRepository", "func", "FindInderectConnections", "from_id", fromID, "to_id", toID, "error", err)
 		return nil, err
 	}
 
+	r.debug("found connections", "type", "LocationRepository", "func", "FindInderectConnections", "from_id", fromID, "to_id", toID, "count", len(connections))
 	return connections, nil
 }
 
@@ -322,7 +380,9 @@ func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID
 // Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PutConnection(ctx context.Context, connection *Connection) error {
 	if connection.FromID == connection.ToID {
-		return errors.New("connection between the same locations")
+		err := errors.New("connection between the same locations")
+		r.error("failed to put connection", "type", "LocationRepository", "func", "PutConnection", "id", connection.ID, "error", err)
+		return err
 	}
 
 	result := r.db.WithContext(ctx).
@@ -340,19 +400,27 @@ func (r *LocationRepository) PutConnection(ctx context.Context, connection *Conn
 		Updates(connection)
 
 	if result.Error != nil {
+		r.error("failed to put connection", "type", "LocationRepository", "func", "PutConnection", "id", connection.ID, "error", result.Error)
 		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
+		r.error("failed to put connection", "type", "LocationRepository", "func", "PutConnection", "id", connection.ID, "error", gorm.ErrRecordNotFound)
 		return gorm.ErrRecordNotFound
 	}
 
+	r.info("connection is updated", "type", "LocationRepository", "func", "PutConnection", "data", connection)
 	return nil
 }
 
 // DeleteConnection deletes the connection with the given id.
 func (r *LocationRepository) DeleteConnection(ctx context.Context, id repositories.ID) error {
-	return r.db.WithContext(ctx).Delete(Connection{}, "id = ?", id).Error
+	if err := r.db.WithContext(ctx).Delete(Connection{}, "id = ?", id).Error; err != nil {
+		r.error("failed to delete connection", "type", "LocationRepository", "func", "DeleteConnection", "id", id, "error", err)
+		return err
+	}
+	r.info("connection is deleted", "type", "LocationRepository", "func", "DeleteConnection", "id", id)
+	return nil
 }
 
 // checkCircle reports whether setting id's parent to newParent would create a cycle.
@@ -385,6 +453,7 @@ func (r *LocationRepository) checkCircle(ctx context.Context, id repositories.ID
 			Select("parent_id").
 			Where("id = ?", next).
 			Scan(&parentID).Error; err != nil {
+			r.error("failed to check location cycle", "type", "LocationRepository", "func", "checkCircle", "id", id, "next", next, "error", err)
 			return false, err
 		}
 

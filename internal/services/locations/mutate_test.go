@@ -6,6 +6,7 @@ import (
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"gorm.io/gorm"
 )
 
@@ -44,8 +45,8 @@ func TestMoveLocation_RejectsCycle(t *testing.T) {
 	defer cancel()
 
 	err := testSvc.MoveLocation(ctx, root.ID, new(child.ID))
-	if err == nil || err.Error() != "location would create a cycle" {
-		t.Fatalf("want cycle error, got %v", err)
+	if !errors.Is(err, repolocations.ErrLocationWouldCreateCycle) {
+		t.Fatalf("want ErrLocationWouldCreateCycle, got %v", err)
 	}
 }
 

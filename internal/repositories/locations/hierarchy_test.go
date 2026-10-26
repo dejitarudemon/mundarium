@@ -2,6 +2,7 @@ package locations_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
@@ -97,8 +98,8 @@ func TestPatchLocationParent_RejectsSelfParent(t *testing.T) {
 
 	loc := createRoot(t, "alone")
 	err := testRepo.PatchLocationParent(ctx, loc.ID, new(loc.ID))
-	if err == nil || err.Error() != "location would create a cycle" {
-		t.Fatalf("want cycle error for self-parent, got %v", err)
+	if !errors.Is(err, locations.ErrLocationWouldCreateCycle) {
+		t.Fatalf("want ErrLocationWouldCreateCycle for self-parent, got %v", err)
 	}
 }
 
@@ -133,8 +134,8 @@ func TestPatchLocationParent_RejectsTwoNodeCycle(t *testing.T) {
 	b := createLocation(t, new(a.ID), "B")
 
 	err := testRepo.PatchLocationParent(ctx, a.ID, new(b.ID))
-	if err == nil || err.Error() != "location would create a cycle" {
-		t.Fatalf("want cycle error, got %v", err)
+	if !errors.Is(err, locations.ErrLocationWouldCreateCycle) {
+		t.Fatalf("want ErrLocationWouldCreateCycle, got %v", err)
 	}
 }
 
@@ -149,14 +150,14 @@ func TestPatchLocationParent_RejectsCycleIntoDescendantBranch(t *testing.T) {
 	a := createLocation(t, new(b.ID), "A")
 
 	err := testRepo.PatchLocationParent(ctx, b.ID, new(a.ID))
-	if err == nil || err.Error() != "location would create a cycle" {
-		t.Fatalf("want cycle error when B.parent=A, got %v", err)
+	if !errors.Is(err, locations.ErrLocationWouldCreateCycle) {
+		t.Fatalf("want ErrLocationWouldCreateCycle when B.parent=A, got %v", err)
 	}
 
 	// Also: after making C.parent = B is invalid while B still under C.
 	err = testRepo.PatchLocationParent(ctx, c.ID, new(b.ID))
-	if err == nil || err.Error() != "location would create a cycle" {
-		t.Fatalf("want cycle error when C.parent=B, got %v", err)
+	if !errors.Is(err, locations.ErrLocationWouldCreateCycle) {
+		t.Fatalf("want ErrLocationWouldCreateCycle when C.parent=B, got %v", err)
 	}
 }
 
@@ -170,7 +171,7 @@ func TestPutLocation_RejectsCycle(t *testing.T) {
 	b.ParentID = new(a.ID)
 	a.ParentID = new(b.ID)
 	err := testRepo.PutLocation(ctx, a)
-	if err == nil || err.Error() != "location would create a cycle" {
-		t.Fatalf("want cycle error, got %v", err)
+	if !errors.Is(err, locations.ErrLocationWouldCreateCycle) {
+		t.Fatalf("want ErrLocationWouldCreateCycle, got %v", err)
 	}
 }

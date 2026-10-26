@@ -42,7 +42,9 @@ type findLocationsRow struct {
 // Returns an error if Depth is outside 0..MaxDepth().
 func (r *LocationRepository) FindLocations(ctx context.Context, filter FindLocationsFilter) (FindLocationsResult, error) {
 	if filter.Depth < 0 || filter.Depth > r.maxDepth {
-		return FindLocationsResult{}, errors.New("depth out of range")
+		err := errors.New("depth out of range")
+		r.error("failed to find locations", "type", "LocationRepository", "func", "FindLocations", "scope_id", filter.ScopeID, "depth", filter.Depth, "error", err)
+		return FindLocationsResult{}, err
 	}
 
 	matchSQL, matchArgs := findLocationsMatch(filter)
@@ -50,13 +52,17 @@ func (r *LocationRepository) FindLocations(ctx context.Context, filter FindLocat
 
 	rows, err := r.scanFindLocations(ctx, matchSQL, args)
 	if err != nil {
+		r.error("failed to find locations", "type", "LocationRepository", "func", "FindLocations", "scope_id", filter.ScopeID, "depth", filter.Depth, "error", err)
 		return FindLocationsResult{}, err
 	}
 	if len(rows) == 0 {
+		r.error("failed to find locations", "type", "LocationRepository", "func", "FindLocations", "scope_id", filter.ScopeID, "error", gorm.ErrRecordNotFound)
 		return FindLocationsResult{}, gorm.ErrRecordNotFound
 	}
 
-	return groupFindLocations(rows), nil
+	result := groupFindLocations(rows)
+	r.debug("found locations", "type", "LocationRepository", "func", "FindLocations", "scope_id", filter.ScopeID, "children_levels", len(result.Children))
+	return result, nil
 }
 
 // findLocationsMatch builds the descendant WHERE fragment and its bind args.

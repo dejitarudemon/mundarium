@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	repo, err := repolocations.NewLocationRepository(conn.DB(), 5)
+	repo, err := repolocations.NewLocationRepository(conn.DB(), 5, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "new repository: %v\n", err)
 		return

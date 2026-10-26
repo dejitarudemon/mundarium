@@ -10,6 +10,7 @@ import (
 	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Connection wraps a GORM PostgreSQL handle.
@@ -20,7 +21,9 @@ type Connection struct {
 // Open connects to PostgreSQL using the given DSN, runs domain auto-migration,
 // and returns a Connection.
 func Open(dsn string) (*Connection, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)
 	}

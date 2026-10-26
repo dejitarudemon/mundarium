@@ -30,9 +30,9 @@ func TestFindLocationsMatch(t *testing.T) {
 
 func TestGroupFindLocations(t *testing.T) {
 	rows := []findLocationsRow{
-		{Location: Location{ID: 1, Name: "root"}, RelDepth: 0},
-		{Location: Location{ID: 2, Name: "child"}, RelDepth: 1},
-		{Location: Location{ID: 3, Name: "grand"}, RelDepth: 2},
+		{ID: 1, Name: "root", RelDepth: 0},
+		{ID: 2, Name: "child", RelDepth: 1},
+		{ID: 3, Name: "grand", RelDepth: 2},
 	}
 	got := groupFindLocations(rows)
 	if got.Scope.ID != 1 || got.Scope.Name != "root" {

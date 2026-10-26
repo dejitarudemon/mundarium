@@ -3,30 +3,20 @@ package locations_test
 import (
 	"context"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"testing"
 
+	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"gorm.io/gorm"
 )
-
-func typePtr(t locations.LocationType) *locations.LocationType { return &t }
-
-func childCount(children map[int][]locations.Location) int {
-	n := 0
-	for _, locs := range children {
-		n += len(locs)
-	}
-	return n
-}
 
 func TestFindLocations_DepthAndQuery(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
 	root := createRoot(t, "World")
-	north := createLocation(t, idPtr(root.ID), "North")
+	north := createLocation(t, new(root.ID), "North")
 	gate, err := testRepo.CreateLocation(ctx, &locations.Location{
-		ParentID:    idPtr(north.ID),
+		ParentID:    new(north.ID),
 		Type:        locations.LocationType_SITE,
 		Name:        "North Gate",
 		Description: "stone arch",
@@ -34,7 +24,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateLocation gate: %v", err)
 	}
-	_ = createLocation(t, idPtr(root.ID), "South")
+	_ = createLocation(t, new(root.ID), "South")
 
 	depth0, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{
 		ScopeID: root.ID,
@@ -81,7 +71,7 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 	subtypeID := subtype.ID
 
 	tavern, err := testRepo.CreateLocation(ctx, &locations.Location{
-		ParentID:  idPtr(root.ID),
+		ParentID:  new(root.ID),
 		Type:      locations.LocationType_STRUCTURE,
 		SubtypeID: &subtypeID,
 		Name:      "The Boar",
@@ -89,12 +79,12 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateLocation tavern: %v", err)
 	}
-	_ = createLocation(t, idPtr(root.ID), "Square")
+	_ = createLocation(t, new(root.ID), "Square")
 
 	byType, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   1,
-		Type:    typePtr(locations.LocationType_STRUCTURE),
+		Type:    new(locations.LocationType_STRUCTURE),
 	})
 	if err != nil {
 		t.Fatalf("by type: %v", err)

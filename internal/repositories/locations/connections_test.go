@@ -3,26 +3,12 @@ package locations_test
 import (
 	"context"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
-	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"testing"
 
+	"github.com/dejitarudemon/mundarium/internal/repositories"
+	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"gorm.io/gorm"
 )
-
-func createConnection(t *testing.T, fromID, toID repositories.ID, description string) *locations.Connection {
-	t.Helper()
-
-	conn := &locations.Connection{
-		FromID:      fromID,
-		ToID:        toID,
-		Description: description,
-	}
-	if err := testRepo.CreateConnection(context.Background(), conn); err != nil {
-		t.Fatalf("CreateConnection: %v", err)
-	}
-	return conn
-}
 
 func TestCreateAndGetConnection(t *testing.T) {
 	resetDB(t)

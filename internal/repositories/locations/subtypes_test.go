@@ -3,28 +3,11 @@ package locations_test
 import (
 	"context"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"testing"
 
-	"github.com/lib/pq"
+	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"gorm.io/gorm"
 )
-
-func createSubtype(t *testing.T, key string, locType locations.LocationType, description string) *locations.LocationSubtype {
-	t.Helper()
-
-	subtype := &locations.LocationSubtype{
-		Key:          key,
-		Type:         locType,
-		DefiningTags: pq.StringArray{"tag-a"},
-		ExpectedTags: pq.StringArray{"tag-b"},
-		Description:  description,
-	}
-	if err := testRepo.CreateSubtype(context.Background(), subtype); err != nil {
-		t.Fatalf("CreateSubtype(%q): %v", key, err)
-	}
-	return subtype
-}
 
 func TestCreateAndGetSubtype(t *testing.T) {
 	resetDB(t)
@@ -108,7 +91,7 @@ func TestGetLocation_PreloadsSubtype(t *testing.T) {
 	root := createRoot(t, "town")
 	id := subtype.ID
 	loc, err := testRepo.CreateLocation(ctx, &locations.Location{
-		ParentID:  idPtr(root.ID),
+		ParentID:  new(root.ID),
 		Type:      locations.LocationType_STRUCTURE,
 		SubtypeID: &id,
 		Name:      "The Boar",

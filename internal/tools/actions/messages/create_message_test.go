@@ -60,16 +60,16 @@ func TestNewCreateMessageTool_LoadsDefinition(t *testing.T) {
 	}
 
 	def := tool.Definition()
-	if def.Name != "create_message" {
-		t.Fatalf("want definition name create_message, got %q", def.Name)
+	if def.Name != "send_message" {
+		t.Fatalf("want definition name send_message, got %q", def.Name)
 	}
 	def.Name = "mutated"
 	again := tool.Definition()
-	if again.Name != "create_message" {
+	if again.Name != "send_message" {
 		t.Fatalf("Definition must return a copy, got %q", again.Name)
 	}
 	if tool.IsIdempotent() {
-		t.Fatal("create_message must not be idempotent")
+		t.Fatal("send_message must not be idempotent")
 	}
 }
 

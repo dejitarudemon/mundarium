@@ -106,5 +106,5 @@ func definitionsDir(t *testing.T) string {
 
 func createMessageDefinitionPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(definitionsDir(t), "create_message.json")
+	return filepath.Join(definitionsDir(t), "send_message.json")
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
 )
@@ -18,7 +17,7 @@ import (
 // Execute runs call against a registered tool.
 // Non-idempotent tools are journaled under group invokeID and request call.ID.
 // The tool's ExecutionContext receives invokeID, call.ID, and call.Role.
-func (e *Executor) Execute(ctx context.Context, invokeID string, call libtools.Call) (json.RawMessage, error) {
+func (e *Executor) Execute(ctx context.Context, invokeID string, call tools.Call) (json.RawMessage, error) {
 	tool, err := e.lookup(call.Name, call.Role)
 	if err != nil {
 		return nil, err

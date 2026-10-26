@@ -4,21 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
+
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
-	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
 	"golang.org/x/crypto/blake2b"
 )
 
-func masterCall(id, name string, args json.RawMessage) libtools.Call {
-	return libtools.Call{
+func masterCall(id, name string, args json.RawMessage) tools.Call {
+	return tools.Call{
 		ID:   id,
 		Name: name,
 		Role: providers.Role_Master,
@@ -65,7 +65,7 @@ func TestExecute_PermissionDenied(t *testing.T) {
 	resetDB(t)
 
 	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	_, err := ex.Execute(context.Background(), "inv-1", libtools.Call{
+	_, err := ex.Execute(context.Background(), "inv-1", tools.Call{
 		ID:   "c1",
 		Name: "create_location",
 		Role: providers.Role("guest"),

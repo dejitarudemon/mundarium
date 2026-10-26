@@ -1,4 +1,4 @@
-package implemented_test
+package mapjournal_test
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
-	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	mapjournal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution/implemented/map"
 	"github.com/google/uuid"
 )
 
@@ -26,7 +26,7 @@ func newGroup() journal.ID {
 
 func TestMapJournal_RegisterAndFind(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -67,7 +67,7 @@ func TestMapJournal_RegisterAndFind(t *testing.T) {
 
 func TestMapJournal_Register_AlreadyRegistered(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -97,7 +97,7 @@ func TestMapJournal_Register_AlreadyRegistered(t *testing.T) {
 
 func TestMapJournal_Register_SameIDDifferentGroups(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	g1 := newGroup()
 	g2 := newGroup()
@@ -112,7 +112,7 @@ func TestMapJournal_Register_SameIDDifferentGroups(t *testing.T) {
 
 func TestMapJournal_Complete(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -158,7 +158,7 @@ func TestMapJournal_Complete(t *testing.T) {
 
 func TestMapJournal_Complete_NotFound(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -174,7 +174,7 @@ func TestMapJournal_Complete_NotFound(t *testing.T) {
 
 func TestMapJournal_Complete_AfterFail(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -198,7 +198,7 @@ func TestMapJournal_Complete_AfterFail(t *testing.T) {
 
 func TestMapJournal_Complete_AlreadyCompleted(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -228,7 +228,7 @@ func TestMapJournal_Complete_AlreadyCompleted(t *testing.T) {
 
 func TestMapJournal_Fail(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -256,7 +256,7 @@ func TestMapJournal_Fail(t *testing.T) {
 
 func TestMapJournal_Fail_NotFound(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -272,7 +272,7 @@ func TestMapJournal_Fail_NotFound(t *testing.T) {
 
 func TestMapJournal_Fail_AlreadyFailed(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -301,7 +301,7 @@ func TestMapJournal_Fail_AlreadyFailed(t *testing.T) {
 
 func TestMapJournal_Fail_AfterComplete(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -325,7 +325,7 @@ func TestMapJournal_Fail_AfterComplete(t *testing.T) {
 
 func TestMapJournal_Find_NotFound(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	id := newID()
 	group := newGroup()
 
@@ -341,7 +341,7 @@ func TestMapJournal_Find_NotFound(t *testing.T) {
 
 func TestMapJournal_Close(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	group := newGroup()
 	a := newID()
 	b := newID()
@@ -383,7 +383,7 @@ func TestMapJournal_Close(t *testing.T) {
 
 func TestMapJournal_IsGroupFree(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	group := newGroup()
 	id := newID()
 
@@ -420,7 +420,7 @@ func TestMapJournal_IsGroupFree(t *testing.T) {
 
 func TestMapJournal_DeleteAllExpired_Soft(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 
 	keepGroup := newGroup()
 	dropGroup := newGroup()
@@ -455,7 +455,7 @@ func TestMapJournal_DeleteAllExpired_Soft(t *testing.T) {
 
 func TestMapJournal_DeleteAllExpired_HardTTL(t *testing.T) {
 	ctx := context.Background()
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 
 	keepGroup := newGroup()
 	dropGroup := newGroup()
@@ -483,7 +483,7 @@ func TestMapJournal_DeleteAllExpired_HardTTL(t *testing.T) {
 }
 
 func TestMapJournal_DeleteAllExpired_ContextCanceled(t *testing.T) {
-	mj := implemented.NewMapJournal()
+	mj := mapjournal.NewMapJournal()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -494,5 +494,5 @@ func TestMapJournal_DeleteAllExpired_ContextCanceled(t *testing.T) {
 }
 
 func TestMapJournal_ImplementsJournal(t *testing.T) {
-	var _ journal.Journal = implemented.NewMapJournal()
+	var _ journal.Journal = mapjournal.NewMapJournal()
 }

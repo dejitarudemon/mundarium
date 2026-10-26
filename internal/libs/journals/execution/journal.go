@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Journal records tool invocations grouped by a shared group request id.
+// Journal records tool invocations grouped by a shared invoke/group request id.
 type Journal interface {
 	// Register stores a running request under groupRequestID with the given tool name and args hash.
 	// argsHash is an opaque digest (blake2b) computed by the caller; the journal stores it as-is.

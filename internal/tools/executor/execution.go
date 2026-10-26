@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"slices"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	"github.com/dejitarudemon/mundarium/internal/providers"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
 )
@@ -31,7 +31,7 @@ func (e *Executor) Execute(ctx context.Context, invokeID string, call tools.Call
 }
 
 // lookup resolves a registered tool and checks role permission under the read lock.
-func (e *Executor) lookup(name string, role providers.Role) (tools.Tool, error) {
+func (e *Executor) lookup(name string, role types.Role) (tools.Tool, error) {
 	e.mx.RLock()
 	defer e.mx.RUnlock()
 
@@ -45,7 +45,7 @@ func (e *Executor) lookup(name string, role providers.Role) (tools.Tool, error) 
 	return tool, nil
 }
 
-func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, role providers.Role, args json.RawMessage) (json.RawMessage, error) {
+func (e *Executor) executeNotIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, role types.Role, args json.RawMessage) (json.RawMessage, error) {
 	toolName := tool.Definition().Name
 	argsHash := hashArgs(args)
 
@@ -94,14 +94,14 @@ func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string
 	}
 }
 
-func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, role providers.Role, args json.RawMessage) (json.RawMessage, error) {
-	ctx, cancel := execution.NewExecutionContextWithoutCallback(parent, toJournalID(callID), toJournalID(invokeID), role)
+func (e *Executor) executeIdempotent(parent context.Context, tool tools.Tool, invokeID, callID string, role types.Role, args json.RawMessage) (json.RawMessage, error) {
+	ctx, cancel := execution.NewExecutionContextWithoutCallback[journal.Result](parent, toJournalID(callID), toJournalID(invokeID), role)
 	defer cancel()
 
 	return tool.Execute(ctx, args)
 }
 
-func (e *Executor) checkPermission(role providers.Role, def definition.Definition) error {
+func (e *Executor) checkPermission(role types.Role, def definition.Definition) error {
 	defs, ok := e.allowed[role]
 	if !ok {
 		return ErrPermissionDenied

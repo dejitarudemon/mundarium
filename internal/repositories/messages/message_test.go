@@ -1,9 +1,9 @@
 package messages_test
 
 import (
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/repositories/messages"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -22,7 +22,7 @@ func TestMessage_BeforeCreate_SeqNumPerInvokeID(t *testing.T) {
 	}
 
 	for want := uint(0); want < 3; want++ {
-		msg := messages.Message{InvokeID: "inv-1", Text: "x", From: providers.Role_Master}
+		msg := messages.Message{InvokeID: "inv-1", Text: "x", From: types.Role_Master}
 		if err := db.Create(&msg).Error; err != nil {
 			t.Fatalf("Create #%d: %v", want, err)
 		}
@@ -31,7 +31,7 @@ func TestMessage_BeforeCreate_SeqNumPerInvokeID(t *testing.T) {
 		}
 	}
 
-	other := messages.Message{InvokeID: "inv-2", Text: "y", From: providers.Role_Master}
+	other := messages.Message{InvokeID: "inv-2", Text: "y", From: types.Role_Master}
 	if err := db.Create(&other).Error; err != nil {
 		t.Fatalf("Create inv-2: %v", err)
 	}

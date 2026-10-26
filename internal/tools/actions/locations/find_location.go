@@ -2,6 +2,7 @@ package locations
 
 import (
 	"encoding/json"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	servicelocation "github.com/dejitarudemon/mundarium/internal/services/locations"
@@ -45,7 +46,7 @@ func (t *FindLocationsTool) IsIdempotent() bool {
 }
 
 // Execute unmarshals find-locations args, calls the service, and returns JSON output.
-func (t *FindLocationsTool) Execute(ctx execution.ExecutionContext, args json.RawMessage) (json.RawMessage, error) {
+func (t *FindLocationsTool) Execute(ctx execution.ExecutionContext[journal.Result], args json.RawMessage) (json.RawMessage, error) {
 	in, err := t.unmarshal(args)
 	if err != nil {
 		return nil, err

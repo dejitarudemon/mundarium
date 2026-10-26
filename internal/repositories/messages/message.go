@@ -1,9 +1,9 @@
 package messages
 
 import (
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
@@ -20,8 +20,8 @@ type Message struct {
 
 	Text string `gorm:"type:text;not null" json:"text"`
 
-	// From is the speaker role (for example providers.Role_Master).
-	From providers.Role `gorm:"not null;type:text" json:"from"`
+	// From is the speaker role (for example types.Role_Master).
+	From types.Role `gorm:"not null;type:text" json:"from"`
 
 	CreatedAt time.Time `gorm:"not null" json:"created_at"`
 

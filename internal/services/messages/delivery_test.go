@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"gorm.io/gorm"
 )
 

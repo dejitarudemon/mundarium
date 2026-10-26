@@ -1,6 +1,6 @@
-package journal
+package types
 
-// ID identifies a journaled request or invoke/group in the journal and execution context.
+// ID identifies a call, invoke/group, or other opaque string key in the runtime.
 type ID string
 
 // String returns the id as a plain string.

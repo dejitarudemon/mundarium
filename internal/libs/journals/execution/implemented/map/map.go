@@ -1,12 +1,12 @@
-// Package implemented provides concrete Journal implementations.
-package implemented
+// Package mapjournal provides an in-memory Journal implementation.
+package mapjournal
 
 import (
 	"context"
 	"sync"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"gorm.io/gorm"
 )
 
@@ -16,14 +16,14 @@ var (
 
 // MapJournal is an in-memory Journal backed by a map keyed by group then request id.
 type MapJournal struct {
-	m  map[journal.ID]*MapGroup
+	m  map[journal.ID]*Group
 	mu sync.RWMutex
 }
 
 // NewMapJournal creates an empty MapJournal.
 func NewMapJournal() *MapJournal {
 	return &MapJournal{
-		m: make(map[journal.ID]*MapGroup),
+		m: make(map[journal.ID]*Group),
 	}
 }
 
@@ -34,7 +34,7 @@ func (mj *MapJournal) Register(_ context.Context, requestID, groupRequestID jour
 	defer mj.mu.Unlock()
 
 	if _, ok := mj.m[groupRequestID]; !ok {
-		mj.m[groupRequestID] = NewMapGroup(groupRequestID)
+		mj.m[groupRequestID] = NewGroup(groupRequestID)
 	}
 
 	group := mj.m[groupRequestID]

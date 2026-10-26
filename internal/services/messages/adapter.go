@@ -2,9 +2,8 @@ package messages
 
 import (
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
-
-	"github.com/dejitarudemon/mundarium/internal/providers"
 )
 
 // toNewMessage maps CreateMessageInput to a domain Message ready for insert.
@@ -22,7 +21,7 @@ func toNewMessage(in CreateMessageInput) (*repomessages.Message, error) {
 	return &repomessages.Message{
 		InvokeID: in.InvokeID,
 		Text:     in.Text,
-		From:     providers.Role(in.From),
+		From:     types.Role(in.From),
 	}, nil
 }
 

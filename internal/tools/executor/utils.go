@@ -3,7 +3,7 @@ package executor
 import (
 	"encoding/json"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"golang.org/x/crypto/blake2b"
 )
 

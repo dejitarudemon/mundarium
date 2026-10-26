@@ -1,15 +1,15 @@
-package implemented
+package mapjournal
 
 import (
 	"sync"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 )
 
-// MapGroup is a thread-safe in-memory store for requests that share one group id.
+// Group is a thread-safe in-memory store for requests that share one group id.
 // After Close, Add rejects new registrations; Swap may still update existing ones.
-type MapGroup struct {
+type Group struct {
 	m      map[journal.ID]journal.Request
 	closed bool
 
@@ -18,9 +18,9 @@ type MapGroup struct {
 	mx sync.RWMutex
 }
 
-// NewMapGroup creates an empty open group bound to id.
-func NewMapGroup(id journal.ID) *MapGroup {
-	return &MapGroup{
+// NewGroup creates an empty open group bound to id.
+func NewGroup(id journal.ID) *Group {
+	return &Group{
 		m:  make(map[journal.ID]journal.Request),
 		id: id,
 	}
@@ -28,7 +28,7 @@ func NewMapGroup(id journal.ID) *MapGroup {
 
 // Add inserts a new request by ID.
 // Returns ErrGroupIsClosed if the group was closed, or AlreadyRegistered if the ID exists.
-func (g *MapGroup) Add(request journal.Request) error {
+func (g *Group) Add(request journal.Request) error {
 	g.mx.Lock()
 	defer g.mx.Unlock()
 
@@ -46,7 +46,7 @@ func (g *MapGroup) Add(request journal.Request) error {
 
 // Swap replaces an existing request by ID and preserves its ExpiresAt.
 // Returns NotFound if the ID is missing. Allowed after Close so Complete/Fail can finish.
-func (g *MapGroup) Swap(request journal.Request) error {
+func (g *Group) Swap(request journal.Request) error {
 	g.mx.Lock()
 	defer g.mx.Unlock()
 
@@ -62,7 +62,7 @@ func (g *MapGroup) Swap(request journal.Request) error {
 }
 
 // Get returns a copy of the request for id, or false if missing.
-func (g *MapGroup) Get(id journal.ID) (journal.Request, bool) {
+func (g *Group) Get(id journal.ID) (journal.Request, bool) {
 	g.mx.RLock()
 	defer g.mx.RUnlock()
 
@@ -75,7 +75,7 @@ func (g *MapGroup) Get(id journal.ID) (journal.Request, bool) {
 
 // Close sets ExpiresAt on every request to deadline and marks the group closed.
 // Idempotent: a second Close does not rewrite ExpiresAt.
-func (g *MapGroup) Close(deadline time.Time) {
+func (g *Group) Close(deadline time.Time) {
 	g.mx.Lock()
 	defer g.mx.Unlock()
 
@@ -90,7 +90,7 @@ func (g *MapGroup) Close(deadline time.Time) {
 }
 
 // Len returns the number of requests currently in the group.
-func (g *MapGroup) Len() int {
+func (g *Group) Len() int {
 	g.mx.RLock()
 	defer g.mx.RUnlock()
 
@@ -99,7 +99,7 @@ func (g *MapGroup) Len() int {
 
 // IsExpired reports whether every request is expired under soft ExpiresAt and/or hard ttl.
 // Returns false for an empty group.
-func (g *MapGroup) IsExpired(now time.Time, ttl time.Duration) bool {
+func (g *Group) IsExpired(now time.Time, ttl time.Duration) bool {
 	g.mx.RLock()
 	defer g.mx.RUnlock()
 

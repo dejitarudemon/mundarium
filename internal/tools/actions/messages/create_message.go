@@ -4,8 +4,9 @@ package messages
 import (
 	"context"
 	"encoding/json"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 
-	"github.com/dejitarudemon/mundarium/internal/alarm"
+	"github.com/dejitarudemon/mundarium/internal/libs/alarm"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	servicemessage "github.com/dejitarudemon/mundarium/internal/services/messages"
 	"github.com/dejitarudemon/mundarium/internal/tools"
@@ -53,7 +54,7 @@ func (t *CreateMessageTool) IsIdempotent() bool {
 
 // Execute unmarshals provider args (text only), binds InvokeID and From from ctx,
 // calls the service, and returns JSON output.
-func (t *CreateMessageTool) Execute(ctx execution.ExecutionContext, args json.RawMessage) (json.RawMessage, error) {
+func (t *CreateMessageTool) Execute(ctx execution.ExecutionContext[journal.Result], args json.RawMessage) (json.RawMessage, error) {
 	message, err := t.unmarshal(args)
 	if err != nil {
 		return nil, err

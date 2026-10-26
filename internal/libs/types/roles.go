@@ -1,5 +1,4 @@
-// Package providers holds caller identity primitives used by tools and the executor.
-package providers
+package types
 
 // Role identifies who may invoke a tool.
 type Role string

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	"github.com/dejitarudemon/mundarium/internal/providers"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -21,7 +21,7 @@ var (
 	_ tools.Tool = (*toolslocations.CreateLocationTool)(nil)
 )
 
-func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
+func newExecCtx(t *testing.T) (execution.ExecutionContext[journal.Result], context.CancelFunc) {
 	t.Helper()
 
 	complete := func(context.Context, journal.ID, journal.ID, journal.Result, *gorm.DB) error {
@@ -35,7 +35,7 @@ func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
 		context.Background(),
 		journal.ID("test-request"),
 		journal.ID("test-group"),
-		providers.Role_Master,
+		types.Role_Master,
 		complete,
 		fail,
 	)

@@ -1,17 +1,17 @@
-package implemented_test
+package mapjournal_test
 
 import (
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
-	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	mapjournal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution/implemented/map"
 )
 
 func TestMapGroup_AddSwapClose(t *testing.T) {
 	groupID := journal.ID("grp-1")
-	g := implemented.NewMapGroup(groupID)
+	g := mapjournal.NewGroup(groupID)
 	id := journal.ID("req-1")
 
 	if g.Len() != 0 {
@@ -98,7 +98,7 @@ func TestMapGroup_AddSwapClose(t *testing.T) {
 }
 
 func TestMapGroup_IsExpired(t *testing.T) {
-	g := implemented.NewMapGroup("grp")
+	g := mapjournal.NewGroup("grp")
 	now := time.Date(2026, 10, 23, 12, 0, 0, 0, time.UTC)
 	past := now.Add(-time.Minute)
 	future := now.Add(time.Minute)

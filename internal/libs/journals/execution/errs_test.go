@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"github.com/google/uuid"
 )
 

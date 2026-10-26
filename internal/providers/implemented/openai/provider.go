@@ -2,10 +2,10 @@ package openai
 
 import (
 	"context"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"io"
 	"net/http"
 
-	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/providers/implemented"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
 	"github.com/openai/openai-go/v3"
@@ -27,7 +27,7 @@ type OpenAICompatibleProvider struct {
 	url    string
 	apiKey string
 
-	role providers.Role
+	role types.Role
 
 	tools []openai.ChatCompletionToolUnionParam
 
@@ -35,7 +35,7 @@ type OpenAICompatibleProvider struct {
 }
 
 // NewOpenAICompatibleProvider builds a provider bound to executor tools allowed for role.
-func NewOpenAICompatibleProvider(executor *executor.Executor, url, model, apiKey, prompt string, role providers.Role, maxIters int) (*OpenAICompatibleProvider, error) {
+func NewOpenAICompatibleProvider(executor *executor.Executor, url, model, apiKey, prompt string, role types.Role, maxIters int) (*OpenAICompatibleProvider, error) {
 	if executor == nil {
 		return nil, implemented.ErrNoExecutor
 	}

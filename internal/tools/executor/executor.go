@@ -1,10 +1,10 @@
 package executor
 
 import (
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"sync"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
-	"github.com/dejitarudemon/mundarium/internal/providers"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
 )
@@ -12,7 +12,7 @@ import (
 type Executor struct {
 	tools   map[string]tools.Tool
 	journal journal.Journal
-	allowed map[providers.Role][]definition.Definition
+	allowed map[types.Role][]definition.Definition
 
 	mx sync.RWMutex
 }
@@ -25,12 +25,12 @@ func NewExecutor(journal journal.Journal) (*Executor, error) {
 	return &Executor{
 		tools:   map[string]tools.Tool{},
 		journal: journal,
-		allowed: make(map[providers.Role][]definition.Definition),
+		allowed: make(map[types.Role][]definition.Definition),
 	}, nil
 }
 
 // Register adds tool and grants it to each role in allowed.
-func (e *Executor) Register(tool tools.Tool, allowed []providers.Role) error {
+func (e *Executor) Register(tool tools.Tool, allowed []types.Role) error {
 	if tool == nil {
 		return ErrToolIsNil
 	}
@@ -58,7 +58,7 @@ func (e *Executor) Register(tool tools.Tool, allowed []providers.Role) error {
 }
 
 // Allowed returns a copy of tool definitions registered for role.
-func (e *Executor) Allowed(role providers.Role) []definition.Definition {
+func (e *Executor) Allowed(role types.Role) []definition.Definition {
 	e.mx.RLock()
 	defer e.mx.RUnlock()
 

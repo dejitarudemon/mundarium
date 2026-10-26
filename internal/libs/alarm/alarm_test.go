@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/alarm"
+	"github.com/dejitarudemon/mundarium/internal/libs/alarm"
 )
 
 func TestWait_AlreadyRung(t *testing.T) {

@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
-	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
-	"github.com/dejitarudemon/mundarium/internal/providers"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	mapjournal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution/implemented/map"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
@@ -21,7 +21,7 @@ func masterCall(id, name string, args json.RawMessage) tools.Call {
 	return tools.Call{
 		ID:   id,
 		Name: name,
-		Role: providers.Role_Master,
+		Role: types.Role_Master,
 		Args: args,
 	}
 }
@@ -38,7 +38,7 @@ func newExecutor(t *testing.T, j journal.Journal, tool tools.Tool) *executor.Exe
 	t.Helper()
 
 	if j == nil {
-		j = implemented.NewMapJournal()
+		j = mapjournal.NewMapJournal()
 	}
 
 	ex, err := executor.NewExecutor(j)
@@ -46,7 +46,7 @@ func newExecutor(t *testing.T, j journal.Journal, tool tools.Tool) *executor.Exe
 		t.Fatalf("NewExecutor: %v", err)
 	}
 	if tool != nil {
-		if err := ex.Register(tool, []providers.Role{providers.Role_Master}); err != nil {
+		if err := ex.Register(tool, []types.Role{types.Role_Master}); err != nil {
 			t.Fatalf("Register: %v", err)
 		}
 	}
@@ -68,7 +68,7 @@ func TestExecute_PermissionDenied(t *testing.T) {
 	_, err := ex.Execute(context.Background(), "inv-1", tools.Call{
 		ID:   "c1",
 		Name: "create_location",
-		Role: providers.Role("guest"),
+		Role: types.Role("guest"),
 		Args: json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`),
 	})
 	if !errors.Is(err, executor.ErrPermissionDenied) {
@@ -80,7 +80,7 @@ func TestAllowed(t *testing.T) {
 	resetDB(t)
 
 	ex := newExecutor(t, nil, newCreateLocationTool(t))
-	defs := ex.Allowed(providers.Role_Master)
+	defs := ex.Allowed(types.Role_Master)
 	if len(defs) != 1 || defs[0].Name != "create_location" {
 		t.Fatalf("want create_location for master, got %#v", defs)
 	}
@@ -89,14 +89,14 @@ func TestAllowed(t *testing.T) {
 	if len(defs[0].Parameters) > 0 {
 		defs[0].Parameters[0] ^= 0xff
 	}
-	again := ex.Allowed(providers.Role_Master)
+	again := ex.Allowed(types.Role_Master)
 	if len(again) != 1 || again[0].Name != "create_location" {
 		t.Fatalf("Allowed must return a copy, got %#v", again)
 	}
 	if string(again[0].Parameters) != origParams {
 		t.Fatalf("Allowed must clone Parameters, got %s want %s", again[0].Parameters, origParams)
 	}
-	if got := ex.Allowed(providers.Role("guest")); len(got) != 0 {
+	if got := ex.Allowed(types.Role("guest")); len(got) != 0 {
 		t.Fatalf("want no tools for guest, got %#v", got)
 	}
 }
@@ -228,7 +228,7 @@ func TestExecuteNotIdempotent_SameIDsReplay(t *testing.T) {
 		t.Fatal("create_location must be non-idempotent")
 	}
 
-	j := implemented.NewMapJournal()
+	j := mapjournal.NewMapJournal()
 	ex := newExecutor(t, j, tool)
 
 	const (
@@ -271,7 +271,7 @@ func TestExecuteNotIdempotent_SameIDsReplay(t *testing.T) {
 func TestExecuteNotIdempotent_StillRunning(t *testing.T) {
 	resetDB(t)
 
-	j := implemented.NewMapJournal()
+	j := mapjournal.NewMapJournal()
 	ex := newExecutor(t, j, newCreateLocationTool(t))
 
 	args := json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`)
@@ -296,7 +296,7 @@ func TestExecuteNotIdempotent_StillRunning(t *testing.T) {
 func TestExecuteNotIdempotent_ToolMismatch(t *testing.T) {
 	resetDB(t)
 
-	j := implemented.NewMapJournal()
+	j := mapjournal.NewMapJournal()
 	ex := newExecutor(t, j, newCreateLocationTool(t))
 
 	args := json.RawMessage(`{"name":"World","parent_id":null,"type":"world"}`)

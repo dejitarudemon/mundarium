@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	svcmessages "github.com/dejitarudemon/mundarium/internal/services/messages"
 	"gorm.io/gorm"
 )

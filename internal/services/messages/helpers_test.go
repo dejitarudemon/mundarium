@@ -2,12 +2,12 @@ package messages_test
 
 import (
 	"context"
+	"github.com/dejitarudemon/mundarium/internal/libs/types"
 	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	"github.com/dejitarudemon/mundarium/internal/providers"
+	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
 	"gorm.io/gorm"
 )
 
@@ -28,15 +28,15 @@ func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID j
 	return r.failErr
 }
 
-func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext, context.CancelFunc) {
+func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext[journal.Result], context.CancelFunc) {
 	t.Helper()
 
 	requestID := journal.ID("test-request")
 	groupID := journal.ID("test-group")
-	role := providers.Role_Master
+	role := types.Role_Master
 
 	if rec == nil {
-		ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), requestID, groupID, role)
+		ctx, cancel := execution.NewExecutionContextWithoutCallback[journal.Result](context.Background(), requestID, groupID, role)
 		return ctx, cancel
 	}
 
@@ -60,7 +60,7 @@ func seedMessage(t *testing.T, invokeID, text string) *repomessages.Message {
 	msg, err := testRepo.CreateMessage(context.Background(), &repomessages.Message{
 		InvokeID: invokeID,
 		Text:     text,
-		From:     providers.Role_Master,
+		From:     types.Role_Master,
 	})
 	if err != nil {
 		t.Fatalf("CreateMessage seed: %v", err)

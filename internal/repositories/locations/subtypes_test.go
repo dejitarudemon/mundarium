@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -30,6 +31,33 @@ func TestCreateAndGetSubtype(t *testing.T) {
 	}
 }
 
+func TestCreateSubtype_NormalizesKeyLowercase(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+
+	created, err := testRepo.CreateSubtype(ctx, &locations.LocationSubtype{
+		Key:          "TaVeRn",
+		Type:         locations.LocationType_STRUCTURE,
+		DefiningTags: pq.StringArray{},
+		ExpectedTags: pq.StringArray{},
+		Description:  "inn",
+	})
+	if err != nil {
+		t.Fatalf("CreateSubtype: %v", err)
+	}
+	if created.Key != "tavern" {
+		t.Fatalf("want key %q, got %q", "tavern", created.Key)
+	}
+
+	got, err := testRepo.GetSubtype(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetSubtype: %v", err)
+	}
+	if got.Key != "tavern" {
+		t.Fatalf("want persisted key %q, got %q", "tavern", got.Key)
+	}
+}
+
 func TestGetSubtype_NotFound(t *testing.T) {
 	resetDB(t)
 
@@ -46,40 +74,62 @@ func TestFindSubtypes_Filters(t *testing.T) {
 	tavern := createSubtype(t, "tavern", locations.LocationType_STRUCTURE, "inn")
 	castle := createSubtype(t, "castle", locations.LocationType_STRUCTURE, "fort")
 	cave := createSubtype(t, "cave", locations.LocationType_ROOM, "dark")
+	_ = createSubtype(t, "dark_tavern", locations.LocationType_STRUCTURE, "shadow inn")
 
-	all, err := testRepo.FindSubtypes(ctx, nil, nil)
+	all, err := testRepo.FindSubtypes(ctx, locations.FindSubtypesFilter{})
 	if err != nil {
 		t.Fatalf("FindSubtypes all: %v", err)
 	}
-	if len(all) != 3 {
-		t.Fatalf("want 3 subtypes, got %#v", all)
+	if len(all) != 4 {
+		t.Fatalf("want 4 subtypes, got %#v", all)
 	}
 
-	byKey, err := testRepo.FindSubtypes(ctx, []string{"tavern", "cave"}, nil)
+	byID, err := testRepo.FindSubtypes(ctx, locations.FindSubtypesFilter{ID: new(tavern.ID)})
 	if err != nil {
-		t.Fatalf("FindSubtypes by key: %v", err)
+		t.Fatalf("FindSubtypes by id: %v", err)
 	}
-	if len(byKey) != 2 {
-		t.Fatalf("want 2 by key, got %#v", byKey)
+	if len(byID) != 1 || byID[0].ID != tavern.ID {
+		t.Fatalf("want only tavern by id, got %#v", byID)
 	}
 
-	byType, err := testRepo.FindSubtypes(ctx, nil, []locations.LocationType{locations.LocationType_STRUCTURE})
+	byKeys, err := testRepo.FindSubtypes(ctx, locations.FindSubtypesFilter{
+		Keys: []string{"TAV", "cas"},
+	})
+	if err != nil {
+		t.Fatalf("FindSubtypes by keys: %v", err)
+	}
+	if len(byKeys) != 3 {
+		t.Fatalf("want 3 by keys LIKE tav|cas, got %#v", byKeys)
+	}
+
+	structure := locations.LocationType_STRUCTURE
+	byType, err := testRepo.FindSubtypes(ctx, locations.FindSubtypesFilter{Type: &structure})
 	if err != nil {
 		t.Fatalf("FindSubtypes by type: %v", err)
 	}
-	if len(byType) != 2 {
-		t.Fatalf("want 2 structures, got %#v", byType)
+	if len(byType) != 3 {
+		t.Fatalf("want 3 structures, got %#v", byType)
 	}
 
-	byBoth, err := testRepo.FindSubtypes(ctx, []string{"castle", "cave"}, []locations.LocationType{locations.LocationType_STRUCTURE})
+	byBoth, err := testRepo.FindSubtypes(ctx, locations.FindSubtypesFilter{
+		Keys: []string{"CAS"},
+		Type: &structure,
+	})
 	if err != nil {
-		t.Fatalf("FindSubtypes by both: %v", err)
+		t.Fatalf("FindSubtypes by keys+type: %v", err)
 	}
 	if len(byBoth) != 1 || byBoth[0].ID != castle.ID {
 		t.Fatalf("want only castle, got %#v", byBoth)
 	}
 
-	_ = tavern
+	empty, err := testRepo.FindSubtypes(ctx, locations.FindSubtypesFilter{Keys: []string{"nope", "  "}})
+	if err != nil {
+		t.Fatalf("FindSubtypes miss: %v", err)
+	}
+	if len(empty) != 0 {
+		t.Fatalf("want empty list, got %#v", empty)
+	}
+
 	_ = cave
 }
 

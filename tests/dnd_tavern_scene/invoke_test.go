@@ -178,7 +178,7 @@ func TestInvoke_DnD_TavernScene(t *testing.T) {
 		ExpectedTags: pq.StringArray{"village", "city", "rumors"},
 		Description:  "used for safe, paid recreation",
 	}
-	if err := testRepo.CreateSubtype(context.Background(), subtype); err != nil {
+	if _, err := testRepo.CreateSubtype(context.Background(), subtype); err != nil {
 		t.Fatalf("seed tavern subtype: %v", err)
 	}
 

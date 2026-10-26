@@ -17,6 +17,7 @@ import (
 type LocationSubtype struct {
 	ID repositories.ID `gorm:"primaryKey" json:"id"`
 
+	// Key is a lowercase slug; CreateSubtype normalizes case before insert.
 	Key string `gorm:"not null;index:location_subtype_key_type" json:"key"`
 
 	DefiningTags pq.StringArray `gorm:"type:text[];not null,default:'{}'" json:"defining_tags"`

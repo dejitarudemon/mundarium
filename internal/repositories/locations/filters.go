@@ -22,3 +22,11 @@ type FindLocationsResult struct {
 	Scope    Location
 	Children map[int][]Location
 }
+
+// FindSubtypesFilter selects location subtypes by optional id, key substrings, and type.
+// Nil/empty fields are ignored. Keys are OR-matched with lowercase substring LIKE.
+type FindSubtypesFilter struct {
+	ID   *repositories.ID
+	Keys []string
+	Type *LocationType
+}

@@ -287,55 +287,6 @@ func (r *LocationRepository) PatchLocationDescription(ctx context.Context, id re
 	return nil
 }
 
-// CreateSubtype inserts a new location subtype.
-func (r *LocationRepository) CreateSubtype(ctx context.Context, subtype *LocationSubtype) error {
-	if err := r.db.WithContext(ctx).Create(subtype).Error; err != nil {
-		r.error("failed to create subtype", "type", "LocationRepository", "func", "CreateSubtype", "data", subtype, "error", err)
-		return err
-	}
-	r.info("subtype is created", "type", "LocationRepository", "func", "CreateSubtype", "data", subtype)
-	return nil
-}
-
-// GetSubtype returns the location subtype with the given id.
-// Returns gorm.ErrRecordNotFound if no row exists.
-func (r *LocationRepository) GetSubtype(ctx context.Context, id repositories.ID) (*LocationSubtype, error) {
-	var subtype LocationSubtype
-
-	if err := r.db.
-		WithContext(ctx).
-		First(&subtype, "id = ?", id).Error; err != nil {
-		r.error("failed to get subtype", "type", "LocationRepository", "func", "GetSubtype", "id", id, "error", err)
-		return nil, err
-	}
-
-	r.debug("got subtype", "type", "LocationRepository", "func", "GetSubtype", "data", &subtype)
-	return &subtype, nil
-}
-
-// FindSubtypes returns subtypes matching any of the given keys and/or location types.
-// Empty keys or types means that filter is not applied. If both are empty, all subtypes are returned.
-func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, types []LocationType) ([]LocationSubtype, error) {
-	var subtypes []LocationSubtype
-
-	query := r.db.WithContext(ctx).Model(LocationSubtype{})
-
-	if len(keys) > 0 {
-		query = query.Where("key IN ?", keys)
-	}
-	if len(types) > 0 {
-		query = query.Where("type IN ?", types)
-	}
-
-	if err := query.Find(&subtypes).Error; err != nil {
-		r.error("failed to find subtypes", "type", "LocationRepository", "func", "FindSubtypes", "keys", keys, "types", types, "error", err)
-		return nil, err
-	}
-
-	r.debug("found subtypes", "type", "LocationRepository", "func", "FindSubtypes", "count", len(subtypes))
-	return subtypes, nil
-}
-
 // CreateConnection inserts a new connection between two locations.
 // The repository does not validate whether the link is logically meaningful;
 // that is left to the caller.

@@ -39,10 +39,11 @@ func createSubtype(t *testing.T, key string, locType locations.LocationType, des
 		ExpectedTags: pq.StringArray{"tag-b"},
 		Description:  description,
 	}
-	if err := testRepo.CreateSubtype(context.Background(), subtype); err != nil {
+	created, err := testRepo.CreateSubtype(context.Background(), subtype)
+	if err != nil {
 		t.Fatalf("CreateSubtype(%q): %v", key, err)
 	}
-	return subtype
+	return created
 }
 
 func createConnection(t *testing.T, fromID, toID repositories.ID, description string) *locations.Connection {

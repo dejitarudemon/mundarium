@@ -20,3 +20,19 @@ type FindLocationsInput struct {
 	Depth     *int             `json:"depth"`    // 0..maxDepth; nil defaults to 1
 	Limit     *int             `json:"limit"`    // 1..100; nil defaults to 20
 }
+
+// CreateSubtypeInput carries data required to create a new location subtype.
+type CreateSubtypeInput struct {
+	Key          string   `json:"key"`           // subtype slug; normalized to lowercase on create
+	Type         string   `json:"type"`          // location type name, e.g. "structure"
+	DefiningTags []string `json:"defining_tags"` // tags that define this subtype
+	ExpectedTags []string `json:"expected_tags"` // tags commonly associated with this subtype
+	Description  string   `json:"description"`   // short description
+}
+
+// FindSubtypesInput carries optional filters for FindSubtypes.
+type FindSubtypesInput struct {
+	ID   *repositories.ID `json:"id"`   // optional exact subtype id
+	Keys []string         `json:"keys"` // optional key substrings (OR-matched)
+	Type *string          `json:"type"` // optional location type name
+}

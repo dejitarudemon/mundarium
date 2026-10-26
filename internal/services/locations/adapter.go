@@ -2,6 +2,9 @@ package locations
 
 import (
 	"errors"
+	"strings"
+
+	"github.com/lib/pq"
 
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 )
@@ -187,4 +190,113 @@ func checkLocation(location repolocations.Location) error {
 	}
 
 	return nil
+}
+
+// toNewSubtype maps CreateSubtypeInput to a domain LocationSubtype ready for insert.
+func toNewSubtype(input CreateSubtypeInput) (*repolocations.LocationSubtype, error) {
+	key := strings.TrimSpace(input.Key)
+	if key == "" {
+		return nil, errors.New("key is empty")
+	}
+
+	t, err := repolocations.NewLocationType(input.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	return &repolocations.LocationSubtype{
+		Key:          key,
+		Type:         t,
+		DefiningTags: stringArrayOrEmpty(input.DefiningTags),
+		ExpectedTags: stringArrayOrEmpty(input.ExpectedTags),
+		Description:  input.Description,
+	}, nil
+}
+
+// toCreatedSubtype maps a persisted LocationSubtype to CreateSubtypeOutput.
+func toCreatedSubtype(subtype repolocations.LocationSubtype) (CreateSubtypeOutput, error) {
+	if err := checkSubtype(subtype); err != nil {
+		return CreateSubtypeOutput{}, err
+	}
+
+	return CreateSubtypeOutput{
+		ID:  subtype.ID,
+		Key: subtype.Key,
+	}, nil
+}
+
+// toGotSubtype maps a persisted LocationSubtype to GetSubtypeOutput.
+func toGotSubtype(subtype repolocations.LocationSubtype) (GetSubtypeOutput, error) {
+	if err := checkSubtype(subtype); err != nil {
+		return GetSubtypeOutput{}, err
+	}
+
+	return GetSubtypeOutput{
+		ID:           subtype.ID,
+		Key:          subtype.Key,
+		Type:         subtype.Type.String(),
+		DefiningTags: tagsOrEmpty(subtype.DefiningTags),
+		ExpectedTags: tagsOrEmpty(subtype.ExpectedTags),
+		Description:  subtype.Description,
+	}, nil
+}
+
+// toFindSubtypesFilter maps FindSubtypesInput to a repository filter.
+func toFindSubtypesFilter(in FindSubtypesInput) (repolocations.FindSubtypesFilter, error) {
+	if in.ID != nil && *in.ID == 0 {
+		return repolocations.FindSubtypesFilter{}, errors.New("subtype id is zero")
+	}
+
+	filter := repolocations.FindSubtypesFilter{
+		ID:   in.ID,
+		Keys: in.Keys,
+	}
+
+	if in.Type != nil && *in.Type != "" {
+		t, err := repolocations.NewLocationType(*in.Type)
+		if err != nil {
+			return repolocations.FindSubtypesFilter{}, err
+		}
+		filter.Type = &t
+	}
+
+	return filter, nil
+}
+
+// toFoundSubtypes maps persisted subtypes to FindSubtypesOutput.
+func toFoundSubtypes(subtypes []repolocations.LocationSubtype) (FindSubtypesOutput, error) {
+	out := make([]GetSubtypeOutput, 0, len(subtypes))
+	for _, subtype := range subtypes {
+		item, err := toGotSubtype(subtype)
+		if err != nil {
+			return FindSubtypesOutput{}, err
+		}
+		out = append(out, item)
+	}
+	return FindSubtypesOutput{Subtypes: out}, nil
+}
+
+// checkSubtype validates required identity fields on a LocationSubtype.
+func checkSubtype(subtype repolocations.LocationSubtype) error {
+	if subtype.ID == 0 {
+		return errors.New("subtype id is zero")
+	}
+	if strings.TrimSpace(subtype.Key) == "" {
+		return errors.New("key is empty")
+	}
+	return nil
+}
+
+func stringArrayOrEmpty(v []string) pq.StringArray {
+	if v == nil {
+		return pq.StringArray{}
+	}
+	return pq.StringArray(v)
+}
+
+func tagsOrEmpty(v pq.StringArray) []string {
+	if v == nil {
+		return []string{}
+	}
+	return []string(v)
 }

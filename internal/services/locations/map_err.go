@@ -9,7 +9,10 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/services/errs"
 )
 
-const locationErrEntity = "location"
+const (
+	locationErrEntity        = "location"
+	locationSubtypeErrEntity = "location_subtype"
+)
 
 // mapRequestErr maps input/validation failures to InvalidRequest.
 func mapRequestErr(err error) error {
@@ -34,4 +37,15 @@ func mapLocationErr(err error, id repositories.ID) error {
 		return errs.NewInvalidRequest(err.Error())
 	}
 	return errs.From(err, locationErrEntity, fmt.Sprintf("%d", id))
+}
+
+// mapSubtypeErr maps storage and domain failures for a subtype id to ServiceError.
+func mapSubtypeErr(err error, id repositories.ID) error {
+	if err == nil {
+		return nil
+	}
+	if se, ok := errors.AsType[errs.ServiceError](err); ok {
+		return se
+	}
+	return errs.From(err, locationSubtypeErrEntity, fmt.Sprintf("%d", id))
 }

@@ -29,3 +29,24 @@ type GetLocationOutput struct {
 	Description string            `json:"description"`
 	Details     repositories.JSON `json:"details"`
 }
+
+// CreateSubtypeOutput is returned after a location subtype has been created.
+type CreateSubtypeOutput struct {
+	ID  repositories.ID `json:"id"`
+	Key string          `json:"key"`
+}
+
+// GetSubtypeOutput is returned when fetching a single location subtype.
+type GetSubtypeOutput struct {
+	ID           repositories.ID `json:"id"`
+	Key          string          `json:"key"`
+	Type         string          `json:"type"`
+	DefiningTags []string        `json:"defining_tags"`
+	ExpectedTags []string        `json:"expected_tags"`
+	Description  string          `json:"description"`
+}
+
+// FindSubtypesOutput is the list result for FindSubtypes.
+type FindSubtypesOutput struct {
+	Subtypes []GetSubtypeOutput `json:"subtypes"`
+}

@@ -171,3 +171,60 @@ func TestToFindLocationsFilter(t *testing.T) {
 		t.Fatalf("want limit out of range, got %v", err)
 	}
 }
+
+func TestToNewSubtype(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
+		got, err := toNewSubtype(CreateSubtypeInput{
+			Key:          " Tavern ",
+			Type:         "structure",
+			DefiningTags: []string{"rest"},
+			ExpectedTags: nil,
+			Description:  "inn",
+		})
+		if err != nil {
+			t.Fatalf("toNewSubtype: %v", err)
+		}
+		if got.Key != "Tavern" || got.Type != repolocations.LocationType_STRUCTURE || got.Description != "inn" {
+			t.Fatalf("unexpected subtype: %+v", got)
+		}
+		if len(got.DefiningTags) != 1 || got.DefiningTags[0] != "rest" {
+			t.Fatalf("unexpected defining tags: %#v", got.DefiningTags)
+		}
+		if got.ExpectedTags == nil {
+			t.Fatal("expected empty ExpectedTags slice, got nil")
+		}
+	})
+
+	t.Run("empty key", func(t *testing.T) {
+		_, err := toNewSubtype(CreateSubtypeInput{Key: "  ", Type: "structure"})
+		if err == nil || err.Error() != "key is empty" {
+			t.Fatalf("want key is empty, got %v", err)
+		}
+	})
+
+	t.Run("bad type", func(t *testing.T) {
+		_, err := toNewSubtype(CreateSubtypeInput{Key: "tavern", Type: "nope"})
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+}
+
+func TestToFindSubtypesFilter(t *testing.T) {
+	got, err := toFindSubtypesFilter(FindSubtypesInput{
+		ID:   new(repositories.ID(3)),
+		Keys: []string{"tav"},
+		Type: new("structure"),
+	})
+	if err != nil {
+		t.Fatalf("toFindSubtypesFilter: %v", err)
+	}
+	if got.ID == nil || *got.ID != 3 || len(got.Keys) != 1 || got.Type == nil || *got.Type != repolocations.LocationType_STRUCTURE {
+		t.Fatalf("unexpected filter: %+v", got)
+	}
+
+	_, err = toFindSubtypesFilter(FindSubtypesInput{ID: new(repositories.ID(0))})
+	if err == nil || err.Error() != "subtype id is zero" {
+		t.Fatalf("want subtype id is zero, got %v", err)
+	}
+}

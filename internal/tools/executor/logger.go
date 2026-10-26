@@ -6,12 +6,6 @@ func (e *Executor) info(msg string, args ...any) {
 	}
 }
 
-func (e *Executor) warn(msg string, args ...any) {
-	if e.logger != nil {
-		e.logger.Warn(msg, args...)
-	}
-}
-
 func (e *Executor) error(msg string, args ...any) {
 	if e.logger != nil {
 		e.logger.Error(msg, args...)

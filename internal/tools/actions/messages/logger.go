@@ -17,9 +17,3 @@ func (t *CreateMessageTool) error(msg string, args ...any) {
 		t.logger.Error(msg, args...)
 	}
 }
-
-func (t *CreateMessageTool) debug(msg string, args ...any) {
-	if t.logger != nil {
-		t.logger.Debug(msg, args...)
-	}
-}

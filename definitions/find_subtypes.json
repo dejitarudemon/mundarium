@@ -1,0 +1,23 @@
+{
+    "name": "find_subtypes",
+    "description": "Find existing location subtypes by optional id, key substrings, and type. Use before creating a subtype that might already exist. An empty result does not mean the subtype cannot exist.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": ["integer", "null"],
+          "description": "Optional exact subtype ID."
+        },
+        "keys": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Optional key substrings. Matched case-insensitively with OR; each value is a partial key, for example tav matches tavern."
+        },
+        "type": {
+          "type": ["string", "null"],
+          "description": "Optional location type filter, for example structure or room."
+        }
+      },
+      "additionalProperties": false
+    }
+}

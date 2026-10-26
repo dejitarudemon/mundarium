@@ -7,8 +7,8 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
@@ -24,17 +24,17 @@ var (
 func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
 	t.Helper()
 
-	complete := func(context.Context, libjournal.ID, libjournal.ID, libjournal.Result, *gorm.DB) error {
+	complete := func(context.Context, journal.ID, journal.ID, journal.Result, *gorm.DB) error {
 		return nil
 	}
-	fail := func(context.Context, libjournal.ID, libjournal.ID, error, *gorm.DB) error {
+	fail := func(context.Context, journal.ID, journal.ID, error, *gorm.DB) error {
 		return nil
 	}
 
 	ctx, cancel, err := execution.NewExecutionContext(
 		context.Background(),
-		libjournal.ID("test-request"),
-		libjournal.ID("test-group"),
+		journal.ID("test-request"),
+		journal.ID("test-group"),
 		providers.Role_Master,
 		complete,
 		fail,

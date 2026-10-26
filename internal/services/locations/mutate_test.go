@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
@@ -30,7 +30,7 @@ func TestMoveLocation(t *testing.T) {
 	if got.ParentID == nil || *got.ParentID != other.ID {
 		t.Fatalf("want parent %d, got %v", other.ID, got.ParentID)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Patch {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }
@@ -67,7 +67,7 @@ func TestRenameLocation(t *testing.T) {
 	if got.Name != "new" {
 		t.Fatalf("want name %q, got %q", "new", got.Name)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Patch {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }

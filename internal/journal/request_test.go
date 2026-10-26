@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 )
 
 func TestRequest_IsExpired(t *testing.T) {

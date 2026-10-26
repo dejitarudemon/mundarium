@@ -3,7 +3,7 @@ package journal_test
 import (
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 )
 
 func TestAction_String(t *testing.T) {

@@ -1,8 +1,8 @@
 package locations
 
 import (
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
@@ -34,8 +34,8 @@ func (s *Service) CreateLocation(ctx execution.ExecutionContext, input CreateLoc
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Create,
+				journal.Result{
+					Action: journal.Action_Create,
 					Entity: locationEntity,
 					Data:   result,
 				}, tx,
@@ -64,8 +64,8 @@ func (s *Service) GetLocation(ctx execution.ExecutionContext, id repositories.ID
 	}
 
 	if err := ctx.Complete(
-		libjournal.Result{
-			Action: libjournal.Action_Get,
+		journal.Result{
+			Action: journal.Action_Get,
 			Entity: locationEntity,
 			Data:   result,
 		}, s.connection.DB(),
@@ -99,8 +99,8 @@ func (s *Service) FindLocations(ctx execution.ExecutionContext, in FindLocations
 	}
 
 	if err := ctx.Complete(
-		libjournal.Result{
-			Action: libjournal.Action_Get,
+		journal.Result{
+			Action: journal.Action_Get,
 			Entity: locationEntity,
 			Data:   result,
 		}, s.connection.DB(),
@@ -128,8 +128,8 @@ func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id reposito
 	}
 
 	if err := ctx.Complete(
-		libjournal.Result{
-			Action: libjournal.Action_Get,
+		journal.Result{
+			Action: journal.Action_Get,
 			Entity: locationEntity,
 			Data:   result,
 		}, s.connection.DB(),
@@ -152,8 +152,8 @@ func (s *Service) MoveLocation(ctx execution.ExecutionContext, id repositories.I
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Patch,
+				journal.Result{
+					Action: journal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
 				}, tx,
@@ -177,8 +177,8 @@ func (s *Service) RenameLocation(ctx execution.ExecutionContext, id repositories
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Patch,
+				journal.Result{
+					Action: journal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
 				}, tx,
@@ -202,8 +202,8 @@ func (s *Service) UpdateLocationDetails(ctx execution.ExecutionContext, id repos
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Patch,
+				journal.Result{
+					Action: journal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
 				}, tx,
@@ -227,8 +227,8 @@ func (s *Service) UpdateLocationDescription(ctx execution.ExecutionContext, id r
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Patch,
+				journal.Result{
+					Action: journal.Action_Patch,
 					Entity: locationEntity,
 					Data:   id,
 				}, tx,

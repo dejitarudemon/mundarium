@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	svcmessages "github.com/dejitarudemon/mundarium/internal/services/messages"
 	"gorm.io/gorm"
 )
@@ -26,7 +26,7 @@ func TestCreateMessage(t *testing.T) {
 	if out.ID == 0 || out.InvokeID != "inv-1" || out.SeqNum != 0 {
 		t.Fatalf("unexpected output: %+v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Create || rec.calls[0].Entity != "MESSAGE" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Create || rec.calls[0].Entity != "MESSAGE" {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 
@@ -111,7 +111,7 @@ func TestGetMessage(t *testing.T) {
 	if out.ID != msg.ID || out.InvokeID != "inv-1" || out.Text != "hello" || out.From != "master" || out.SeqNum != 0 {
 		t.Fatalf("unexpected output: %+v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Get {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }
@@ -144,7 +144,7 @@ func TestGetMessages(t *testing.T) {
 	if len(out) != 2 || out[0].Text != "first" || out[0].SeqNum != 0 || out[1].Text != "second" || out[1].SeqNum != 1 {
 		t.Fatalf("unexpected output: %+v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Get {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }

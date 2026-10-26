@@ -5,31 +5,30 @@ import (
 	"time"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 )
 
 // MapGroup is a thread-safe in-memory store for requests that share one group id.
 // After Close, Add rejects new registrations; Swap may still update existing ones.
 type MapGroup struct {
-	m      map[libjournal.ID]libjournal.Request
+	m      map[journal.ID]journal.Request
 	closed bool
 
-	id libjournal.ID
+	id journal.ID
 
 	mx sync.RWMutex
 }
 
 // NewMapGroup creates an empty open group bound to id.
-func NewMapGroup(id libjournal.ID) *MapGroup {
+func NewMapGroup(id journal.ID) *MapGroup {
 	return &MapGroup{
-		m:  make(map[libjournal.ID]libjournal.Request),
+		m:  make(map[journal.ID]journal.Request),
 		id: id,
 	}
 }
 
 // Add inserts a new request by ID.
 // Returns ErrGroupIsClosed if the group was closed, or AlreadyRegistered if the ID exists.
-func (g *MapGroup) Add(request libjournal.Request) error {
+func (g *MapGroup) Add(request journal.Request) error {
 	g.mx.Lock()
 	defer g.mx.Unlock()
 
@@ -47,7 +46,7 @@ func (g *MapGroup) Add(request libjournal.Request) error {
 
 // Swap replaces an existing request by ID and preserves its ExpiresAt.
 // Returns NotFound if the ID is missing. Allowed after Close so Complete/Fail can finish.
-func (g *MapGroup) Swap(request libjournal.Request) error {
+func (g *MapGroup) Swap(request journal.Request) error {
 	g.mx.Lock()
 	defer g.mx.Unlock()
 
@@ -63,13 +62,13 @@ func (g *MapGroup) Swap(request libjournal.Request) error {
 }
 
 // Get returns a copy of the request for id, or false if missing.
-func (g *MapGroup) Get(id libjournal.ID) (libjournal.Request, bool) {
+func (g *MapGroup) Get(id journal.ID) (journal.Request, bool) {
 	g.mx.RLock()
 	defer g.mx.RUnlock()
 
 	request, ok := g.m[id]
 	if !ok {
-		return libjournal.Request{}, false
+		return journal.Request{}, false
 	}
 	return cloneRequest(request), true
 }
@@ -124,7 +123,7 @@ func cloneBytes(b []byte) []byte {
 	return out
 }
 
-func cloneRequest(req libjournal.Request) libjournal.Request {
+func cloneRequest(req journal.Request) journal.Request {
 	req.ArgsHash = cloneBytes(req.ArgsHash)
 	if req.ExpiresAt != nil {
 		t := *req.ExpiresAt

@@ -7,13 +7,12 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 )
 
 func TestMapGroup_AddSwapClose(t *testing.T) {
-	groupID := libjournal.ID("grp-1")
+	groupID := journal.ID("grp-1")
 	g := implemented.NewMapGroup(groupID)
-	id := libjournal.ID("req-1")
+	id := journal.ID("req-1")
 
 	if g.Len() != 0 {
 		t.Fatalf("empty Len: want 0, got %d", g.Len())
@@ -22,13 +21,13 @@ func TestMapGroup_AddSwapClose(t *testing.T) {
 		t.Fatal("empty group must not be expired")
 	}
 
-	req := libjournal.Request{
+	req := journal.Request{
 		ID:        id,
 		GroupID:   groupID,
 		CreatedAt: time.Now(),
 		Tool:      "create_location",
 		ArgsHash:  []byte{1, 2, 3},
-		Status:    libjournal.Status_Running,
+		Status:    journal.Status_Running,
 	}
 	if err := g.Add(req); err != nil {
 		t.Fatalf("Add: %v", err)
@@ -57,7 +56,7 @@ func TestMapGroup_AddSwapClose(t *testing.T) {
 	}
 
 	var notFound journal.NotFound
-	if err := g.Swap(libjournal.Request{ID: "missing", GroupID: groupID}); !errors.As(err, &notFound) {
+	if err := g.Swap(journal.Request{ID: "missing", GroupID: groupID}); !errors.As(err, &notFound) {
 		t.Fatalf("Swap missing: want NotFound, got %v", err)
 	}
 	if notFound.GroupRequestID != groupID {
@@ -71,19 +70,19 @@ func TestMapGroup_AddSwapClose(t *testing.T) {
 		t.Fatalf("Close ExpiresAt: want %v, got %v", deadline, stored.ExpiresAt)
 	}
 
-	if err := g.Add(libjournal.Request{ID: "req-2", GroupID: groupID}); !errors.Is(err, journal.ErrGroupIsClosed) {
+	if err := g.Add(journal.Request{ID: "req-2", GroupID: groupID}); !errors.Is(err, journal.ErrGroupIsClosed) {
 		t.Fatalf("Add after Close: want ErrGroupIsClosed, got %v", err)
 	}
 
 	updated := stored
-	updated.Status = libjournal.Status_Completed
-	updated.Result = libjournal.Result{Action: libjournal.Action_Create}
+	updated.Status = journal.Status_Completed
+	updated.Result = journal.Result{Action: journal.Action_Create}
 	updated.ExpiresAt = nil // Swap must preserve group ExpiresAt
 	if err := g.Swap(updated); err != nil {
 		t.Fatalf("Swap after Close: %v", err)
 	}
 	stored, _ = g.Get(id)
-	if stored.Status != libjournal.Status_Completed || stored.Result.Action != libjournal.Action_Create {
+	if stored.Status != journal.Status_Completed || stored.Result.Action != journal.Action_Create {
 		t.Fatalf("Swap update: %+v", stored)
 	}
 	if stored.ExpiresAt == nil || !stored.ExpiresAt.Equal(deadline) {
@@ -104,8 +103,8 @@ func TestMapGroup_IsExpired(t *testing.T) {
 	past := now.Add(-time.Minute)
 	future := now.Add(time.Minute)
 
-	a := libjournal.Request{ID: "a", CreatedAt: now, ExpiresAt: &past, Status: libjournal.Status_Running}
-	b := libjournal.Request{ID: "b", CreatedAt: now, ExpiresAt: &future, Status: libjournal.Status_Running}
+	a := journal.Request{ID: "a", CreatedAt: now, ExpiresAt: &past, Status: journal.Status_Running}
+	b := journal.Request{ID: "b", CreatedAt: now, ExpiresAt: &future, Status: journal.Status_Running}
 	if err := g.Add(a); err != nil {
 		t.Fatalf("Add a: %v", err)
 	}

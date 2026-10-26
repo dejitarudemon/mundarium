@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +20,7 @@ func TestSetDeliveredAt(t *testing.T) {
 	if err := testSvc.SetDeliveredAt(ctx, msg.ID, &at); err != nil {
 		t.Fatalf("SetDeliveredAt: %v", err)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Patch || rec.calls[0].Entity != "MESSAGE" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Patch || rec.calls[0].Entity != "MESSAGE" {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 

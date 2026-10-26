@@ -1,10 +1,10 @@
 package journal
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/google/uuid"
 )
 
@@ -18,6 +18,59 @@ var (
 	// ErrGroupIsClosed is returned when registering into a group that was already closed.
 	ErrGroupIsClosed = errors.New("group is closed")
 )
+
+// ErrorText is a persisted error message.
+// Arbitrary Go error types cannot round-trip through the database; only the message is kept.
+type ErrorText string
+
+// ErrorTextFrom stores err's message, or empty if err is nil.
+func ErrorTextFrom(err error) ErrorText {
+	if err == nil {
+		return ""
+	}
+	return ErrorText(err.Error())
+}
+
+// Err returns a non-nil error when the message is non-empty.
+func (e ErrorText) Err() error {
+	if e == "" {
+		return nil
+	}
+	return e
+}
+
+// Error implements the error interface.
+func (e ErrorText) Error() string {
+	return string(e)
+}
+
+// Value implements driver.Valuer for GORM/SQL storage.
+func (e ErrorText) Value() (driver.Value, error) {
+	if e == "" {
+		return nil, nil
+	}
+	return string(e), nil
+}
+
+// Scan implements sql.Scanner for GORM/SQL loading.
+func (e *ErrorText) Scan(value any) error {
+	if e == nil {
+		return fmt.Errorf("journal.ErrorText: Scan on nil pointer")
+	}
+	if value == nil {
+		*e = ""
+		return nil
+	}
+	switch v := value.(type) {
+	case string:
+		*e = ErrorText(v)
+	case []byte:
+		*e = ErrorText(v)
+	default:
+		return fmt.Errorf("journal.ErrorText: cannot scan %T", value)
+	}
+	return nil
+}
 
 // JournalError is a journal domain error that carries a traceback id.
 type JournalError interface {
@@ -33,11 +86,11 @@ func generateTracebackID() uuid.UUID {
 // AlreadyRegistered indicates a request id is already present in the journal.
 type AlreadyRegistered struct {
 	tracebackID uuid.UUID
-	Request     libjournal.Request
+	Request     Request
 }
 
 // NewAlreadyRegistered creates an AlreadyRegistered error for request.
-func NewAlreadyRegistered(request libjournal.Request) AlreadyRegistered {
+func NewAlreadyRegistered(request Request) AlreadyRegistered {
 	return AlreadyRegistered{
 		tracebackID: generateTracebackID(),
 		Request:     request,
@@ -45,7 +98,7 @@ func NewAlreadyRegistered(request libjournal.Request) AlreadyRegistered {
 }
 
 // NewAlreadyRegisteredWithTracebackID creates an AlreadyRegistered error with a fixed traceback id.
-func NewAlreadyRegisteredWithTracebackID(request libjournal.Request, tracebackID uuid.UUID) AlreadyRegistered {
+func NewAlreadyRegisteredWithTracebackID(request Request, tracebackID uuid.UUID) AlreadyRegistered {
 	return AlreadyRegistered{
 		tracebackID: tracebackID,
 		Request:     request,
@@ -64,12 +117,12 @@ func (e AlreadyRegistered) TracebackID() uuid.UUID {
 // NotFound indicates a request id is missing from the journal.
 type NotFound struct {
 	tracebackID    uuid.UUID
-	GroupRequestID libjournal.ID
-	RequestID      libjournal.ID
+	GroupRequestID ID
+	RequestID      ID
 }
 
 // NewNotFound creates a NotFound error for id.
-func NewNotFound(requestID, groupRequestID libjournal.ID) NotFound {
+func NewNotFound(requestID, groupRequestID ID) NotFound {
 	return NotFound{
 		tracebackID:    generateTracebackID(),
 		RequestID:      requestID,
@@ -78,7 +131,7 @@ func NewNotFound(requestID, groupRequestID libjournal.ID) NotFound {
 }
 
 // NewNotFoundWithTracebackID creates a NotFound error with a fixed traceback id.
-func NewNotFoundWithTracebackID(requestID, groupRequestID libjournal.ID, tracebackID uuid.UUID) NotFound {
+func NewNotFoundWithTracebackID(requestID, groupRequestID ID, tracebackID uuid.UUID) NotFound {
 	return NotFound{
 		tracebackID:    tracebackID,
 		RequestID:      requestID,
@@ -98,14 +151,14 @@ func (e NotFound) TracebackID() uuid.UUID {
 // StatusConflict indicates an illegal status transition for a request.
 type StatusConflict struct {
 	tracebackID    uuid.UUID
-	RequestID      libjournal.ID
-	GroupRequestID libjournal.ID
-	Actual         libjournal.Status
-	Got            libjournal.Status
+	RequestID      ID
+	GroupRequestID ID
+	Actual         Status
+	Got            Status
 }
 
 // NewStatusConflict creates a StatusConflict for attempting to set got while actual is present.
-func NewStatusConflict(requestID, groupRequestID libjournal.ID, got, actual libjournal.Status) StatusConflict {
+func NewStatusConflict(requestID, groupRequestID ID, got, actual Status) StatusConflict {
 	return StatusConflict{
 		tracebackID:    generateTracebackID(),
 		RequestID:      requestID,
@@ -116,7 +169,7 @@ func NewStatusConflict(requestID, groupRequestID libjournal.ID, got, actual libj
 }
 
 // NewStatusConflictWithTracebackID creates a StatusConflict with a fixed traceback id.
-func NewStatusConflictWithTracebackID(requestID, groupRequestID libjournal.ID, got, actual libjournal.Status, tracebackID uuid.UUID) StatusConflict {
+func NewStatusConflictWithTracebackID(requestID, groupRequestID ID, got, actual Status, tracebackID uuid.UUID) StatusConflict {
 	return StatusConflict{
 		tracebackID:    tracebackID,
 		RequestID:      requestID,

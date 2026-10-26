@@ -9,7 +9,6 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
@@ -247,7 +246,7 @@ func TestExecuteNotIdempotent_SameIDsReplay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find after first: %v", err)
 	}
-	if req.Status != libjournal.Status_Completed {
+	if req.Status != journal.Status_Completed {
 		t.Fatalf("after first Execute want completed, got %s", req.Status)
 	}
 

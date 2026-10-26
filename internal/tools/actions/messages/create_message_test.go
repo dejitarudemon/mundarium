@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/dejitarudemon/mundarium/internal/alarm"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -25,17 +25,17 @@ var (
 func newExecCtx(t *testing.T) (execution.ExecutionContext, context.CancelFunc) {
 	t.Helper()
 
-	complete := func(context.Context, libjournal.ID, libjournal.ID, libjournal.Result, *gorm.DB) error {
+	complete := func(context.Context, journal.ID, journal.ID, journal.Result, *gorm.DB) error {
 		return nil
 	}
-	fail := func(context.Context, libjournal.ID, libjournal.ID, error, *gorm.DB) error {
+	fail := func(context.Context, journal.ID, journal.ID, error, *gorm.DB) error {
 		return nil
 	}
 
 	ctx, cancel, err := execution.NewExecutionContext(
 		context.Background(),
-		libjournal.ID("test-request"),
-		libjournal.ID("inv-1"),
+		journal.ID("test-request"),
+		journal.ID("inv-1"),
 		providers.Role_Master,
 		complete,
 		fail,

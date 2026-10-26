@@ -3,7 +3,7 @@ package messages_test
 import (
 	"testing"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 )
 
 func TestDeleteMessages(t *testing.T) {
@@ -19,7 +19,7 @@ func TestDeleteMessages(t *testing.T) {
 	if err := testSvc.DeleteMessages(ctx, "inv-1"); err != nil {
 		t.Fatalf("DeleteMessages: %v", err)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Delete || rec.calls[0].Entity != "MESSAGE" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Delete || rec.calls[0].Entity != "MESSAGE" {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 

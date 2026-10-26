@@ -3,12 +3,12 @@ package executor
 import (
 	"encoding/json"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"golang.org/x/crypto/blake2b"
 )
 
-func toJournalID(id string) libjournal.ID {
-	return libjournal.ID(id)
+func toJournalID(id string) journal.ID {
+	return journal.ID(id)
 }
 
 // hashArgs returns a blake2b-256 digest of tool arguments for semantic journal checks.
@@ -19,7 +19,7 @@ func hashArgs(args json.RawMessage) []byte {
 	return out
 }
 
-func resultPayload(result libjournal.Result) (json.RawMessage, error) {
+func resultPayload(result journal.Result) (json.RawMessage, error) {
 	if result.Data == nil {
 		return json.RawMessage("null"), nil
 	}

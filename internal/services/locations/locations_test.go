@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"gorm.io/gorm"
@@ -30,7 +30,7 @@ func TestCreateLocation(t *testing.T) {
 	if out.ID == 0 || out.ParentID == nil || *out.ParentID != root.ID || out.Name != "North" {
 		t.Fatalf("unexpected output: %+v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Create || rec.calls[0].Entity != "LOCATION" {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Create || rec.calls[0].Entity != "LOCATION" {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 
@@ -139,7 +139,7 @@ func TestGetLocation(t *testing.T) {
 	if out.ID != child.ID || out.ParentID == nil || *out.ParentID != root.ID || out.Name != "child" || out.Type != "region" {
 		t.Fatalf("unexpected output: %+v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Get {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }

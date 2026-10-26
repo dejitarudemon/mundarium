@@ -11,18 +11,17 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/google/uuid"
 )
 
 var idSeq atomic.Uint64
 
-func newID() libjournal.ID {
-	return libjournal.ID(fmt.Sprintf("req-%d", idSeq.Add(1)))
+func newID() journal.ID {
+	return journal.ID(fmt.Sprintf("req-%d", idSeq.Add(1)))
 }
 
-func newGroup() libjournal.ID {
-	return libjournal.ID(fmt.Sprintf("grp-%d", idSeq.Add(1)))
+func newGroup() journal.ID {
+	return journal.ID(fmt.Sprintf("grp-%d", idSeq.Add(1)))
 }
 
 func TestMapJournal_RegisterAndFind(t *testing.T) {
@@ -44,7 +43,7 @@ func TestMapJournal_RegisterAndFind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find: %v", err)
 	}
-	if got.ID != id || got.GroupID != group || got.Tool != "create_location" || got.Status != libjournal.Status_Running {
+	if got.ID != id || got.GroupID != group || got.Tool != "create_location" || got.Status != journal.Status_Running {
 		t.Fatalf("unexpected request: %+v", got)
 	}
 	if got.CreatedAt.IsZero() {
@@ -61,7 +60,7 @@ func TestMapJournal_RegisterAndFind(t *testing.T) {
 	if got2.ArgsHash[0] != 0x01 {
 		t.Fatal("Find must return a copy of ArgsHash")
 	}
-	if got.Result != (libjournal.Result{}) || got.Error.Err() != nil {
+	if got.Result != (journal.Result{}) || got.Error.Err() != nil {
 		t.Fatalf("running request must have empty outcome: %+v", got)
 	}
 }
@@ -127,8 +126,8 @@ func TestMapJournal_Complete(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 
-	result := libjournal.Result{
-		Action: libjournal.Action_Create,
+	result := journal.Result{
+		Action: journal.Action_Create,
 		Entity: "LOCATION",
 		Data:   "ok",
 	}
@@ -140,7 +139,7 @@ func TestMapJournal_Complete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find: %v", err)
 	}
-	if got.Status != libjournal.Status_Completed {
+	if got.Status != journal.Status_Completed {
 		t.Fatalf("want completed, got %v", got.Status)
 	}
 	if got.Tool != "create_location" {
@@ -163,7 +162,7 @@ func TestMapJournal_Complete_NotFound(t *testing.T) {
 	id := newID()
 	group := newGroup()
 
-	err := mj.Complete(ctx, id, group, libjournal.Result{Action: libjournal.Action_Get}, nil)
+	err := mj.Complete(ctx, id, group, journal.Result{Action: journal.Action_Get}, nil)
 	var notFound journal.NotFound
 	if !errors.As(err, &notFound) {
 		t.Fatalf("want NotFound, got %v", err)
@@ -187,12 +186,12 @@ func TestMapJournal_Complete_AfterFail(t *testing.T) {
 		t.Fatalf("Fail: %v", err)
 	}
 
-	err = mj.Complete(ctx, id, group, libjournal.Result{Action: libjournal.Action_Patch}, nil)
+	err = mj.Complete(ctx, id, group, journal.Result{Action: journal.Action_Patch}, nil)
 	var conflict journal.StatusConflict
 	if !errors.As(err, &conflict) {
 		t.Fatalf("want StatusConflict, got %v", err)
 	}
-	if conflict.Got != libjournal.Status_Completed || conflict.Actual != libjournal.Status_Failed {
+	if conflict.Got != journal.Status_Completed || conflict.Actual != journal.Status_Failed {
 		t.Fatalf("unexpected conflict: %+v", conflict)
 	}
 }
@@ -207,12 +206,12 @@ func TestMapJournal_Complete_AlreadyCompleted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
-	first := libjournal.Result{Action: libjournal.Action_Create, Entity: "LOCATION", Data: "first"}
+	first := journal.Result{Action: journal.Action_Create, Entity: "LOCATION", Data: "first"}
 	if err := complete(ctx, id, group, first, nil); err != nil {
 		t.Fatalf("first Complete: %v", err)
 	}
 
-	err = complete(ctx, id, group, libjournal.Result{Action: libjournal.Action_Create, Entity: "LOCATION", Data: "second"}, nil)
+	err = complete(ctx, id, group, journal.Result{Action: journal.Action_Create, Entity: "LOCATION", Data: "second"}, nil)
 	var conflict journal.StatusConflict
 	if !errors.As(err, &conflict) {
 		t.Fatalf("want StatusConflict, got %v", err)
@@ -247,7 +246,7 @@ func TestMapJournal_Fail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find: %v", err)
 	}
-	if got.Status != libjournal.Status_Failed {
+	if got.Status != journal.Status_Failed {
 		t.Fatalf("want failed, got %v", got.Status)
 	}
 	if got.Error.Err() == nil || got.Error.Error() != "failed op" {
@@ -310,7 +309,7 @@ func TestMapJournal_Fail_AfterComplete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
-	if err := complete(ctx, id, group, libjournal.Result{Action: libjournal.Action_Update}, nil); err != nil {
+	if err := complete(ctx, id, group, journal.Result{Action: journal.Action_Update}, nil); err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
 
@@ -319,7 +318,7 @@ func TestMapJournal_Fail_AfterComplete(t *testing.T) {
 	if !errors.As(err, &conflict) {
 		t.Fatalf("want StatusConflict, got %v", err)
 	}
-	if conflict.Got != libjournal.Status_Failed || conflict.Actual != libjournal.Status_Completed {
+	if conflict.Got != journal.Status_Failed || conflict.Actual != journal.Status_Completed {
 		t.Fatalf("unexpected conflict: %+v", conflict)
 	}
 }

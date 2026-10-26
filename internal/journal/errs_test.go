@@ -1,20 +1,20 @@
 package journal_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/google/uuid"
 )
 
 func TestJournalErrors_IncludeGroup(t *testing.T) {
-	reqID := libjournal.ID("call-1")
-	groupID := libjournal.ID("inv-1")
+	reqID := journal.ID("call-1")
+	groupID := journal.ID("inv-1")
 	tb := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 
-	already := journal.NewAlreadyRegisteredWithTracebackID(libjournal.Request{
+	already := journal.NewAlreadyRegisteredWithTracebackID(journal.Request{
 		ID:      reqID,
 		GroupID: groupID,
 	}, tb)
@@ -25,7 +25,7 @@ func TestJournalErrors_IncludeGroup(t *testing.T) {
 		t.Fatalf("traceback: want %s, got %s", tb, already.TracebackID())
 	}
 
-	generated := journal.NewAlreadyRegistered(libjournal.Request{ID: reqID, GroupID: groupID})
+	generated := journal.NewAlreadyRegistered(journal.Request{ID: reqID, GroupID: groupID})
 	if generated.TracebackID() == uuid.Nil {
 		t.Fatal("NewAlreadyRegistered must set traceback id")
 	}
@@ -38,14 +38,43 @@ func TestJournalErrors_IncludeGroup(t *testing.T) {
 		t.Fatal("NewNotFound must set traceback id")
 	}
 
-	conflict := journal.NewStatusConflictWithTracebackID(reqID, groupID, libjournal.Status_Completed, libjournal.Status_Failed, tb)
+	conflict := journal.NewStatusConflictWithTracebackID(reqID, groupID, journal.Status_Completed, journal.Status_Failed, tb)
 	if !strings.Contains(conflict.Error(), string(reqID)) || !strings.Contains(conflict.Error(), string(groupID)) {
 		t.Fatalf("StatusConflict message missing ids: %q", conflict.Error())
 	}
-	if conflict.Got != libjournal.Status_Completed || conflict.Actual != libjournal.Status_Failed {
+	if conflict.Got != journal.Status_Completed || conflict.Actual != journal.Status_Failed {
 		t.Fatalf("unexpected conflict statuses: %+v", conflict)
 	}
-	if journal.NewStatusConflict(reqID, groupID, libjournal.Status_Failed, libjournal.Status_Running).TracebackID() == uuid.Nil {
+	if journal.NewStatusConflict(reqID, groupID, journal.Status_Failed, journal.Status_Running).TracebackID() == uuid.Nil {
 		t.Fatal("NewStatusConflict must set traceback id")
+	}
+}
+
+func TestErrorText_RoundTrip(t *testing.T) {
+	if got := journal.ErrorTextFrom(nil); got != "" || got.Err() != nil {
+		t.Fatalf("nil: want empty, got %q err=%v", got, got.Err())
+	}
+
+	src := journal.ErrorTextFrom(errors.New("boom"))
+	if src.Error() != "boom" {
+		t.Fatalf("Error: want boom, got %q", src.Error())
+	}
+
+	val, err := src.Value()
+	if err != nil || val != "boom" {
+		t.Fatalf("Value: want boom, got %v %v", val, err)
+	}
+
+	var loaded journal.ErrorText
+	if err := loaded.Scan([]byte("boom")); err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	if loaded.Err() == nil || loaded.Error() != "boom" {
+		t.Fatalf("Scan result: %q", loaded)
+	}
+
+	var empty journal.ErrorText
+	if err := empty.Scan(nil); err != nil || empty.Err() != nil {
+		t.Fatalf("Scan nil: got %q err=%v", empty, err)
 	}
 }

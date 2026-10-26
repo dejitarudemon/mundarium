@@ -9,7 +9,6 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools"
@@ -82,11 +81,11 @@ func (e *Executor) resolveAlreadyRegistered(ctx context.Context, toolName string
 	}
 
 	switch req.Status {
-	case libjournal.Status_Completed:
+	case journal.Status_Completed:
 		return resultPayload(req.Result)
-	case libjournal.Status_Running:
+	case journal.Status_Running:
 		return nil, ErrRequestStillRunning
-	case libjournal.Status_Failed:
+	case journal.Status_Failed:
 		if err := req.Error.Err(); err != nil {
 			return nil, err
 		}

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"gorm.io/gorm"
 )
@@ -31,7 +31,7 @@ func TestFindLocations(t *testing.T) {
 	if out.Scope.Name != "World" || len(out.Children[2]) != 1 || out.Children[2][0].Name != "North Gate" || out.HasMore != 0 {
 		t.Fatalf("want World scope + North Gate at depth 2, got %#v", out)
 	}
-	if len(rec.calls) != 1 || rec.calls[0].Action != libjournal.Action_Get {
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Get {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 }

@@ -5,26 +5,26 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"gorm.io/gorm"
 )
 
 type completeRecorder struct {
-	calls     []libjournal.Result
+	calls     []journal.Result
 	failCalls []error
 	err       error
 	failErr   error
 }
 
-func (r *completeRecorder) complete(ctx context.Context, requestID, groupRequestID libjournal.ID, result libjournal.Result, tx *gorm.DB) error {
+func (r *completeRecorder) complete(ctx context.Context, requestID, groupRequestID journal.ID, result journal.Result, tx *gorm.DB) error {
 	r.calls = append(r.calls, result)
 	return r.err
 }
 
-func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID libjournal.ID, cause error, tx *gorm.DB) error {
+func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID journal.ID, cause error, tx *gorm.DB) error {
 	r.failCalls = append(r.failCalls, cause)
 	return r.failErr
 }
@@ -32,8 +32,8 @@ func (r *completeRecorder) fail(ctx context.Context, requestID, groupRequestID l
 func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext, context.CancelFunc) {
 	t.Helper()
 
-	requestID := libjournal.ID("test-request")
-	groupID := libjournal.ID("test-group")
+	requestID := journal.ID("test-request")
+	groupID := journal.ID("test-group")
 	role := providers.Role_Master
 
 	if rec == nil {

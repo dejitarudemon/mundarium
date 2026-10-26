@@ -5,8 +5,8 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"time"
 
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"gorm.io/gorm"
 )
 
@@ -37,8 +37,8 @@ func (s *Service) CreateMessage(ctx execution.ExecutionContext, in CreateMessage
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Create,
+				journal.Result{
+					Action: journal.Action_Create,
 					Entity: messageEntity,
 					Data:   result,
 				}, tx,
@@ -68,8 +68,8 @@ func (s *Service) GetMessage(ctx execution.ExecutionContext, id repositories.ID)
 	}
 
 	if err := ctx.Complete(
-		libjournal.Result{
-			Action: libjournal.Action_Get,
+		journal.Result{
+			Action: journal.Action_Get,
 			Entity: messageEntity,
 			Data:   result,
 		}, s.connection.DB(),
@@ -105,8 +105,8 @@ func (s *Service) GetMessages(ctx execution.ExecutionContext, invokeID string, s
 	}
 
 	if err := ctx.Complete(
-		libjournal.Result{
-			Action: libjournal.Action_Get,
+		journal.Result{
+			Action: journal.Action_Get,
 			Entity: messageEntity,
 			Data:   result,
 		}, s.connection.DB(),
@@ -130,8 +130,8 @@ func (s *Service) SetDeliveredAt(ctx execution.ExecutionContext, id repositories
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Patch,
+				journal.Result{
+					Action: journal.Action_Patch,
 					Entity: messageEntity,
 					Data:   id,
 				}, tx,
@@ -163,8 +163,8 @@ func (s *Service) DeleteMessages(ctx execution.ExecutionContext, invokeID string
 			}
 
 			return ctx.Complete(
-				libjournal.Result{
-					Action: libjournal.Action_Delete,
+				journal.Result{
+					Action: journal.Action_Delete,
 					Entity: messageEntity,
 					Data:   invokeID,
 				}, tx,

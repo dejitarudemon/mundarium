@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	"gorm.io/gorm"
 )
@@ -18,7 +18,7 @@ func TestNewExecutionContext_NilCallback(t *testing.T) {
 		"grp",
 		providers.Role_Master,
 		nil,
-		func(context.Context, libjournal.ID, libjournal.ID, error, *gorm.DB) error { return nil },
+		func(context.Context, journal.ID, journal.ID, error, *gorm.DB) error { return nil },
 	)
 	if err == nil || err.Error() != "nil callback" {
 		t.Fatalf("want nil callback, got %v", err)
@@ -26,16 +26,16 @@ func TestNewExecutionContext_NilCallback(t *testing.T) {
 }
 
 func TestExecutionContext_CompleteAndFailForwardIDsAndTx(t *testing.T) {
-	var gotReq, gotGroup libjournal.ID
+	var gotReq, gotGroup journal.ID
 	var gotTX *gorm.DB
-	var gotResult libjournal.Result
+	var gotResult journal.Result
 	var gotCause error
 
-	complete := func(ctx context.Context, requestID, groupRequestID libjournal.ID, result libjournal.Result, tx *gorm.DB) error {
+	complete := func(ctx context.Context, requestID, groupRequestID journal.ID, result journal.Result, tx *gorm.DB) error {
 		gotReq, gotGroup, gotResult, gotTX = requestID, groupRequestID, result, tx
 		return nil
 	}
-	fail := func(ctx context.Context, requestID, groupRequestID libjournal.ID, cause error, tx *gorm.DB) error {
+	fail := func(ctx context.Context, requestID, groupRequestID journal.ID, cause error, tx *gorm.DB) error {
 		gotReq, gotGroup, gotCause, gotTX = requestID, groupRequestID, cause, tx
 		return nil
 	}
@@ -51,7 +51,7 @@ func TestExecutionContext_CompleteAndFailForwardIDsAndTx(t *testing.T) {
 		t.Fatalf("want invoke inv-1 role master, got %s %s", ctx.InvokeID(), ctx.Role())
 	}
 
-	result := libjournal.Result{Entity: "LOCATION"}
+	result := journal.Result{Entity: "LOCATION"}
 	if err := ctx.Complete(result, tx); err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestExecutionContext_WithoutCallbackNoops(t *testing.T) {
 	ctx, cancel := execution.NewExecutionContextWithoutCallback(context.Background(), "call-1", "inv-1", providers.Role_Master)
 	defer cancel()
 
-	if err := ctx.Complete(libjournal.Result{}, nil); err != nil {
+	if err := ctx.Complete(journal.Result{}, nil); err != nil {
 		t.Fatalf("Complete noop: %v", err)
 	}
 	if err := ctx.Fail(errors.New("x"), nil); err != nil {

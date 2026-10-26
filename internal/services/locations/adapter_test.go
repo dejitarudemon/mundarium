@@ -4,7 +4,6 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 )
 
@@ -15,7 +14,7 @@ func idPtr(id repositories.ID) *repositories.ID {
 func TestToNewLocation(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		subtypeID := repositories.ID(7)
-		loc, err := toNewLocation(input.CreateLocationInput{
+		loc, err := toNewLocation(CreateLocationInput{
 			ParentID:    idPtr(3),
 			Type:        "structure",
 			SubtypeID:   &subtypeID,
@@ -35,7 +34,7 @@ func TestToNewLocation(t *testing.T) {
 	})
 
 	t.Run("root parent", func(t *testing.T) {
-		loc, err := toNewLocation(input.CreateLocationInput{Type: "world", Name: "x"})
+		loc, err := toNewLocation(CreateLocationInput{Type: "world", Name: "x"})
 		if err != nil {
 			t.Fatalf("toNewLocation: %v", err)
 		}
@@ -45,14 +44,14 @@ func TestToNewLocation(t *testing.T) {
 	})
 
 	t.Run("zero parent", func(t *testing.T) {
-		_, err := toNewLocation(input.CreateLocationInput{ParentID: idPtr(0), Type: "region", Name: "x"})
+		_, err := toNewLocation(CreateLocationInput{ParentID: idPtr(0), Type: "region", Name: "x"})
 		if err == nil || err.Error() != "parent id is zero" {
 			t.Fatalf("want parent id is zero, got %v", err)
 		}
 	})
 
 	t.Run("bad type", func(t *testing.T) {
-		_, err := toNewLocation(input.CreateLocationInput{ParentID: idPtr(1), Type: "nope", Name: "x"})
+		_, err := toNewLocation(CreateLocationInput{ParentID: idPtr(1), Type: "nope", Name: "x"})
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -60,7 +59,7 @@ func TestToNewLocation(t *testing.T) {
 
 	t.Run("zero subtype", func(t *testing.T) {
 		zero := repositories.ID(0)
-		_, err := toNewLocation(input.CreateLocationInput{
+		_, err := toNewLocation(CreateLocationInput{
 			ParentID:  idPtr(1),
 			Type:      "region",
 			SubtypeID: &zero,
@@ -140,7 +139,7 @@ func TestToFindLocationsFilter(t *testing.T) {
 
 	const maxDepth = 5
 
-	got, limit, err := toFindLocationsFilter(input.FindLocationsInput{
+	got, limit, err := toFindLocationsFilter(FindLocationsInput{
 		ScopeID: 7,
 		Query:   &query,
 		Type:    &locType,
@@ -159,12 +158,12 @@ func TestToFindLocationsFilter(t *testing.T) {
 		t.Fatalf("unexpected type: %#v", got.Type)
 	}
 
-	_, _, err = toFindLocationsFilter(input.FindLocationsInput{ScopeID: 0}, maxDepth)
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 0}, maxDepth)
 	if err == nil || err.Error() != "scope id is zero" {
 		t.Fatalf("want scope id is zero, got %v", err)
 	}
 
-	defaults, limit, err := toFindLocationsFilter(input.FindLocationsInput{ScopeID: 1}, maxDepth)
+	defaults, limit, err := toFindLocationsFilter(FindLocationsInput{ScopeID: 1}, maxDepth)
 	if err != nil {
 		t.Fatalf("defaults: %v", err)
 	}
@@ -173,13 +172,13 @@ func TestToFindLocationsFilter(t *testing.T) {
 	}
 
 	badDepth := 6
-	_, _, err = toFindLocationsFilter(input.FindLocationsInput{ScopeID: 1, Depth: &badDepth}, maxDepth)
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Depth: &badDepth}, maxDepth)
 	if err == nil || err.Error() != "depth out of range" {
 		t.Fatalf("want depth out of range, got %v", err)
 	}
 
 	badLimit := 0
-	_, _, err = toFindLocationsFilter(input.FindLocationsInput{ScopeID: 1, Limit: &badLimit}, maxDepth)
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Limit: &badLimit}, maxDepth)
 	if err == nil || err.Error() != "limit out of range" {
 		t.Fatalf("want limit out of range, got %v", err)
 	}

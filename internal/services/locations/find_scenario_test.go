@@ -1,14 +1,12 @@
 package locations_test
 
 import (
+	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"testing"
-
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
-	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
 )
 
 // namesAt returns location names at the given relative depth, in response order.
-func namesAt(out output.FindLocationsOutput, depth int) []string {
+func namesAt(out svclocations.FindLocationsOutput, depth int) []string {
 	locs := out.Children[depth]
 	names := make([]string, len(locs))
 	for i, loc := range locs {
@@ -17,7 +15,7 @@ func namesAt(out output.FindLocationsOutput, depth int) []string {
 	return names
 }
 
-func childTotal(out output.FindLocationsOutput) int {
+func childTotal(out svclocations.FindLocationsOutput) int {
 	n := 0
 	for _, locs := range out.Children {
 		n += len(locs)
@@ -40,7 +38,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	ctx, cancel := newExecCtx(t, &completeRecorder{})
 	defer cancel()
 
-	world, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+	world, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 		ParentID: nil,
 		Type:     "world",
 		Name:     "World",
@@ -49,7 +47,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		t.Fatalf("create World: %v", err)
 	}
 
-	north, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+	north, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 		ParentID:    idPtr(world.ID),
 		Type:        "region",
 		Name:        "North",
@@ -62,7 +60,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		t.Fatalf("North parent: want %d, got %+v", world.ID, north.ParentID)
 	}
 
-	gate, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+	gate, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 		ParentID:    idPtr(north.ID),
 		Type:        "site",
 		Name:        "North Gate",
@@ -75,7 +73,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 		t.Fatalf("North Gate parent: want %d, got %+v", north.ID, gate.ParentID)
 	}
 
-	south, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+	south, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 		ParentID: idPtr(world.ID),
 		Type:     "region",
 		Name:     "South",
@@ -89,7 +87,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	str := func(s string) *string { return &s }
 
 	t.Run("depth0_only_scope", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Depth:   depth(0),
 		})
@@ -102,7 +100,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	})
 
 	t.Run("depth1_direct_children", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Depth:   depth(1),
 		})
@@ -123,7 +121,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	})
 
 	t.Run("depth2_all_descendants", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Depth:   depth(2),
 		})
@@ -143,7 +141,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 
 	t.Run("query_gate_skips_nonmatching_intermediate", func(t *testing.T) {
 		// North does not match "Gate", but traversal must still reach North Gate.
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Query:   str("Gate"),
 			Depth:   depth(2),
@@ -163,7 +161,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	})
 
 	t.Run("query_gate_depth1_misses_grandchild", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Query:   str("Gate"),
 			Depth:   depth(1),
@@ -178,7 +176,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 
 	t.Run("query_description_substring", func(t *testing.T) {
 		// "stone" matches Gate description; avoid "arch" — it is also a substring of North's "marches".
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Query:   str("STONE"),
 			Depth:   depth(2),
@@ -192,7 +190,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	})
 
 	t.Run("query_north_matches_region_and_gate", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Query:   str("North"),
 			Depth:   depth(2),
@@ -216,7 +214,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	})
 
 	t.Run("type_site", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Type:    str("site"),
 			Depth:   depth(2),
@@ -233,7 +231,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	})
 
 	t.Run("type_region", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Type:    str("region"),
 			Depth:   depth(2),
@@ -252,7 +250,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 
 	t.Run("scope_north_depth1", func(t *testing.T) {
 		// Searching from the middle node: Gate is a direct child (relative depth 1).
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: north.ID,
 			Depth:   depth(1),
 		})
@@ -266,7 +264,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 
 	t.Run("limit_truncates_children_counts_omitted", func(t *testing.T) {
 		// depth 2 without filters: North, South, North Gate (3 descendants). limit 1 → has_more=2.
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Depth:   depth(2),
 			Limit:   limit(1),
@@ -288,7 +286,7 @@ func TestCreateAndFindLocations_ThreeLevelChain(t *testing.T) {
 	})
 
 	t.Run("scope_always_present_even_if_filters_exclude_all", func(t *testing.T) {
-		out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+		out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 			ScopeID: world.ID,
 			Query:   str("no-such-place"),
 			Depth:   depth(2),

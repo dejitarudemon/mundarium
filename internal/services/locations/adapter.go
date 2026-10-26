@@ -3,13 +3,11 @@ package locations
 import (
 	"errors"
 
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
-	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 )
 
 // toNewLocation maps CreateLocationInput to a domain Location ready for insert.
-func toNewLocation(input input.CreateLocationInput) (*repolocations.Location, error) {
+func toNewLocation(input CreateLocationInput) (*repolocations.Location, error) {
 	if input.ParentID != nil && *input.ParentID == 0 {
 		return nil, errors.New("parent id is zero")
 	}
@@ -34,12 +32,12 @@ func toNewLocation(input input.CreateLocationInput) (*repolocations.Location, er
 }
 
 // toCreatedLocation maps a persisted Location to CreateLocationOutput.
-func toCreatedLocation(location repolocations.Location) (output.CreateLocationOutput, error) {
+func toCreatedLocation(location repolocations.Location) (CreateLocationOutput, error) {
 	if err := checkLocation(location); err != nil {
-		return output.CreateLocationOutput{}, err
+		return CreateLocationOutput{}, err
 	}
 
-	return output.CreateLocationOutput{
+	return CreateLocationOutput{
 		ID:       location.ID,
 		ParentID: location.ParentID,
 		Name:     location.Name,
@@ -47,12 +45,12 @@ func toCreatedLocation(location repolocations.Location) (output.CreateLocationOu
 }
 
 // toGotLocation maps a persisted Location to GetLocationOutput.
-func toGotLocation(location repolocations.Location) (output.GetLocationOutput, error) {
+func toGotLocation(location repolocations.Location) (GetLocationOutput, error) {
 	if err := checkLocation(location); err != nil {
-		return output.GetLocationOutput{}, err
+		return GetLocationOutput{}, err
 	}
 
-	return output.GetLocationOutput{
+	return GetLocationOutput{
 		ID:          location.ID,
 		ParentID:    location.ParentID,
 		Type:        location.Type.String(),
@@ -63,11 +61,11 @@ func toGotLocation(location repolocations.Location) (output.GetLocationOutput, e
 }
 
 // toGotChildLocations maps descendants grouped by depth to FindChildLocationsOutput.
-func toGotChildLocations(children map[int][]repolocations.Location) (output.FindChildLocationsOutput, error) {
-	result := make(output.FindChildLocationsOutput, len(children))
+func toGotChildLocations(children map[int][]repolocations.Location) (FindChildLocationsOutput, error) {
+	result := make(FindChildLocationsOutput, len(children))
 
 	for depth, locs := range children {
-		level := make([]output.GetLocationOutput, 0, len(locs))
+		level := make([]GetLocationOutput, 0, len(locs))
 		for _, loc := range locs {
 			item, err := toGotLocation(loc)
 			if err != nil {
@@ -89,7 +87,7 @@ const (
 
 // toFindLocationsFilter maps FindLocationsInput to a repository filter and page limit.
 // maxDepth is the inclusive upper bound for Depth (from LocationRepository.MaxDepth).
-func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (repolocations.FindLocationsFilter, int, error) {
+func toFindLocationsFilter(in FindLocationsInput, maxDepth int) (repolocations.FindLocationsFilter, int, error) {
 	if in.ScopeID == 0 {
 		return repolocations.FindLocationsFilter{}, 0, errors.New("scope id is zero")
 	}
@@ -134,10 +132,10 @@ func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (repolocat
 // toFoundLocations maps a FindLocationsResult to FindLocationsOutput.
 // Limit applies only to matching descendants (scope is always included).
 // HasMore is the number of matching descendants omitted due to limit.
-func toFoundLocations(found repolocations.FindLocationsResult, limit int) (output.FindLocationsOutput, error) {
+func toFoundLocations(found repolocations.FindLocationsResult, limit int) (FindLocationsOutput, error) {
 	scope, err := toGotLocation(found.Scope)
 	if err != nil {
-		return output.FindLocationsOutput{}, err
+		return FindLocationsOutput{}, err
 	}
 
 	type entry struct {
@@ -163,16 +161,16 @@ func toFoundLocations(found repolocations.FindLocationsResult, limit int) (outpu
 		flat = flat[:limit]
 	}
 
-	children := make(map[int][]output.GetLocationOutput)
+	children := make(map[int][]GetLocationOutput)
 	for _, e := range flat {
 		item, err := toGotLocation(e.loc)
 		if err != nil {
-			return output.FindLocationsOutput{}, err
+			return FindLocationsOutput{}, err
 		}
 		children[e.depth] = append(children[e.depth], item)
 	}
 
-	return output.FindLocationsOutput{
+	return FindLocationsOutput{
 		Scope:    scope,
 		Children: children,
 		HasMore:  omitted,

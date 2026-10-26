@@ -3,9 +3,9 @@ package locations_test
 import (
 	"errors"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
+	svclocations "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"testing"
 
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"gorm.io/gorm"
 )
@@ -17,7 +17,7 @@ func TestCreateLocation(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	out, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+	out, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 		ParentID:    idPtr(root.ID),
 		Type:        "region",
 		Name:        "North",
@@ -51,7 +51,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 	defer cancel()
 
 	t.Run("zero parent", func(t *testing.T) {
-		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+		_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 			ParentID: idPtr(0),
 			Type:     "region",
 			Name:     "x",
@@ -66,7 +66,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 
 	t.Run("unknown type", func(t *testing.T) {
 		before := len(rec.failCalls)
-		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+		_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 			ParentID: idPtr(root.ID),
 			Type:     "not-a-type",
 			Name:     "x",
@@ -82,7 +82,7 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 	t.Run("zero subtype id", func(t *testing.T) {
 		before := len(rec.failCalls)
 		zero := repositories.ID(0)
-		_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+		_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 			ParentID:  idPtr(root.ID),
 			Type:      "region",
 			SubtypeID: &zero,
@@ -104,7 +104,7 @@ func TestCreateLocation_CompleteError(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	_, err := testSvc.CreateLocation(ctx, input.CreateLocationInput{
+	_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
 		ParentID: idPtr(root.ID),
 		Type:     "region",
 		Name:     "X",
@@ -169,7 +169,7 @@ func TestFindLocations(t *testing.T) {
 
 	depth := 2
 	query := "Gate"
-	out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+	out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 		ScopeID: root.ID,
 		Query:   &query,
 		Depth:   &depth,
@@ -197,7 +197,7 @@ func TestFindLocations_HasMore(t *testing.T) {
 
 	limit := 2
 	depth := 1
-	out, err := testSvc.FindLocations(ctx, input.FindLocationsInput{
+	out, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{
 		ScopeID: root.ID,
 		Depth:   &depth,
 		Limit:   &limit,
@@ -217,7 +217,7 @@ func TestFindLocations_ValidationError(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	_, err := testSvc.FindLocations(ctx, input.FindLocationsInput{ScopeID: 0})
+	_, err := testSvc.FindLocations(ctx, svclocations.FindLocationsInput{ScopeID: 0})
 	if err == nil || err.Error() != "scope id is zero" {
 		t.Fatalf("want scope id is zero, got %v", err)
 	}

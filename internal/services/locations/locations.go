@@ -2,9 +2,7 @@ package locations
 
 import (
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
-	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )
@@ -12,15 +10,15 @@ import (
 const locationEntity = "LOCATION"
 
 // CreateLocation creates a location inside a transaction and completes the execution context.
-func (s *Service) CreateLocation(ctx execution.ExecutionContext, input input.CreateLocationInput) (output.CreateLocationOutput, error) {
+func (s *Service) CreateLocation(ctx execution.ExecutionContext, input CreateLocationInput) (CreateLocationOutput, error) {
 	location, err := toNewLocation(input)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
 
-		return output.CreateLocationOutput{}, err
+		return CreateLocationOutput{}, err
 	}
 
-	result := output.CreateLocationOutput{}
+	result := CreateLocationOutput{}
 
 	if err := s.connection.WithTransaction(
 		ctx,
@@ -45,24 +43,24 @@ func (s *Service) CreateLocation(ctx execution.ExecutionContext, input input.Cre
 		},
 	); err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.CreateLocationOutput{}, err
+		return CreateLocationOutput{}, err
 	}
 
 	return result, nil
 }
 
 // GetLocation loads a location by id, maps it to output, and completes the execution context.
-func (s *Service) GetLocation(ctx execution.ExecutionContext, id repositories.ID) (output.GetLocationOutput, error) {
+func (s *Service) GetLocation(ctx execution.ExecutionContext, id repositories.ID) (GetLocationOutput, error) {
 	location, err := s.repository().GetLocation(ctx, id)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.GetLocationOutput{}, err
+		return GetLocationOutput{}, err
 	}
 
 	result, err := toGotLocation(*location)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.GetLocationOutput{}, err
+		return GetLocationOutput{}, err
 	}
 
 	if err := ctx.Complete(
@@ -73,31 +71,31 @@ func (s *Service) GetLocation(ctx execution.ExecutionContext, id repositories.ID
 		}, s.connection.DB(),
 	); err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.GetLocationOutput{}, err
+		return GetLocationOutput{}, err
 	}
 
 	return result, nil
 }
 
 // FindLocations searches locations under a scope with optional filters and completes the execution context.
-func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLocationsInput) (output.FindLocationsOutput, error) {
+func (s *Service) FindLocations(ctx execution.ExecutionContext, in FindLocationsInput) (FindLocationsOutput, error) {
 	repo := s.repository()
 	filter, limit, err := toFindLocationsFilter(in, repo.MaxDepth())
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.FindLocationsOutput{}, err
+		return FindLocationsOutput{}, err
 	}
 
 	locs, err := repo.FindLocations(ctx, filter)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.FindLocationsOutput{}, err
+		return FindLocationsOutput{}, err
 	}
 
 	result, err := toFoundLocations(locs, limit)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.FindLocationsOutput{}, err
+		return FindLocationsOutput{}, err
 	}
 
 	if err := ctx.Complete(
@@ -108,7 +106,7 @@ func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLoc
 		}, s.connection.DB(),
 	); err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.FindLocationsOutput{}, err
+		return FindLocationsOutput{}, err
 	}
 
 	return result, nil
@@ -116,7 +114,7 @@ func (s *Service) FindLocations(ctx execution.ExecutionContext, in input.FindLoc
 
 // FindChildLocations returns descendants of id grouped by depth and completes the execution context.
 // Depth semantics match the repository: 0 or less yields an empty map; 1 is direct children.
-func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id repositories.ID, depth int) (output.FindChildLocationsOutput, error) {
+func (s *Service) FindChildLocations(ctx execution.ExecutionContext, id repositories.ID, depth int) (FindChildLocationsOutput, error) {
 	children, err := s.repository().FindChildLocations(ctx, id, depth, false)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())

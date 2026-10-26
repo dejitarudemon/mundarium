@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	inputslocation "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
-	outputslocation "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
 	servicelocation "github.com/dejitarudemon/mundarium/internal/services/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -62,15 +60,15 @@ func (t *CreateLocationTool) Execute(ctx execution.ExecutionContext, args json.R
 	return t.marshal(result)
 }
 
-func (t *CreateLocationTool) unmarshal(args json.RawMessage) (inputslocation.CreateLocationInput, error) {
-	result := inputslocation.CreateLocationInput{}
+func (t *CreateLocationTool) unmarshal(args json.RawMessage) (servicelocation.CreateLocationInput, error) {
+	result := servicelocation.CreateLocationInput{}
 	if err := json.Unmarshal(args, &result); err != nil {
-		return inputslocation.CreateLocationInput{}, err
+		return servicelocation.CreateLocationInput{}, err
 	}
 
 	return result, nil
 }
 
-func (t *CreateLocationTool) marshal(output outputslocation.CreateLocationOutput) (json.RawMessage, error) {
+func (t *CreateLocationTool) marshal(output servicelocation.CreateLocationOutput) (json.RawMessage, error) {
 	return json.Marshal(output)
 }

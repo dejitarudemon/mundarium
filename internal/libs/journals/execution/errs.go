@@ -12,11 +12,13 @@ var (
 	_ JournalError = AlreadyRegistered{}
 	_ JournalError = NotFound{}
 	_ JournalError = StatusConflict{}
+	_ JournalError = InternalErr{}
 )
 
 var (
 	// ErrGroupIsClosed is returned when registering into a group that was already closed.
 	ErrGroupIsClosed = errors.New("group is closed")
+	ErrAlreadyFailed = errors.New("request is already failed")
 )
 
 // ErrorText is a persisted error message.
@@ -186,4 +188,40 @@ func (e StatusConflict) Error() string {
 // TracebackID returns the error traceback identifier.
 func (e StatusConflict) TracebackID() uuid.UUID {
 	return e.tracebackID
+}
+
+// InternalErr wraps an unexpected journal infrastructure failure.
+type InternalErr struct {
+	tracebackID uuid.UUID
+	err         error
+}
+
+// NewInternalErr creates an InternalErr around err.
+func NewInternalErr(err error) InternalErr {
+	return InternalErr{
+		tracebackID: generateTracebackID(),
+		err:         err,
+	}
+}
+
+// NewInternalErrWithTracebackID creates an InternalErr with a fixed traceback id.
+func NewInternalErrWithTracebackID(err error, tracebackID uuid.UUID) InternalErr {
+	return InternalErr{
+		tracebackID: tracebackID,
+		err:         err,
+	}
+}
+
+func (e InternalErr) Error() string {
+	return fmt.Sprintf("journal internal error: %v", e.err)
+}
+
+// TracebackID returns the error traceback identifier.
+func (e InternalErr) TracebackID() uuid.UUID {
+	return e.tracebackID
+}
+
+// Unwrap returns the underlying error.
+func (e InternalErr) Unwrap() error {
+	return e.err
 }

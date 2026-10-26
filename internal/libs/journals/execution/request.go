@@ -19,6 +19,11 @@ type Request struct {
 	Error  ErrorText `gorm:"column:error;type:text" json:"error,omitempty"`
 }
 
+// TableName is the Postgres table for persisted journal requests.
+func (Request) TableName() string {
+	return "execution_journal_requests"
+}
+
 // IsExpired reports whether the request is past its soft ExpiresAt and/or hardTTL.
 // Soft expiry: ExpiresAt is set and at or before now.
 // Hard TTL expiry: CreatedAt + hardTTL is at or before now (hardTTL must be > 0).

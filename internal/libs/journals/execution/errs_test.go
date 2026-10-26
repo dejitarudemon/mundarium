@@ -48,6 +48,21 @@ func TestJournalErrors_IncludeGroup(t *testing.T) {
 	if journal.NewStatusConflict(reqID, groupID, journal.Status_Failed, journal.Status_Running).TracebackID() == uuid.Nil {
 		t.Fatal("NewStatusConflict must set traceback id")
 	}
+
+	cause := errors.New("db down")
+	internal := journal.NewInternalErrWithTracebackID(cause, tb)
+	if !strings.Contains(internal.Error(), "db down") {
+		t.Fatalf("InternalErr message missing cause: %q", internal.Error())
+	}
+	if internal.TracebackID() != tb {
+		t.Fatalf("traceback: want %s, got %s", tb, internal.TracebackID())
+	}
+	if !errors.Is(internal, cause) {
+		t.Fatalf("Unwrap: want %v, got %v", cause, internal.Unwrap())
+	}
+	if journal.NewInternalErr(cause).TracebackID() == uuid.Nil {
+		t.Fatal("NewInternalErr must set traceback id")
+	}
 }
 
 func TestErrorText_RoundTrip(t *testing.T) {

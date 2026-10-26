@@ -1,0 +1,22 @@
+{
+    "name": "update_location_description",
+    "description": "Replace the narrative description of an existing location. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the location whose description to replace."
+        },
+        "description": {
+          "type": "string",
+          "description": "Complete new narrative description. Replaces any previous description entirely."
+        }
+      },
+      "required": [
+        "id",
+        "description"
+      ],
+      "additionalProperties": false
+    }
+}

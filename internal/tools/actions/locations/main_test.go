@@ -123,3 +123,8 @@ func updateLocationDetailsDefinitionPath(t *testing.T) string {
 	t.Helper()
 	return filepath.Join(definitionsDir(t), "update_location_details.json")
 }
+
+func updateLocationDescriptionDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_location_description.json")
+}

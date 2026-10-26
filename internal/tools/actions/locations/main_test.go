@@ -109,6 +109,11 @@ func createLocationDefinitionPath(t *testing.T) string {
 	return filepath.Join(definitionsDir(t), "create_location.json")
 }
 
+func createSubtypeDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "create_subtype.json")
+}
+
 func findLocationsDefinitionPath(t *testing.T) string {
 	t.Helper()
 	return filepath.Join(definitionsDir(t), "find_location.json")

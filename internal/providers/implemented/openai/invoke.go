@@ -1,0 +1,36 @@
+package openai
+
+import (
+	"context"
+
+	libprovider "github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers/implemented"
+)
+
+func (p *OpenAICompatibleProvider) Invoke(ctx context.Context, id string, request libprovider.Request) error {
+	// history := []openai.ChatCompletionMessageParamUnion{
+	// 	openai.SystemMessage(p.prompt),
+	// 	openai.UserMessage(string(request.Args)),
+	// }
+
+	// for range p.maxIters {
+	// 	response, err := p.send(ctx, history)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	if len(response.ToolCalls) == 0 {
+	// 		return nil
+	// 	}
+
+	// 	for _, tool := range response.ToolCalls {
+	// 		answer, err := p.executor.Execute(ctx, id, libtools.Call{
+	// 			ID:   tool.ID,
+	// 			Name: tool.Function.Name,
+	// 			Role: p.role,
+	// 			Args: json.RawMessage(tool.Function.Arguments),
+	// 		})
+	// 	}
+	// }
+	return implemented.ErrTooManyIterations
+}

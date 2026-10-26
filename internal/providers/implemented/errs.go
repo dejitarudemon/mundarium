@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	ErrNoExecutor = errors.New("tools executor is nil")
-	ErrNoTools    = errors.New("no allowed tools")
+	ErrNoExecutor        = errors.New("tools executor is nil")
+	ErrNoTools           = errors.New("no allowed tools")
+	ErrTooManyIterations = errors.New("too many tool calls iterations")
 )
 
 // ProviderError is a provider-domain error that reports whether the call may be retried.

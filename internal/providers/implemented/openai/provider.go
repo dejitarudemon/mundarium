@@ -31,10 +31,12 @@ type OpenAICompatibleProvider struct {
 	role libprovider.Role
 
 	tools []openai.ChatCompletionToolUnionParam
+
+	maxIters int
 }
 
 // NewOpenAICompatibleProvider builds a provider bound to executor tools allowed for role.
-func NewOpenAICompatibleProvider(executor *executor.Executor, url, model, apiKey, prompt string, role libprovider.Role) (*OpenAICompatibleProvider, error) {
+func NewOpenAICompatibleProvider(executor *executor.Executor, url, model, apiKey, prompt string, role libprovider.Role, maxIters int) (*OpenAICompatibleProvider, error) {
 	if executor == nil {
 		return nil, implemented.ErrNoExecutor
 	}
@@ -64,6 +66,7 @@ func NewOpenAICompatibleProvider(executor *executor.Executor, url, model, apiKey
 		role:       role,
 		tools:      converted,
 		executor:   executor,
+		maxIters:   max(1, maxIters),
 	}, nil
 }
 

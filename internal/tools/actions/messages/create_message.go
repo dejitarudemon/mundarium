@@ -7,8 +7,6 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/alarm"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	inputsmessage "github.com/dejitarudemon/mundarium/internal/libs/inputs/messages"
-	outputsmessage "github.com/dejitarudemon/mundarium/internal/libs/outputs/messages"
 	servicemessage "github.com/dejitarudemon/mundarium/internal/services/messages"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
@@ -77,16 +75,16 @@ func (t *CreateMessageTool) Execute(ctx execution.ExecutionContext, args json.Ra
 
 // unmarshal decodes provider args into CreateMessageInput (text).
 // InvokeID and From are overwritten from ctx in Execute.
-func (t *CreateMessageTool) unmarshal(args json.RawMessage) (inputsmessage.CreateMessageInput, error) {
-	var result inputsmessage.CreateMessageInput
+func (t *CreateMessageTool) unmarshal(args json.RawMessage) (servicemessage.CreateMessageInput, error) {
+	var result servicemessage.CreateMessageInput
 	if err := json.Unmarshal(args, &result); err != nil {
-		return inputsmessage.CreateMessageInput{}, err
+		return servicemessage.CreateMessageInput{}, err
 	}
 
 	return result, nil
 }
 
-func (t *CreateMessageTool) marshal(output outputsmessage.CreateMessageOutput) (json.RawMessage, error) {
+func (t *CreateMessageTool) marshal(output servicemessage.CreateMessageOutput) (json.RawMessage, error) {
 	return json.Marshal(output)
 }
 

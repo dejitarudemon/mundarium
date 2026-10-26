@@ -4,13 +4,11 @@ import (
 	"errors"
 	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/messages"
-	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/messages"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 )
 
 // toNewMessage maps CreateMessageInput to a domain Message ready for insert.
-func toNewMessage(in input.CreateMessageInput) (*repomessages.Message, error) {
+func toNewMessage(in CreateMessageInput) (*repomessages.Message, error) {
 	if in.InvokeID == "" {
 		return nil, errors.New("invoke id is empty")
 	}
@@ -29,12 +27,12 @@ func toNewMessage(in input.CreateMessageInput) (*repomessages.Message, error) {
 }
 
 // toCreatedMessage maps a persisted Message to CreateMessageOutput.
-func toCreatedMessage(message repomessages.Message) (output.CreateMessageOutput, error) {
+func toCreatedMessage(message repomessages.Message) (CreateMessageOutput, error) {
 	if err := checkMessage(message); err != nil {
-		return output.CreateMessageOutput{}, err
+		return CreateMessageOutput{}, err
 	}
 
-	return output.CreateMessageOutput{
+	return CreateMessageOutput{
 		ID:       message.ID,
 		InvokeID: message.InvokeID,
 		SeqNum:   message.SeqNum,
@@ -42,12 +40,12 @@ func toCreatedMessage(message repomessages.Message) (output.CreateMessageOutput,
 }
 
 // toGotMessage maps a persisted Message to GetMessageOutput.
-func toGotMessage(message repomessages.Message) (output.GetMessageOutput, error) {
+func toGotMessage(message repomessages.Message) (GetMessageOutput, error) {
 	if err := checkMessage(message); err != nil {
-		return output.GetMessageOutput{}, err
+		return GetMessageOutput{}, err
 	}
 
-	return output.GetMessageOutput{
+	return GetMessageOutput{
 		ID:          message.ID,
 		InvokeID:    message.InvokeID,
 		SeqNum:      message.SeqNum,
@@ -59,8 +57,8 @@ func toGotMessage(message repomessages.Message) (output.GetMessageOutput, error)
 }
 
 // toGotMessages maps persisted messages to GetMessagesOutput.
-func toGotMessages(messages []repomessages.Message) (output.GetMessagesOutput, error) {
-	result := make(output.GetMessagesOutput, 0, len(messages))
+func toGotMessages(messages []repomessages.Message) (GetMessagesOutput, error) {
+	result := make(GetMessagesOutput, 0, len(messages))
 	for _, msg := range messages {
 		item, err := toGotMessage(msg)
 		if err != nil {

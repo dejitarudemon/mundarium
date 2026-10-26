@@ -1,4 +1,3 @@
-// Package messages defines input DTOs for message-related use cases.
 package messages
 
 // CreateMessageInput carries data required to create a new message.

@@ -2,10 +2,10 @@ package messages_test
 
 import (
 	"errors"
+	svcmessages "github.com/dejitarudemon/mundarium/internal/services/messages"
 	"testing"
 	"time"
 
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/messages"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
 	"gorm.io/gorm"
 )
@@ -16,7 +16,7 @@ func TestCreateMessage(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	out, err := testSvc.CreateMessage(ctx, input.CreateMessageInput{
+	out, err := testSvc.CreateMessage(ctx, svcmessages.CreateMessageInput{
 		InvokeID: "inv-1",
 		Text:     "hello",
 		From:     "master",
@@ -31,7 +31,7 @@ func TestCreateMessage(t *testing.T) {
 		t.Fatalf("unexpected complete calls: %#v", rec.calls)
 	}
 
-	second, err := testSvc.CreateMessage(ctx, input.CreateMessageInput{
+	second, err := testSvc.CreateMessage(ctx, svcmessages.CreateMessageInput{
 		InvokeID: "inv-1",
 		Text:     "again",
 		From:     "master",
@@ -52,12 +52,12 @@ func TestCreateMessage_ValidationErrors(t *testing.T) {
 
 	cases := []struct {
 		name string
-		in   input.CreateMessageInput
+		in   svcmessages.CreateMessageInput
 		want string
 	}{
-		{name: "empty invoke", in: input.CreateMessageInput{Text: "x", From: "master"}, want: "invoke id is empty"},
-		{name: "empty text", in: input.CreateMessageInput{InvokeID: "inv", From: "master"}, want: "text is empty"},
-		{name: "empty from", in: input.CreateMessageInput{InvokeID: "inv", Text: "x"}, want: "from is empty"},
+		{name: "empty invoke", in: svcmessages.CreateMessageInput{Text: "x", From: "master"}, want: "invoke id is empty"},
+		{name: "empty text", in: svcmessages.CreateMessageInput{InvokeID: "inv", From: "master"}, want: "text is empty"},
+		{name: "empty from", in: svcmessages.CreateMessageInput{InvokeID: "inv", Text: "x"}, want: "from is empty"},
 	}
 
 	for _, tc := range cases {
@@ -80,7 +80,7 @@ func TestCreateMessage_CompleteError(t *testing.T) {
 	ctx, cancel := newExecCtx(t, rec)
 	defer cancel()
 
-	_, err := testSvc.CreateMessage(ctx, input.CreateMessageInput{
+	_, err := testSvc.CreateMessage(ctx, svcmessages.CreateMessageInput{
 		InvokeID: "inv-1",
 		Text:     "x",
 		From:     "master",

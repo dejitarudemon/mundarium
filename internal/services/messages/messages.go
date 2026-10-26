@@ -6,9 +6,7 @@ import (
 	"time"
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/messages"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
-	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/messages"
 	"gorm.io/gorm"
 )
 
@@ -16,14 +14,14 @@ const messageEntity = "MESSAGE"
 
 // CreateMessage creates a message inside a transaction and completes the execution context.
 // Not idempotent: each successful call inserts a new message.
-func (s *Service) CreateMessage(ctx execution.ExecutionContext, in input.CreateMessageInput) (output.CreateMessageOutput, error) {
+func (s *Service) CreateMessage(ctx execution.ExecutionContext, in CreateMessageInput) (CreateMessageOutput, error) {
 	message, err := toNewMessage(in)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.CreateMessageOutput{}, err
+		return CreateMessageOutput{}, err
 	}
 
-	result := output.CreateMessageOutput{}
+	result := CreateMessageOutput{}
 
 	if err := s.connection.WithTransaction(
 		ctx,
@@ -48,7 +46,7 @@ func (s *Service) CreateMessage(ctx execution.ExecutionContext, in input.CreateM
 		},
 	); err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.CreateMessageOutput{}, err
+		return CreateMessageOutput{}, err
 	}
 
 	return result, nil
@@ -56,17 +54,17 @@ func (s *Service) CreateMessage(ctx execution.ExecutionContext, in input.CreateM
 
 // GetMessage loads a message by id, maps it to output, and completes the execution context.
 // Idempotent: repeated calls with the same id return the same row.
-func (s *Service) GetMessage(ctx execution.ExecutionContext, id repositories.ID) (output.GetMessageOutput, error) {
+func (s *Service) GetMessage(ctx execution.ExecutionContext, id repositories.ID) (GetMessageOutput, error) {
 	message, err := s.repository().GetMessage(ctx, id)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.GetMessageOutput{}, err
+		return GetMessageOutput{}, err
 	}
 
 	result, err := toGotMessage(*message)
 	if err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.GetMessageOutput{}, err
+		return GetMessageOutput{}, err
 	}
 
 	if err := ctx.Complete(
@@ -77,7 +75,7 @@ func (s *Service) GetMessage(ctx execution.ExecutionContext, id repositories.ID)
 		}, s.connection.DB(),
 	); err != nil {
 		_ = ctx.Fail(err, s.connection.DB())
-		return output.GetMessageOutput{}, err
+		return GetMessageOutput{}, err
 	}
 
 	return result, nil
@@ -87,7 +85,7 @@ func (s *Service) GetMessage(ctx execution.ExecutionContext, id repositories.ID)
 // When startFrom is non-nil, messages with SeqNum < *startFrom are omitted (SQL-side filter).
 // Returns an error if invokeID is empty.
 // Idempotent: repeated calls with the same invokeID and startFrom return the same ordered set.
-func (s *Service) GetMessages(ctx execution.ExecutionContext, invokeID string, startFrom *uint) (output.GetMessagesOutput, error) {
+func (s *Service) GetMessages(ctx execution.ExecutionContext, invokeID string, startFrom *uint) (GetMessagesOutput, error) {
 	if invokeID == "" {
 		err := errors.New("invoke id is empty")
 		_ = ctx.Fail(err, s.connection.DB())

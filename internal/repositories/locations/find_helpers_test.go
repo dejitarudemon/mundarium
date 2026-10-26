@@ -1,23 +1,21 @@
 package locations
 
 import (
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
-	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
-	liblocations "github.com/dejitarudemon/mundarium/internal/libs/locations"
+	"github.com/dejitarudemon/mundarium/internal/repositories"
 )
 
 func TestFindLocationsMatch(t *testing.T) {
-	sql, args := findLocationsMatch(filterslocations.FindLocationsFilter{})
+	sql, args := findLocationsMatch(FindLocationsFilter{})
 	if sql != "TRUE" || len(args) != 0 {
 		t.Fatalf("empty filter: sql=%q args=%v", sql, args)
 	}
 
-	locType := repositories.LocationType_REGION
+	locType := LocationType_REGION
 	subtype := repositories.ID(3)
 	query := "gate"
-	sql, args = findLocationsMatch(filterslocations.FindLocationsFilter{
+	sql, args = findLocationsMatch(FindLocationsFilter{
 		Type:      &locType,
 		SubtypeID: &subtype,
 		Query:     &query,
@@ -32,15 +30,18 @@ func TestFindLocationsMatch(t *testing.T) {
 
 func TestGroupFindLocations(t *testing.T) {
 	rows := []findLocationsRow{
-		{Location: liblocations.Location{ID: 1, Name: "World"}, RelDepth: 0},
-		{Location: liblocations.Location{ID: 2, Name: "North"}, RelDepth: 1},
-		{Location: liblocations.Location{ID: 3, Name: "Gate"}, RelDepth: 2},
+		{Location: Location{ID: 1, Name: "root"}, RelDepth: 0},
+		{Location: Location{ID: 2, Name: "child"}, RelDepth: 1},
+		{Location: Location{ID: 3, Name: "grand"}, RelDepth: 2},
 	}
 	got := groupFindLocations(rows)
-	if got.Scope.Name != "World" || len(got.Children[1]) != 1 || len(got.Children[2]) != 1 {
-		t.Fatalf("unexpected grouping: %#v", got)
+	if got.Scope.ID != 1 || got.Scope.Name != "root" {
+		t.Fatalf("scope: %+v", got.Scope)
 	}
-	if got.Children[1][0].Name != "North" || got.Children[2][0].Name != "Gate" {
-		t.Fatalf("unexpected children: %#v", got.Children)
+	if len(got.Children[1]) != 1 || got.Children[1][0].ID != 2 {
+		t.Fatalf("depth1: %+v", got.Children[1])
+	}
+	if len(got.Children[2]) != 1 || got.Children[2][0].ID != 3 {
+		t.Fatalf("depth2: %+v", got.Children[2])
 	}
 }

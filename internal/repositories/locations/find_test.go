@@ -3,15 +3,13 @@ package locations_test
 import (
 	"context"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
+	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"testing"
 
-	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"gorm.io/gorm"
 )
 
-func typePtr(t repositories.LocationType) *repositories.LocationType { return &t }
+func typePtr(t locations.LocationType) *locations.LocationType { return &t }
 
 func childCount(children map[int][]locations.Location) int {
 	n := 0
@@ -29,7 +27,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 	north := createLocation(t, idPtr(root.ID), "North")
 	gate, err := testRepo.CreateLocation(ctx, &locations.Location{
 		ParentID:    idPtr(north.ID),
-		Type:        repositories.LocationType_SITE,
+		Type:        locations.LocationType_SITE,
 		Name:        "North Gate",
 		Description: "stone arch",
 	})
@@ -38,7 +36,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 	}
 	_ = createLocation(t, idPtr(root.ID), "South")
 
-	depth0, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
+	depth0, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   0,
 	})
@@ -49,7 +47,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 		t.Fatalf("depth 0: want only scope, got %#v", depth0)
 	}
 
-	depth1, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
+	depth1, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   1,
 	})
@@ -61,7 +59,7 @@ func TestFindLocations_DepthAndQuery(t *testing.T) {
 	}
 
 	query := "Gate"
-	found, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
+	found, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   2,
 		Query:   &query,
@@ -79,12 +77,12 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 	ctx := context.Background()
 
 	root := createRoot(t, "town")
-	subtype := createSubtype(t, "tavern", repositories.LocationType_STRUCTURE, "inn")
+	subtype := createSubtype(t, "tavern", locations.LocationType_STRUCTURE, "inn")
 	subtypeID := subtype.ID
 
 	tavern, err := testRepo.CreateLocation(ctx, &locations.Location{
 		ParentID:  idPtr(root.ID),
-		Type:      repositories.LocationType_STRUCTURE,
+		Type:      locations.LocationType_STRUCTURE,
 		SubtypeID: &subtypeID,
 		Name:      "The Boar",
 	})
@@ -93,10 +91,10 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 	}
 	_ = createLocation(t, idPtr(root.ID), "Square")
 
-	byType, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
+	byType, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{
 		ScopeID: root.ID,
 		Depth:   1,
-		Type:    typePtr(repositories.LocationType_STRUCTURE),
+		Type:    typePtr(locations.LocationType_STRUCTURE),
 	})
 	if err != nil {
 		t.Fatalf("by type: %v", err)
@@ -105,7 +103,7 @@ func TestFindLocations_TypeAndSubtype(t *testing.T) {
 		t.Fatalf("by type: want scope+tavern, got %#v", byType)
 	}
 
-	bySubtype, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{
+	bySubtype, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{
 		ScopeID:   root.ID,
 		Depth:     1,
 		SubtypeID: &subtypeID,
@@ -122,17 +120,17 @@ func TestFindLocations_NotFoundAndDepthRange(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
-	_, err := testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{ScopeID: 999, Depth: 1})
+	_, err := testRepo.FindLocations(ctx, locations.FindLocationsFilter{ScopeID: 999, Depth: 1})
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("want ErrRecordNotFound, got %v", err)
 	}
 
 	root := createRoot(t, "world")
-	_, err = testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{ScopeID: root.ID, Depth: 6})
+	_, err = testRepo.FindLocations(ctx, locations.FindLocationsFilter{ScopeID: root.ID, Depth: 6})
 	if err == nil || err.Error() != "depth out of range" {
 		t.Fatalf("want depth out of range, got %v", err)
 	}
-	_, err = testRepo.FindLocations(ctx, filterslocations.FindLocationsFilter{ScopeID: root.ID, Depth: -1})
+	_, err = testRepo.FindLocations(ctx, locations.FindLocationsFilter{ScopeID: root.ID, Depth: -1})
 	if err == nil || err.Error() != "depth out of range" {
 		t.Fatalf("want depth out of range, got %v", err)
 	}

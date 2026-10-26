@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
-	liblocations "github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +29,7 @@ WHERE rel_depth = 0 OR (%s)
 ORDER BY rel_depth, id`
 
 type findLocationsRow struct {
-	liblocations.Location
+	Location
 	RelDepth int `gorm:"column:rel_depth"`
 }
 
@@ -42,9 +40,9 @@ type findLocationsRow struct {
 // already-seen IDs are excluded via a path array to break parent_id cycles.
 // Returns gorm.ErrRecordNotFound if ScopeID does not exist.
 // Returns an error if Depth is outside 0..MaxDepth().
-func (r *LocationRepository) FindLocations(ctx context.Context, filter filterslocations.FindLocationsFilter) (filterslocations.FindLocationsResult, error) {
+func (r *LocationRepository) FindLocations(ctx context.Context, filter FindLocationsFilter) (FindLocationsResult, error) {
 	if filter.Depth < 0 || filter.Depth > r.maxDepth {
-		return filterslocations.FindLocationsResult{}, errors.New("depth out of range")
+		return FindLocationsResult{}, errors.New("depth out of range")
 	}
 
 	matchSQL, matchArgs := findLocationsMatch(filter)
@@ -52,10 +50,10 @@ func (r *LocationRepository) FindLocations(ctx context.Context, filter filterslo
 
 	rows, err := r.scanFindLocations(ctx, matchSQL, args)
 	if err != nil {
-		return filterslocations.FindLocationsResult{}, err
+		return FindLocationsResult{}, err
 	}
 	if len(rows) == 0 {
-		return filterslocations.FindLocationsResult{}, gorm.ErrRecordNotFound
+		return FindLocationsResult{}, gorm.ErrRecordNotFound
 	}
 
 	return groupFindLocations(rows), nil
@@ -63,7 +61,7 @@ func (r *LocationRepository) FindLocations(ctx context.Context, filter filterslo
 
 // findLocationsMatch builds the descendant WHERE fragment and its bind args.
 // The scope row (rel_depth = 0) is never filtered by this clause.
-func findLocationsMatch(filter filterslocations.FindLocationsFilter) (string, []any) {
+func findLocationsMatch(filter FindLocationsFilter) (string, []any) {
 	var (
 		b    strings.Builder
 		args []any
@@ -92,10 +90,10 @@ func (r *LocationRepository) scanFindLocations(ctx context.Context, matchSQL str
 	return rows, err
 }
 
-func groupFindLocations(rows []findLocationsRow) filterslocations.FindLocationsResult {
-	result := filterslocations.FindLocationsResult{
+func groupFindLocations(rows []findLocationsRow) FindLocationsResult {
+	result := FindLocationsResult{
 		Scope:    rows[0].Location,
-		Children: make(map[int][]liblocations.Location),
+		Children: make(map[int][]Location),
 	}
 	for _, item := range rows[1:] {
 		result.Children[item.RelDepth] = append(result.Children[item.RelDepth], item.Location)

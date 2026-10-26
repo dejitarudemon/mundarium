@@ -6,7 +6,7 @@ import (
 	"fmt"
 	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -34,9 +34,9 @@ func Open(dsn string) (*Connection, error) {
 // migrate creates or updates tables for persisted domain models.
 func migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
-		&locations.LocationSubtype{},
-		&locations.Location{},
-		&locations.Connection{},
+		&repolocations.LocationSubtype{},
+		&repolocations.Location{},
+		&repolocations.Connection{},
 		&repomessages.Message{},
 	); err != nil {
 		return fmt.Errorf("migrate: %w", err)

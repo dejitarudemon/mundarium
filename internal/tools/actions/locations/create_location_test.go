@@ -9,8 +9,8 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolslocations "github.com/dejitarudemon/mundarium/internal/tools/actions/locations"
@@ -113,7 +113,7 @@ func TestCreateLocationTool_Execute_Root(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if got.ParentID != nil || got.Type != repositories.LocationType_WORLD {
+	if got.ParentID != nil || got.Type != repolocations.LocationType_WORLD {
 		t.Fatalf("unexpected persisted location: %+v", got)
 	}
 	if string(got.Details) != `{"tier":1}` {
@@ -124,9 +124,9 @@ func TestCreateLocationTool_Execute_Root(t *testing.T) {
 func TestCreateLocationTool_Execute_Child(t *testing.T) {
 	resetDB(t)
 
-	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	root, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: nil,
-		Type:     repositories.LocationType_WORLD,
+		Type:     repolocations.LocationType_WORLD,
 		Name:     "root",
 	})
 	if err != nil {

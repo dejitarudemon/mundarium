@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 
-	liblocations "github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"gorm.io/gorm"
 )
 
@@ -39,7 +38,7 @@ func (r *LocationRepository) MaxDepth() int {
 // (including the generated ID and any DB defaults).
 // Hierarchy validity (including cycles) is not checked here; use
 // PatchLocationParent or PutLocation when reparenting an existing location.
-func (r *LocationRepository) CreateLocation(ctx context.Context, location *liblocations.Location) (*liblocations.Location, error) {
+func (r *LocationRepository) CreateLocation(ctx context.Context, location *Location) (*Location, error) {
 	if err := r.db.WithContext(ctx).Create(location).Error; err != nil {
 		return nil, err
 	}
@@ -49,8 +48,8 @@ func (r *LocationRepository) CreateLocation(ctx context.Context, location *liblo
 
 // GetLocation returns the location with the given id, preloading its Subtype.
 // Returns gorm.ErrRecordNotFound if no row exists.
-func (r *LocationRepository) GetLocation(ctx context.Context, id repositories.ID) (*liblocations.Location, error) {
-	var location liblocations.Location
+func (r *LocationRepository) GetLocation(ctx context.Context, id repositories.ID) (*Location, error) {
+	var location Location
 
 	if err := r.db.
 		WithContext(ctx).
@@ -74,14 +73,14 @@ func (r *LocationRepository) GetLocation(ctx context.Context, id repositories.ID
 // Each level is loaded with one query ordered by id. Already seen IDs are
 // skipped to break parent_id cycles. When loadSubtypes is true, each level
 // preloads Subtype.
-func (r *LocationRepository) FindChildLocations(ctx context.Context, id repositories.ID, depth int, loadSubtypes bool) (map[int][]liblocations.Location, error) {
-	result := make(map[int][]liblocations.Location)
+func (r *LocationRepository) FindChildLocations(ctx context.Context, id repositories.ID, depth int, loadSubtypes bool) (map[int][]Location, error) {
+	result := make(map[int][]Location)
 	if depth <= 0 {
 		return result, nil
 	}
 
 	var exists int64
-	if err := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Count(&exists).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Count(&exists).Error; err != nil {
 		return nil, err
 	}
 	if exists == 0 {
@@ -96,7 +95,7 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id reposito
 			break
 		}
 
-		var found []liblocations.Location
+		var found []Location
 		q := r.db.WithContext(ctx).
 			Where("parent_id IN ?", parentIDs).
 			Order("id")
@@ -110,7 +109,7 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id reposito
 		}
 
 		parentIDs = parentIDs[:0]
-		level := make([]liblocations.Location, 0, len(found))
+		level := make([]Location, 0, len(found))
 		for _, loc := range found {
 			if _, ok := seen[loc.ID]; ok {
 				continue
@@ -137,7 +136,7 @@ func (r *LocationRepository) FindChildLocations(ctx context.Context, id reposito
 //
 // Returns an error with message "location would create a cycle" if the new
 // parent would form a cycle. Returns gorm.ErrRecordNotFound if no row was updated.
-func (r *LocationRepository) PutLocation(ctx context.Context, location *liblocations.Location) error {
+func (r *LocationRepository) PutLocation(ctx context.Context, location *Location) error {
 	cycle, err := r.checkCircle(ctx, location.ID, location.ParentID)
 	if err != nil {
 		return err
@@ -147,7 +146,7 @@ func (r *LocationRepository) PutLocation(ctx context.Context, location *liblocat
 	}
 
 	result := r.db.WithContext(ctx).
-		Model(&liblocations.Location{}).
+		Model(&Location{}).
 		Where("id = ?", location.ID).
 		Select(
 			"ParentID",
@@ -187,7 +186,7 @@ func (r *LocationRepository) PatchLocationParent(ctx context.Context, id reposit
 		return errors.New("location would create a cycle")
 	}
 
-	query := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Update("parent_id", parentID)
+	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("parent_id", parentID)
 
 	if err := query.Error; err != nil {
 		return err
@@ -203,7 +202,7 @@ func (r *LocationRepository) PatchLocationParent(ctx context.Context, id reposit
 // PatchLocationName sets the name of the location identified by id.
 // Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PatchLocationName(ctx context.Context, id repositories.ID, name string) error {
-	query := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Update("name", name)
+	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("name", name)
 
 	if err := query.Error; err != nil {
 		return err
@@ -219,7 +218,7 @@ func (r *LocationRepository) PatchLocationName(ctx context.Context, id repositor
 // PatchLocationDetails sets the details of the location identified by id.
 // Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PatchLocationDetails(ctx context.Context, id repositories.ID, details repositories.JSON) error {
-	query := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Update("details", details)
+	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("details", details)
 
 	if err := query.Error; err != nil {
 		return err
@@ -235,7 +234,7 @@ func (r *LocationRepository) PatchLocationDetails(ctx context.Context, id reposi
 // PatchLocationDescription sets the description of the location identified by id.
 // Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PatchLocationDescription(ctx context.Context, id repositories.ID, description string) error {
-	query := r.db.WithContext(ctx).Model(&liblocations.Location{}).Where("id = ?", id).Update("description", description)
+	query := r.db.WithContext(ctx).Model(&Location{}).Where("id = ?", id).Update("description", description)
 
 	if err := query.Error; err != nil {
 		return err
@@ -249,14 +248,14 @@ func (r *LocationRepository) PatchLocationDescription(ctx context.Context, id re
 }
 
 // CreateSubtype inserts a new location subtype.
-func (r *LocationRepository) CreateSubtype(ctx context.Context, subtype *liblocations.LocationSubtype) error {
+func (r *LocationRepository) CreateSubtype(ctx context.Context, subtype *LocationSubtype) error {
 	return r.db.WithContext(ctx).Create(subtype).Error
 }
 
 // GetSubtype returns the location subtype with the given id.
 // Returns gorm.ErrRecordNotFound if no row exists.
-func (r *LocationRepository) GetSubtype(ctx context.Context, id repositories.ID) (*liblocations.LocationSubtype, error) {
-	var subtype liblocations.LocationSubtype
+func (r *LocationRepository) GetSubtype(ctx context.Context, id repositories.ID) (*LocationSubtype, error) {
+	var subtype LocationSubtype
 
 	if err := r.db.
 		WithContext(ctx).
@@ -269,10 +268,10 @@ func (r *LocationRepository) GetSubtype(ctx context.Context, id repositories.ID)
 
 // FindSubtypes returns subtypes matching any of the given keys and/or location types.
 // Empty keys or types means that filter is not applied. If both are empty, all subtypes are returned.
-func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, types []repositories.LocationType) ([]liblocations.LocationSubtype, error) {
-	var subtypes []liblocations.LocationSubtype
+func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, types []LocationType) ([]LocationSubtype, error) {
+	var subtypes []LocationSubtype
 
-	query := r.db.WithContext(ctx).Model(liblocations.LocationSubtype{})
+	query := r.db.WithContext(ctx).Model(LocationSubtype{})
 
 	if len(keys) > 0 {
 		query = query.Where("key IN ?", keys)
@@ -291,14 +290,14 @@ func (r *LocationRepository) FindSubtypes(ctx context.Context, keys []string, ty
 // CreateConnection inserts a new connection between two locations.
 // The repository does not validate whether the link is logically meaningful;
 // that is left to the caller.
-func (r *LocationRepository) CreateConnection(ctx context.Context, connection *liblocations.Connection) error {
+func (r *LocationRepository) CreateConnection(ctx context.Context, connection *Connection) error {
 	return r.db.WithContext(ctx).Create(connection).Error
 }
 
 // GetConnection returns the connection with the given id.
 // Returns gorm.ErrRecordNotFound if no row exists.
-func (r *LocationRepository) GetConnection(ctx context.Context, id repositories.ID) (*liblocations.Connection, error) {
-	var connection liblocations.Connection
+func (r *LocationRepository) GetConnection(ctx context.Context, id repositories.ID) (*Connection, error) {
+	var connection Connection
 
 	if err := r.db.WithContext(ctx).First(&connection, "id = ?", id).Error; err != nil {
 		return nil, err
@@ -308,8 +307,8 @@ func (r *LocationRepository) GetConnection(ctx context.Context, id repositories.
 }
 
 // FindInderectConnections returns connections directed from fromID to toID.
-func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID, toID repositories.ID) ([]liblocations.Connection, error) {
-	connections := make([]liblocations.Connection, 0)
+func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID, toID repositories.ID) ([]Connection, error) {
+	connections := make([]Connection, 0)
 
 	if err := r.db.WithContext(ctx).Find(&connections, "from_id = ? AND to_id = ?", fromID, toID).Error; err != nil {
 		return nil, err
@@ -321,13 +320,13 @@ func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID
 // PutConnection updates mutable fields of an existing connection identified by connection.ID.
 // Returns an error if FromID and ToID refer to the same location.
 // Returns gorm.ErrRecordNotFound if no row was updated.
-func (r *LocationRepository) PutConnection(ctx context.Context, connection *liblocations.Connection) error {
+func (r *LocationRepository) PutConnection(ctx context.Context, connection *Connection) error {
 	if connection.FromID == connection.ToID {
 		return errors.New("connection between the same locations")
 	}
 
 	result := r.db.WithContext(ctx).
-		Model(&liblocations.Connection{}).
+		Model(&Connection{}).
 		Where("id = ?", connection.ID).
 		Select(
 			"FromID",
@@ -353,7 +352,7 @@ func (r *LocationRepository) PutConnection(ctx context.Context, connection *libl
 
 // DeleteConnection deletes the connection with the given id.
 func (r *LocationRepository) DeleteConnection(ctx context.Context, id repositories.ID) error {
-	return r.db.WithContext(ctx).Delete(liblocations.Connection{}, "id = ?", id).Error
+	return r.db.WithContext(ctx).Delete(Connection{}, "id = ?", id).Error
 }
 
 // checkCircle reports whether setting id's parent to newParent would create a cycle.
@@ -382,7 +381,7 @@ func (r *LocationRepository) checkCircle(ctx context.Context, id repositories.ID
 	for ctx.Err() == nil {
 		var parentID *repositories.ID
 		if err := r.db.WithContext(ctx).
-			Model(&liblocations.Location{}).
+			Model(&Location{}).
 			Select("parent_id").
 			Where("id = ?", next).
 			Scan(&parentID).Error; err != nil {

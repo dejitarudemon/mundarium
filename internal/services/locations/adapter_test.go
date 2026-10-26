@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 )
 
 func idPtr(id repositories.ID) *repositories.ID {
@@ -26,7 +26,7 @@ func TestToNewLocation(t *testing.T) {
 		if err != nil {
 			t.Fatalf("toNewLocation: %v", err)
 		}
-		if loc.ParentID == nil || *loc.ParentID != 3 || loc.Type != repositories.LocationType_STRUCTURE || loc.Name != "Tavern" {
+		if loc.ParentID == nil || *loc.ParentID != 3 || loc.Type != repolocations.LocationType_STRUCTURE || loc.Name != "Tavern" {
 			t.Fatalf("unexpected location: %+v", loc)
 		}
 		if loc.SubtypeID == nil || *loc.SubtypeID != 7 {
@@ -73,10 +73,10 @@ func TestToNewLocation(t *testing.T) {
 }
 
 func TestToCreatedAndGotLocation(t *testing.T) {
-	loc := locations.Location{
+	loc := repolocations.Location{
 		ID:          10,
 		ParentID:    nil,
-		Type:        repositories.LocationType_WORLD,
+		Type:        repolocations.LocationType_WORLD,
 		Name:        "World",
 		Description: "big",
 		Details:     repositories.JSON(`{}`),
@@ -100,21 +100,21 @@ func TestToCreatedAndGotLocation(t *testing.T) {
 }
 
 func TestCheckLocation(t *testing.T) {
-	if err := checkLocation(locations.Location{ID: 0, ParentID: idPtr(1)}); err == nil || err.Error() != "location id is zero" {
+	if err := checkLocation(repolocations.Location{ID: 0, ParentID: idPtr(1)}); err == nil || err.Error() != "location id is zero" {
 		t.Fatalf("want location id is zero, got %v", err)
 	}
-	if err := checkLocation(locations.Location{ID: 1, ParentID: idPtr(0)}); err == nil || err.Error() != "parent id is zero" {
+	if err := checkLocation(repolocations.Location{ID: 1, ParentID: idPtr(0)}); err == nil || err.Error() != "parent id is zero" {
 		t.Fatalf("want parent id is zero, got %v", err)
 	}
-	if err := checkLocation(locations.Location{ID: 1, ParentID: nil}); err != nil {
+	if err := checkLocation(repolocations.Location{ID: 1, ParentID: nil}); err != nil {
 		t.Fatalf("root location should be valid: %v", err)
 	}
 }
 
 func TestToGotChildLocations(t *testing.T) {
-	children := map[int][]locations.Location{
-		1: {{ID: 2, ParentID: idPtr(1), Type: repositories.LocationType_REGION, Name: "A"}},
-		2: {{ID: 3, ParentID: idPtr(2), Type: repositories.LocationType_SITE, Name: "A1"}},
+	children := map[int][]repolocations.Location{
+		1: {{ID: 2, ParentID: idPtr(1), Type: repolocations.LocationType_REGION, Name: "A"}},
+		2: {{ID: 3, ParentID: idPtr(2), Type: repolocations.LocationType_SITE, Name: "A1"}},
 	}
 
 	out, err := toGotChildLocations(children)
@@ -125,7 +125,7 @@ func TestToGotChildLocations(t *testing.T) {
 		t.Fatalf("unexpected output: %#v", out)
 	}
 
-	_, err = toGotChildLocations(map[int][]locations.Location{
+	_, err = toGotChildLocations(map[int][]repolocations.Location{
 		1: {{ID: 0, ParentID: idPtr(1), Name: "bad"}},
 	})
 	if err == nil {
@@ -155,7 +155,7 @@ func TestToFindLocationsFilter(t *testing.T) {
 	if got.Query == nil || *got.Query != "north" {
 		t.Fatalf("unexpected query: %#v", got.Query)
 	}
-	if got.Type == nil || *got.Type != repositories.LocationType_REGION {
+	if got.Type == nil || *got.Type != repolocations.LocationType_REGION {
 		t.Fatalf("unexpected type: %#v", got.Type)
 	}
 

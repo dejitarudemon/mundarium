@@ -7,8 +7,8 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"gorm.io/gorm"
 )
 
@@ -59,12 +59,12 @@ func idPtr(id repositories.ID) *repositories.ID {
 	return &id
 }
 
-func seedRoot(t *testing.T, name string) *locations.Location {
+func seedRoot(t *testing.T, name string) *repolocations.Location {
 	t.Helper()
 
-	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	loc, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: nil,
-		Type:     repositories.LocationType_WORLD,
+		Type:     repolocations.LocationType_WORLD,
 		Name:     name,
 	})
 	if err != nil {
@@ -73,12 +73,12 @@ func seedRoot(t *testing.T, name string) *locations.Location {
 	return loc
 }
 
-func seedChild(t *testing.T, parentID repositories.ID, name string) *locations.Location {
+func seedChild(t *testing.T, parentID repositories.ID, name string) *repolocations.Location {
 	t.Helper()
 
-	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	loc, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: idPtr(parentID),
-		Type:     repositories.LocationType_REGION,
+		Type:     repolocations.LocationType_REGION,
 		Name:     name,
 	})
 	if err != nil {

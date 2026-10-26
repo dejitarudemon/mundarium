@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolslocations "github.com/dejitarudemon/mundarium/internal/tools/actions/locations"
@@ -50,25 +49,25 @@ func TestNewFindLocationsTool_LoadsDefinition(t *testing.T) {
 func TestFindLocationsTool_Execute(t *testing.T) {
 	resetDB(t)
 
-	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	root, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: nil,
-		Type:     repositories.LocationType_WORLD,
+		Type:     repolocations.LocationType_WORLD,
 		Name:     "World",
 	})
 	if err != nil {
 		t.Fatalf("seed root: %v", err)
 	}
-	north, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	north, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: &root.ID,
-		Type:     repositories.LocationType_REGION,
+		Type:     repolocations.LocationType_REGION,
 		Name:     "North",
 	})
 	if err != nil {
 		t.Fatalf("seed north: %v", err)
 	}
-	if _, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	if _, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: &north.ID,
-		Type:     repositories.LocationType_SITE,
+		Type:     repolocations.LocationType_SITE,
 		Name:     "North Gate",
 	}); err != nil {
 		t.Fatalf("seed gate: %v", err)

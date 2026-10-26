@@ -2,21 +2,19 @@ package locations
 
 import (
 	"errors"
-	"github.com/dejitarudemon/mundarium/internal/repositories"
 
-	filterslocations "github.com/dejitarudemon/mundarium/internal/libs/filters/locations"
 	input "github.com/dejitarudemon/mundarium/internal/libs/inputs/locations"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	output "github.com/dejitarudemon/mundarium/internal/libs/outputs/locations"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 )
 
 // toNewLocation maps CreateLocationInput to a domain Location ready for insert.
-func toNewLocation(input input.CreateLocationInput) (*locations.Location, error) {
+func toNewLocation(input input.CreateLocationInput) (*repolocations.Location, error) {
 	if input.ParentID != nil && *input.ParentID == 0 {
 		return nil, errors.New("parent id is zero")
 	}
 
-	t, err := repositories.NewLocationType(input.Type)
+	t, err := repolocations.NewLocationType(input.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +23,7 @@ func toNewLocation(input input.CreateLocationInput) (*locations.Location, error)
 		return nil, errors.New("subtype id is zero")
 	}
 
-	return &locations.Location{
+	return &repolocations.Location{
 		ParentID:    input.ParentID,
 		Type:        t,
 		SubtypeID:   input.SubtypeID,
@@ -36,7 +34,7 @@ func toNewLocation(input input.CreateLocationInput) (*locations.Location, error)
 }
 
 // toCreatedLocation maps a persisted Location to CreateLocationOutput.
-func toCreatedLocation(location locations.Location) (output.CreateLocationOutput, error) {
+func toCreatedLocation(location repolocations.Location) (output.CreateLocationOutput, error) {
 	if err := checkLocation(location); err != nil {
 		return output.CreateLocationOutput{}, err
 	}
@@ -49,7 +47,7 @@ func toCreatedLocation(location locations.Location) (output.CreateLocationOutput
 }
 
 // toGotLocation maps a persisted Location to GetLocationOutput.
-func toGotLocation(location locations.Location) (output.GetLocationOutput, error) {
+func toGotLocation(location repolocations.Location) (output.GetLocationOutput, error) {
 	if err := checkLocation(location); err != nil {
 		return output.GetLocationOutput{}, err
 	}
@@ -65,7 +63,7 @@ func toGotLocation(location locations.Location) (output.GetLocationOutput, error
 }
 
 // toGotChildLocations maps descendants grouped by depth to FindChildLocationsOutput.
-func toGotChildLocations(children map[int][]locations.Location) (output.FindChildLocationsOutput, error) {
+func toGotChildLocations(children map[int][]repolocations.Location) (output.FindChildLocationsOutput, error) {
 	result := make(output.FindChildLocationsOutput, len(children))
 
 	for depth, locs := range children {
@@ -91,12 +89,12 @@ const (
 
 // toFindLocationsFilter maps FindLocationsInput to a repository filter and page limit.
 // maxDepth is the inclusive upper bound for Depth (from LocationRepository.MaxDepth).
-func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (filterslocations.FindLocationsFilter, int, error) {
+func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (repolocations.FindLocationsFilter, int, error) {
 	if in.ScopeID == 0 {
-		return filterslocations.FindLocationsFilter{}, 0, errors.New("scope id is zero")
+		return repolocations.FindLocationsFilter{}, 0, errors.New("scope id is zero")
 	}
 	if in.SubtypeID != nil && *in.SubtypeID == 0 {
-		return filterslocations.FindLocationsFilter{}, 0, errors.New("subtype id is zero")
+		return repolocations.FindLocationsFilter{}, 0, errors.New("subtype id is zero")
 	}
 
 	depth := defaultFindLocationsDepth
@@ -104,7 +102,7 @@ func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (filterslo
 		depth = *in.Depth
 	}
 	if depth < 0 || depth > maxDepth {
-		return filterslocations.FindLocationsFilter{}, 0, errors.New("depth out of range")
+		return repolocations.FindLocationsFilter{}, 0, errors.New("depth out of range")
 	}
 
 	limit := defaultFindLocationsLimit
@@ -112,10 +110,10 @@ func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (filterslo
 		limit = *in.Limit
 	}
 	if limit < 1 || limit > maxFindLocationsLimit {
-		return filterslocations.FindLocationsFilter{}, 0, errors.New("limit out of range")
+		return repolocations.FindLocationsFilter{}, 0, errors.New("limit out of range")
 	}
 
-	filter := filterslocations.FindLocationsFilter{
+	filter := repolocations.FindLocationsFilter{
 		ScopeID:   in.ScopeID,
 		Query:     in.Query,
 		SubtypeID: in.SubtypeID,
@@ -123,9 +121,9 @@ func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (filterslo
 	}
 
 	if in.Type != nil && *in.Type != "" {
-		t, err := repositories.NewLocationType(*in.Type)
+		t, err := repolocations.NewLocationType(*in.Type)
 		if err != nil {
-			return filterslocations.FindLocationsFilter{}, 0, err
+			return repolocations.FindLocationsFilter{}, 0, err
 		}
 		filter.Type = &t
 	}
@@ -136,7 +134,7 @@ func toFindLocationsFilter(in input.FindLocationsInput, maxDepth int) (filterslo
 // toFoundLocations maps a FindLocationsResult to FindLocationsOutput.
 // Limit applies only to matching descendants (scope is always included).
 // HasMore is the number of matching descendants omitted due to limit.
-func toFoundLocations(found filterslocations.FindLocationsResult, limit int) (output.FindLocationsOutput, error) {
+func toFoundLocations(found repolocations.FindLocationsResult, limit int) (output.FindLocationsOutput, error) {
 	scope, err := toGotLocation(found.Scope)
 	if err != nil {
 		return output.FindLocationsOutput{}, err
@@ -144,7 +142,7 @@ func toFoundLocations(found filterslocations.FindLocationsResult, limit int) (ou
 
 	type entry struct {
 		depth int
-		loc   locations.Location
+		loc   repolocations.Location
 	}
 	flat := make([]entry, 0)
 	maxDepth := 0
@@ -182,7 +180,7 @@ func toFoundLocations(found filterslocations.FindLocationsResult, limit int) (ou
 }
 
 // checkLocation validates required identity fields on a Location.
-func checkLocation(location locations.Location) error {
+func checkLocation(location repolocations.Location) error {
 	if location.ID == 0 {
 		return errors.New("location id is zero")
 	}

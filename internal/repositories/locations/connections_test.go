@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
+	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"gorm.io/gorm"
 )
 

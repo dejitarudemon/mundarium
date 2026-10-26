@@ -10,9 +10,9 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/journal/implemented"
 	libjournal "github.com/dejitarudemon/mundarium/internal/libs/journal"
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"github.com/dejitarudemon/mundarium/internal/libs/providers"
 	libtools "github.com/dejitarudemon/mundarium/internal/libs/tools"
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
 	"golang.org/x/crypto/blake2b"
@@ -105,9 +105,9 @@ func TestAllowed(t *testing.T) {
 func TestExecuteIdempotent_FindLocations(t *testing.T) {
 	resetDB(t)
 
-	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	root, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: nil,
-		Type:     repositories.LocationType_WORLD,
+		Type:     repolocations.LocationType_WORLD,
 		Name:     "World",
 	})
 	if err != nil {
@@ -172,7 +172,7 @@ func TestExecuteNotIdempotent_CreateRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLocation: %v", err)
 	}
-	if loc.ParentID != nil || loc.Type != repositories.LocationType_WORLD {
+	if loc.ParentID != nil || loc.Type != repolocations.LocationType_WORLD {
 		t.Fatalf("unexpected persisted location: %+v", loc)
 	}
 	if string(loc.Details) != `{"tier":1}` {
@@ -183,9 +183,9 @@ func TestExecuteNotIdempotent_CreateRoot(t *testing.T) {
 func TestExecuteNotIdempotent_CreateChild(t *testing.T) {
 	resetDB(t)
 
-	root, err := testRepo.CreateLocation(context.Background(), &locations.Location{
+	root, err := testRepo.CreateLocation(context.Background(), &repolocations.Location{
 		ParentID: nil,
-		Type:     repositories.LocationType_WORLD,
+		Type:     repolocations.LocationType_WORLD,
 		Name:     "root",
 	})
 	if err != nil {

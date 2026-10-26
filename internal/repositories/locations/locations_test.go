@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
+	"github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/locations"
 	"gorm.io/gorm"
 )
 
@@ -19,7 +19,7 @@ func createLocation(t *testing.T, parentID *repositories.ID, name string) *locat
 
 	loc, err := testRepo.CreateLocation(context.Background(), &locations.Location{
 		ParentID: parentID,
-		Type:     repositories.LocationType_REGION,
+		Type:     locations.LocationType_REGION,
 		Name:     name,
 	})
 	if err != nil {

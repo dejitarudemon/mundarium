@@ -1,7 +1,6 @@
-package tests
+package send_message_test
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,93 +22,46 @@ import (
 	pgstorage "github.com/dejitarudemon/mundarium/internal/storage/postgres"
 	toolsmessages "github.com/dejitarudemon/mundarium/internal/tools/actions/messages"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
+	"github.com/dejitarudemon/mundarium/tests/testutil"
 	"github.com/google/uuid"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"gorm.io/gorm"
 )
 
-const (
-	envURL        = "TEST_LLM_STUDIO_URL"
-	envModel      = "TEST_LLM_STUDIO_MODEL"
-	envAPIKey     = "TEST_LLM_STUDIO_API_KEY"
-	envMaxIters   = "TEST_LLM_STUDIO_MAX_ITERS"
-	envTimeoutSec = "TEST_LLM_STUDIO_TIMEOUT_SEC"
-
-	userMessage = "Отправь одно приветственное сообщение через send_message. После успешного выполнения инструмента задача завершена. Не вызывай send_message повторно. Заверши работу обычным ответом без вызовов инструментов."
-)
+const userMessage = "Привет! Доступные тулзы: send_message."
 
 var (
-	testConn *pgstorage.Connection
-	provider *openai.OpenAICompatibleProvider
+	testConn  *pgstorage.Connection
+	provider  *openai.OpenAICompatibleProvider
+	container *postgres.PostgresContainer
 )
 
-type systemPromptFile struct {
-	Prompt string `json:"prompt"`
-}
-
 func TestMain(m *testing.M) {
-	root := repoRoot()
-	here := testDir()
-
-	envPath := filepath.Join(root, ".env")
-	if err := loadDotEnv(envPath); err != nil {
-		fmt.Fprintf(os.Stderr, "skip llm studio Invoke tests: %v\n", err)
+	url, model, apiKey, maxIters, ok, reason := testutil.RequireLLMStudioEnv()
+	if !ok {
+		fmt.Fprintf(os.Stderr, "skip send_message Invoke tests: %v\n", reason)
 		os.Exit(0)
 	}
 
-	url := strings.TrimSpace(os.Getenv(envURL))
-	model := strings.TrimSpace(os.Getenv(envModel))
-	if url == "" || model == "" {
-		fmt.Fprintf(os.Stderr, "skip llm studio Invoke tests: %s and %s are required in .env\n", envURL, envModel)
-		os.Exit(0)
-	}
-
-	apiKey := os.Getenv(envAPIKey)
-	maxIters := envInt(envMaxIters, 8)
-
-	prompt, err := loadSystemPrompt(filepath.Join(here, "invoke_system_prompt.json"))
+	prompt, err := testutil.LoadSystemPrompt(filepath.Join(packageDir(), "system_prompt.json"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "load system prompt: %v\n", err)
 		os.Exit(1)
 	}
 
 	ctx := context.Background()
-	container, err := postgres.Run(
-		ctx,
-		"postgres:16-alpine",
-		postgres.WithDatabase("mundarium"),
-		postgres.WithUsername("mundarium"),
-		postgres.WithPassword("mundarium"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(60*time.Second),
-		),
-	)
+	pg, conn, err := testutil.StartPostgres(ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "start postgres container: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+	container = pg
 
 	code := 1
 	defer func() {
 		_ = container.Terminate(ctx)
 		os.Exit(code)
 	}()
-
-	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "postgres dsn: %v\n", err)
-		return
-	}
-
-	conn, err := pgstorage.Open(dsn)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "open postgres: %v\n", err)
-		return
-	}
 
 	log := implemented.New(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -144,7 +94,7 @@ func TestMain(m *testing.M) {
 	}
 
 	tool, err := toolsmessages.NewCreateMessageTool(
-		filepath.Join(root, "definitions", "send_message.json"),
+		filepath.Join(testutil.RepoRoot(), "definitions", "send_message.json"),
 		svc,
 		nil,
 		log,
@@ -159,13 +109,7 @@ func TestMain(m *testing.M) {
 	}
 
 	p, err := openai.NewOpenAICompatibleProvider(
-		ex,
-		url,
-		model,
-		apiKey,
-		prompt,
-		types.Role_Master,
-		maxIters,
+		ex, url, model, apiKey, prompt, types.Role_Master, maxIters,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "new openai provider: %v\n", err)
@@ -177,25 +121,21 @@ func TestMain(m *testing.M) {
 	code = m.Run()
 }
 
-func TestInvoke_LLMStudio_SendMessage(t *testing.T) {
+func TestInvoke_SendMessage(t *testing.T) {
 	resetDB(t)
 
-	timeout := time.Duration(envInt(envTimeoutSec, 120)) * time.Second
+	timeout := time.Duration(testutil.EnvInt(testutil.EnvTimeoutSec, 120)) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	invokeID := uuid.NewString()
 	fmt.Printf("=== Invoke input ===\ninvoke_id: %s\nuser: %s\n", invokeID, userMessage)
 
-	start := time.Now()
-	err := provider.Invoke(ctx, invokeID, providers.Request{
+	if err := provider.Invoke(ctx, invokeID, providers.Request{
 		Args: json.RawMessage(userMessage),
-	})
-	if err != nil {
+	}); err != nil {
 		t.Fatalf("Invoke: %v", err)
 	}
-
-	t.Logf("Invoke completed in %v seconds", time.Since(start).Seconds())
 
 	var journaled []journal.Request
 	if err := testConn.DB().
@@ -244,76 +184,10 @@ func resetDB(t *testing.T) {
 	}
 }
 
-func testDir() string {
+func packageDir() string {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		return "."
 	}
 	return filepath.Dir(file)
-}
-
-func repoRoot() string {
-	return filepath.Clean(filepath.Join(testDir(), ".."))
-}
-
-func loadSystemPrompt(path string) (string, error) {
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	var file systemPromptFile
-	if err := json.Unmarshal(raw, &file); err != nil {
-		return "", err
-	}
-	if strings.TrimSpace(file.Prompt) == "" {
-		return "", fmt.Errorf("%s: empty prompt", path)
-	}
-	return file.Prompt, nil
-}
-
-func loadDotEnv(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = f.Close() }()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		key, value, ok := strings.Cut(line, "=")
-		if !ok {
-			continue
-		}
-		key = strings.TrimSpace(key)
-		value = strings.TrimSpace(value)
-		if len(value) >= 2 {
-			if (value[0] == '"' && value[len(value)-1] == '"') || (value[0] == '\'' && value[len(value)-1] == '\'') {
-				value = value[1 : len(value)-1]
-			}
-		}
-		if key == "" {
-			continue
-		}
-		if _, exists := os.LookupEnv(key); exists {
-			continue
-		}
-		_ = os.Setenv(key, value)
-	}
-	return scanner.Err()
-}
-
-func envInt(key string, fallback int) int {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return fallback
-	}
-	n, err := strconv.Atoi(raw)
-	if err != nil || n <= 0 {
-		return fallback
-	}
-	return n
 }

@@ -24,7 +24,7 @@ func (p *OpenAICompatibleProvider) Invoke(ctx context.Context, id string, reques
 	// 	}
 
 	// 	for _, tool := range response.ToolCalls {
-	// 		answer, err := p.executor.Execute(ctx, id, libtools.Call{
+	// 		answer, err := p.executor.Execute(ctx, id, tools.Call{
 	// 			ID:   tool.ID,
 	// 			Name: tool.Function.Name,
 	// 			Role: p.role,

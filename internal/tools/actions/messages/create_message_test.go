@@ -11,7 +11,7 @@ import (
 	"github.com/dejitarudemon/mundarium/internal/alarm"
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"
 	toolsmessages "github.com/dejitarudemon/mundarium/internal/tools/actions/messages"

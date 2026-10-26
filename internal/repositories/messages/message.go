@@ -3,7 +3,7 @@ package messages
 import (
 	"time"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
 )

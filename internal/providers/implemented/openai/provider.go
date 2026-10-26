@@ -5,8 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	libprovider "github.com/dejitarudemon/mundarium/internal/libs/providers"
-	libopenai "github.com/dejitarudemon/mundarium/internal/libs/providers/openai"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/providers/implemented"
 	"github.com/dejitarudemon/mundarium/internal/tools/executor"
 	"github.com/openai/openai-go/v3"
@@ -28,7 +27,7 @@ type OpenAICompatibleProvider struct {
 	url    string
 	apiKey string
 
-	role libprovider.Role
+	role providers.Role
 
 	tools []openai.ChatCompletionToolUnionParam
 
@@ -36,7 +35,7 @@ type OpenAICompatibleProvider struct {
 }
 
 // NewOpenAICompatibleProvider builds a provider bound to executor tools allowed for role.
-func NewOpenAICompatibleProvider(executor *executor.Executor, url, model, apiKey, prompt string, role libprovider.Role, maxIters int) (*OpenAICompatibleProvider, error) {
+func NewOpenAICompatibleProvider(executor *executor.Executor, url, model, apiKey, prompt string, role providers.Role, maxIters int) (*OpenAICompatibleProvider, error) {
 	if executor == nil {
 		return nil, implemented.ErrNoExecutor
 	}
@@ -95,7 +94,7 @@ func (p *OpenAICompatibleProvider) Available(ctx context.Context) error {
 		return implemented.NewProviderNotAvailableError(resp.StatusCode, p.baseExtra())
 	}
 
-	models, err := libopenai.NewModelsResponse(body)
+	models, err := NewModelsResponse(body)
 	if err != nil {
 		return p.handleError(err)
 	}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/providers/openai"
+	"github.com/dejitarudemon/mundarium/internal/providers/implemented/openai"
 )
 
 func TestModelsResponse_HasModel(t *testing.T) {

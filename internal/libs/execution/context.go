@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
-	libprovider "github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"gorm.io/gorm"
 )
 
@@ -17,7 +17,7 @@ type ExecutionContext struct {
 
 	callID           journal.ID
 	invokeID         journal.ID
-	role             libprovider.Role
+	role             providers.Role
 	callbackComplete journal.CompleteFunc
 	callbackFail     journal.FailFunc
 }
@@ -25,7 +25,7 @@ type ExecutionContext struct {
 // NewExecutionContext creates an ExecutionContext with required complete and fail callbacks.
 // callID is the journal request id; invokeID is the invoke/group id; role is the caller role.
 // Returns an error if either callback is nil. A nil parent is replaced with context.Background.
-func NewExecutionContext(parent context.Context, callID, invokeID journal.ID, role libprovider.Role, complete journal.CompleteFunc, fail journal.FailFunc) (ExecutionContext, context.CancelFunc, error) {
+func NewExecutionContext(parent context.Context, callID, invokeID journal.ID, role providers.Role, complete journal.CompleteFunc, fail journal.FailFunc) (ExecutionContext, context.CancelFunc, error) {
 	if complete == nil || fail == nil {
 		return ExecutionContext{}, nil, errors.New("nil callback")
 	}
@@ -48,7 +48,7 @@ func NewExecutionContext(parent context.Context, callID, invokeID journal.ID, ro
 // NewExecutionContextWithoutCallback creates an ExecutionContext without callbacks.
 // callID, invokeID, and role are still stored for InvokeID/Role accessors.
 // Complete and Fail become no-ops. A nil parent is replaced with context.Background.
-func NewExecutionContextWithoutCallback(parent context.Context, callID, invokeID journal.ID, role libprovider.Role) (ExecutionContext, context.CancelFunc) {
+func NewExecutionContextWithoutCallback(parent context.Context, callID, invokeID journal.ID, role providers.Role) (ExecutionContext, context.CancelFunc) {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -89,6 +89,6 @@ func (e ExecutionContext) InvokeID() journal.ID {
 }
 
 // Role returns the caller role for this execution.
-func (e ExecutionContext) Role() libprovider.Role {
+func (e ExecutionContext) Role() providers.Role {
 	return e.role
 }

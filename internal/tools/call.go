@@ -4,7 +4,7 @@ package tools
 import (
 	"encoding/json"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 )
 
 // Call is a single tool invocation requested by an agent or orchestrator.

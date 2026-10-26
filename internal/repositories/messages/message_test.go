@@ -3,7 +3,7 @@ package messages_test
 import (
 	"testing"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/repositories/messages"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

@@ -3,11 +3,11 @@ package openai
 import (
 	"context"
 
-	libprovider "github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/providers/implemented"
 )
 
-func (p *OpenAICompatibleProvider) Invoke(ctx context.Context, id string, request libprovider.Request) error {
+func (p *OpenAICompatibleProvider) Invoke(ctx context.Context, id string, request providers.Request) error {
 	// history := []openai.ChatCompletionMessageParamUnion{
 	// 	openai.SystemMessage(p.prompt),
 	// 	openai.UserMessage(string(request.Args)),

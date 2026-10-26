@@ -9,7 +9,7 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/actions"

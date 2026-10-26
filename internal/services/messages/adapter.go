@@ -4,7 +4,7 @@ import (
 	"errors"
 	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 )
 
 // toNewMessage maps CreateMessageInput to a domain Message ready for insert.

@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/dejitarudemon/mundarium/internal/tools/definition"
 )

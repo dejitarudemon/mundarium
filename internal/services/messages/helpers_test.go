@@ -7,7 +7,7 @@ import (
 
 	"github.com/dejitarudemon/mundarium/internal/journal"
 	"github.com/dejitarudemon/mundarium/internal/libs/execution"
-	"github.com/dejitarudemon/mundarium/internal/libs/providers"
+	"github.com/dejitarudemon/mundarium/internal/providers"
 	"gorm.io/gorm"
 )
 

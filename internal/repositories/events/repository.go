@@ -28,6 +28,9 @@ var ErrEventEntityAlreadyKnown = errors.New("event entity already has known_at_g
 // before KnownAtGameTime has been established.
 var ErrEventEntityNotKnown = errors.New("event entity has no known_at_game_time")
 
+// ErrEventLocationRequired is returned when PatchEventLocation receives a zero location id.
+var ErrEventLocationRequired = errors.New("event location id is required")
+
 // EventsRepository persists and queries Event, EventEntity, and EventCausal records.
 type EventsRepository struct {
 	db     *gorm.DB

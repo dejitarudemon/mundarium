@@ -96,6 +96,75 @@ func TestEventsRepository_PatchEventFields(t *testing.T) {
 	}
 }
 
+func TestEventsRepository_FindEventsByLocationID(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+
+	locA := repositories.ID(101)
+	locB := repositories.ID(202)
+	a, err := testRepo.CreateEvent(ctx, &events.Event{
+		LocationID:        &locA,
+		Importance:        10,
+		CreatedAtGameTime: 1,
+		Summary:           "at-a",
+	})
+	if err != nil {
+		t.Fatalf("CreateEvent a: %v", err)
+	}
+	_, err = testRepo.CreateEvent(ctx, &events.Event{
+		LocationID:        &locB,
+		Importance:        10,
+		CreatedAtGameTime: 2,
+		Summary:           "at-b",
+	})
+	if err != nil {
+		t.Fatalf("CreateEvent b: %v", err)
+	}
+	_ = createRepoEvent(t, 10, "nowhere")
+
+	got, err := testRepo.FindEvents(ctx, events.FindEventsFilter{LocationID: &locA})
+	if err != nil {
+		t.Fatalf("FindEvents: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != a.ID {
+		t.Fatalf("want only event a, got %#v", got)
+	}
+}
+
+func TestEventsRepository_PatchEventLocation(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+
+	ev := createRepoEvent(t, 10, "unplaced")
+	if err := testRepo.PatchEventLocation(ctx, ev.ID, 0); !errors.Is(err, events.ErrEventLocationRequired) {
+		t.Fatalf("want ErrEventLocationRequired, got %v", err)
+	}
+
+	locID := repositories.ID(42)
+	if err := testRepo.PatchEventLocation(ctx, ev.ID, locID); err != nil {
+		t.Fatalf("PatchEventLocation: %v", err)
+	}
+	got, err := testRepo.GetEvent(ctx, ev.ID)
+	if err != nil {
+		t.Fatalf("GetEvent: %v", err)
+	}
+	if got.LocationID == nil || *got.LocationID != locID {
+		t.Fatalf("want location %d, got %v", locID, got.LocationID)
+	}
+
+	other := repositories.ID(99)
+	if err := testRepo.PatchEventLocation(ctx, ev.ID, other); err != nil {
+		t.Fatalf("PatchEventLocation replace: %v", err)
+	}
+	got, err = testRepo.GetEvent(ctx, ev.ID)
+	if err != nil {
+		t.Fatalf("GetEvent: %v", err)
+	}
+	if got.LocationID == nil || *got.LocationID != other {
+		t.Fatalf("want location %d, got %v", other, got.LocationID)
+	}
+}
+
 func TestEventsRepository_FindEventsByTags(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()

@@ -13,6 +13,10 @@ import (
 type Event struct {
 	ID ID `gorm:"type:uuid;primaryKey" json:"id"`
 
+	// LocationID is where the event took place (locations.Location.ID).
+	// Optional; deleting the event does not delete the location.
+	LocationID *repositories.ID `gorm:"index" json:"location_id,omitempty"`
+
 	Tags pq.StringArray `gorm:"type:text[];not null,default:'{}'" json:"tags"` // search tags
 
 	// Importance is fact importance from 0 to 100 inclusive.
@@ -44,8 +48,8 @@ func (e *Event) BeforeCreate(_ *gorm.DB) error {
 // String returns a compact debug representation of the event.
 func (e Event) String() string {
 	return fmt.Sprintf(
-		"Event{ID:%s Importance:%d CreatedAtGameTime:%d Summary:%q Tags:%v}",
-		e.ID, e.Importance, e.CreatedAtGameTime, e.Summary, e.Tags,
+		"Event{ID:%s LocationID:%v Importance:%d CreatedAtGameTime:%d Summary:%q Tags:%v}",
+		e.ID, e.LocationID, e.Importance, e.CreatedAtGameTime, e.Summary, e.Tags,
 	)
 }
 
@@ -87,6 +91,9 @@ func (r *EventsRepository) FindEvents(ctx context.Context, filter FindEventsFilt
 	events := make([]Event, 0)
 	query := r.db.WithContext(ctx).Model(&Event{})
 
+	if filter.LocationID != nil {
+		query = query.Where("location_id = ?", *filter.LocationID)
+	}
 	if len(filter.Tags) > 0 {
 		query = query.Where("tags && ?", pq.Array(filter.Tags))
 	}
@@ -169,8 +176,33 @@ func (r *EventsRepository) PatchEventSummary(ctx context.Context, id ID, summary
 	return nil
 }
 
+// PatchEventLocation sets LocationID for the event identified by id.
+// locationID is required (non-zero); otherwise ErrEventLocationRequired is returned.
+// Hierarchy constraints (e.g. descendant-only replacement) belong at the service layer.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *EventsRepository) PatchEventLocation(ctx context.Context, id ID, locationID repositories.ID) error {
+	if locationID == 0 {
+		r.error("failed to patch event location", "type", "EventsRepository", "func", "PatchEventLocation", "id", id, "error", ErrEventLocationRequired)
+		return ErrEventLocationRequired
+	}
+
+	result := r.db.WithContext(ctx).Model(&Event{}).Where("id = ?", id).Update("location_id", locationID)
+	if result.Error != nil {
+		r.error("failed to patch event location", "type", "EventsRepository", "func", "PatchEventLocation", "id", id, "location_id", locationID, "error", result.Error)
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		r.error("failed to patch event location", "type", "EventsRepository", "func", "PatchEventLocation", "id", id, "error", gorm.ErrRecordNotFound)
+		return gorm.ErrRecordNotFound
+	}
+
+	r.info("event location is patched", "type", "EventsRepository", "func", "PatchEventLocation", "id", id, "location_id", locationID)
+	return nil
+}
+
 // DeleteEvent deletes the event and cascades to related EventEntity links and
 // EventCausal edges where the event is either endpoint.
+// The referenced location (LocationID) is not deleted.
 // Returns gorm.ErrRecordNotFound if the event does not exist.
 func (r *EventsRepository) DeleteEvent(ctx context.Context, id ID) error {
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

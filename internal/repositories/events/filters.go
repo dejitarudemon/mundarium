@@ -7,6 +7,7 @@ import (
 
 // FindEventsFilter selects events. Nil/empty fields are ignored.
 type FindEventsFilter struct {
+	LocationID    *repositories.ID    // exact location match
 	Tags          []string            // event must share at least one of these tags
 	MinImportance *int8               // inclusive
 	MaxImportance *int8               // inclusive

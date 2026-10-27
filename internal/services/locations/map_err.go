@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	locationErrEntity        = "location"
-	locationSubtypeErrEntity = "location_subtype"
+	locationErrEntity           = "location"
+	locationSubtypeErrEntity    = "location_subtype"
+	locationConnectionErrEntity = "location_connection"
 )
 
 // mapRequestErr maps input/validation failures to InvalidRequest.
@@ -48,4 +49,15 @@ func mapSubtypeErr(err error, id repositories.ID) error {
 		return se
 	}
 	return errs.From(err, locationSubtypeErrEntity, fmt.Sprintf("%d", id))
+}
+
+// mapConnectionErr maps storage and domain failures for a connection id to ServiceError.
+func mapConnectionErr(err error, id repositories.ID) error {
+	if err == nil {
+		return nil
+	}
+	if se, ok := errors.AsType[errs.ServiceError](err); ok {
+		return se
+	}
+	return errs.From(err, locationConnectionErrEntity, fmt.Sprintf("%d", id))
 }

@@ -50,3 +50,27 @@ type GetSubtypeOutput struct {
 type FindSubtypesOutput struct {
 	Subtypes []GetSubtypeOutput `json:"subtypes"`
 }
+
+// CreateConnectionOutput is returned after a connection has been created.
+type CreateConnectionOutput struct {
+	ID     repositories.ID `json:"id"`
+	FromID repositories.ID `json:"from_id"`
+	ToID   repositories.ID `json:"to_id"`
+}
+
+// GetConnectionOutput is returned when fetching a single connection.
+type GetConnectionOutput struct {
+	ID            repositories.ID   `json:"id"`
+	FromID        repositories.ID   `json:"from_id"`
+	ToID          repositories.ID   `json:"to_id"`
+	Bidirectional bool              `json:"bidirectional"`
+	State         repositories.JSON `json:"state"`
+	Details       repositories.JSON `json:"details"`
+	Description   string            `json:"description"`
+	ExpiresAt     *int64            `json:"expires_at"`
+}
+
+// FindConnectionsOutput is the list result for FindConnections.
+type FindConnectionsOutput struct {
+	Connections []GetConnectionOutput `json:"connections"`
+}

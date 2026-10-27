@@ -36,3 +36,36 @@ type FindSubtypesInput struct {
 	Keys []string         `json:"keys"` // optional key substrings (OR-matched)
 	Type *string          `json:"type"` // optional location type name
 }
+
+// CreateConnectionInput carries data required to create a new location connection.
+type CreateConnectionInput struct {
+	FromID        repositories.ID   `json:"from_id"`
+	ToID          repositories.ID   `json:"to_id"`
+	Bidirectional bool              `json:"bidirectional"`
+	State         repositories.JSON `json:"state"`
+	Details       repositories.JSON `json:"details"`
+	Description   string            `json:"description"`
+	ExpiresAt     *int64            `json:"expires_at"`
+}
+
+// FindConnectionsInput carries optional filters for FindConnections.
+type FindConnectionsInput struct {
+	FromID                      *repositories.ID `json:"from_id"`
+	ToID                        *repositories.ID `json:"to_id"`
+	LocationID                  *repositories.ID `json:"location_id"` // either endpoint
+	EitherDirection             bool             `json:"either_direction"`
+	IncludeBidirectionalReverse bool             `json:"include_bidirectional_reverse"`
+}
+
+// UpdateConnectionInput replaces only the fields that are set (non-nil pointers).
+// ClearExpiresAt clears ExpiresAt when true; it takes precedence over ExpiresAt.
+type UpdateConnectionInput struct {
+	ID             repositories.ID    `json:"id"`
+	ToID           *repositories.ID   `json:"to_id"`
+	Bidirectional  *bool              `json:"bidirectional"`
+	State          *repositories.JSON `json:"state"`
+	Details        *repositories.JSON `json:"details"`
+	Description    *string            `json:"description"`
+	ExpiresAt      *int64             `json:"expires_at"`
+	ClearExpiresAt bool               `json:"clear_expires_at"`
+}

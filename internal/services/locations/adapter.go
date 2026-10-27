@@ -300,3 +300,145 @@ func tagsOrEmpty(v pq.StringArray) []string {
 	}
 	return []string(v)
 }
+
+// toNewConnection maps CreateConnectionInput to a domain Connection ready for insert.
+func toNewConnection(input CreateConnectionInput) (*repolocations.Connection, error) {
+	if input.FromID == 0 {
+		return nil, errors.New("from id is zero")
+	}
+	if input.ToID == 0 {
+		return nil, errors.New("to id is zero")
+	}
+
+	return &repolocations.Connection{
+		FromID:        input.FromID,
+		ToID:          input.ToID,
+		Bidirectional: input.Bidirectional,
+		State:         input.State,
+		Details:       input.Details,
+		Description:   input.Description,
+		ExpiresAt:     input.ExpiresAt,
+	}, nil
+}
+
+// toCreatedConnection maps a persisted Connection to CreateConnectionOutput.
+func toCreatedConnection(connection repolocations.Connection) (CreateConnectionOutput, error) {
+	if err := checkConnection(connection); err != nil {
+		return CreateConnectionOutput{}, err
+	}
+
+	return CreateConnectionOutput{
+		ID:     connection.ID,
+		FromID: connection.FromID,
+		ToID:   connection.ToID,
+	}, nil
+}
+
+// toGotConnection maps a persisted Connection to GetConnectionOutput.
+func toGotConnection(connection repolocations.Connection) (GetConnectionOutput, error) {
+	if err := checkConnection(connection); err != nil {
+		return GetConnectionOutput{}, err
+	}
+
+	return GetConnectionOutput{
+		ID:            connection.ID,
+		FromID:        connection.FromID,
+		ToID:          connection.ToID,
+		Bidirectional: connection.Bidirectional,
+		State:         connection.State,
+		Details:       connection.Details,
+		Description:   connection.Description,
+		ExpiresAt:     connection.ExpiresAt,
+	}, nil
+}
+
+// toFindConnectionsFilter maps FindConnectionsInput to a repository filter.
+func toFindConnectionsFilter(in FindConnectionsInput) (repolocations.FindConnectionsFilter, error) {
+	if in.FromID != nil && *in.FromID == 0 {
+		return repolocations.FindConnectionsFilter{}, errors.New("from id is zero")
+	}
+	if in.ToID != nil && *in.ToID == 0 {
+		return repolocations.FindConnectionsFilter{}, errors.New("to id is zero")
+	}
+	if in.LocationID != nil && *in.LocationID == 0 {
+		return repolocations.FindConnectionsFilter{}, errors.New("location id is zero")
+	}
+
+	return repolocations.FindConnectionsFilter{
+		FromID:                      in.FromID,
+		ToID:                        in.ToID,
+		LocationID:                  in.LocationID,
+		EitherDirection:             in.EitherDirection,
+		IncludeBidirectionalReverse: in.IncludeBidirectionalReverse,
+	}, nil
+}
+
+// toFoundConnections maps persisted connections to FindConnectionsOutput.
+func toFoundConnections(connections []repolocations.Connection) (FindConnectionsOutput, error) {
+	out := make([]GetConnectionOutput, 0, len(connections))
+	for _, connection := range connections {
+		item, err := toGotConnection(connection)
+		if err != nil {
+			return FindConnectionsOutput{}, err
+		}
+		out = append(out, item)
+	}
+	return FindConnectionsOutput{Connections: out}, nil
+}
+
+// applyConnectionUpdate copies non-nil fields from input onto connection.
+// Returns an error if no field would change.
+func applyConnectionUpdate(connection *repolocations.Connection, input UpdateConnectionInput) error {
+	changed := false
+
+	if input.ToID != nil {
+		if *input.ToID == 0 {
+			return errors.New("to id is zero")
+		}
+		connection.ToID = *input.ToID
+		changed = true
+	}
+	if input.Bidirectional != nil {
+		connection.Bidirectional = *input.Bidirectional
+		changed = true
+	}
+	if input.State != nil {
+		connection.State = *input.State
+		changed = true
+	}
+	if input.Details != nil {
+		connection.Details = *input.Details
+		changed = true
+	}
+	if input.Description != nil {
+		connection.Description = *input.Description
+		changed = true
+	}
+	if input.ClearExpiresAt {
+		connection.ExpiresAt = nil
+		changed = true
+	} else if input.ExpiresAt != nil {
+		expires := *input.ExpiresAt
+		connection.ExpiresAt = &expires
+		changed = true
+	}
+
+	if !changed {
+		return errors.New("no fields to update")
+	}
+	return nil
+}
+
+// checkConnection validates required identity fields on a Connection.
+func checkConnection(connection repolocations.Connection) error {
+	if connection.ID == 0 {
+		return errors.New("connection id is zero")
+	}
+	if connection.FromID == 0 {
+		return errors.New("from id is zero")
+	}
+	if connection.ToID == 0 {
+		return errors.New("to id is zero")
+	}
+	return nil
+}

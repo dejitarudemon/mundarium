@@ -30,3 +30,24 @@ type FindSubtypesFilter struct {
 	Keys []string
 	Type *LocationType
 }
+
+// FindConnectionsFilter selects connections by optional endpoints.
+// Nil fields are ignored. An empty filter returns all connections.
+//
+// LocationID, when set, matches rows where that location is From or To and
+// takes precedence over FromID/ToID flags.
+//
+// When both FromID and ToID are set:
+//   - default: exact directed pair
+//   - EitherDirection: also match the reverse directed pair
+//   - IncludeBidirectionalReverse: also match reverse rows marked bidirectional
+type FindConnectionsFilter struct {
+	FromID *repositories.ID
+	ToID   *repositories.ID
+	// LocationID matches connections involving this location as either endpoint.
+	LocationID *repositories.ID
+	// EitherDirection also returns ToID -> FromID when both endpoints are set.
+	EitherDirection bool
+	// IncludeBidirectionalReverse also returns ToID -> FromID when that row is bidirectional.
+	IncludeBidirectionalReverse bool
+}

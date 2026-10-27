@@ -132,8 +132,8 @@ func TestPutConnection_RejectsSameEndpoints(t *testing.T) {
 	conn.ToID = a.ID
 
 	err := testRepo.PutConnection(ctx, conn)
-	if err == nil || err.Error() != "connection between the same locations" {
-		t.Fatalf("want same-location error, got %v", err)
+	if !errors.Is(err, locations.ErrConnectionSameEndpoints) {
+		t.Fatalf("want ErrConnectionSameEndpoints, got %v", err)
 	}
 }
 
@@ -170,6 +170,107 @@ func TestDeleteConnection(t *testing.T) {
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected ErrRecordNotFound after delete, got %v", err)
 	}
+}
+
+func TestDeleteConnection_NotFound(t *testing.T) {
+	resetDB(t)
+
+	err := testRepo.DeleteConnection(context.Background(), 999)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("expected ErrRecordNotFound, got %v", err)
+	}
+}
+
+func TestFindConnections(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+
+	a := createRoot(t, "A")
+	b := createRoot(t, "B")
+	c := createRoot(t, "C")
+
+	ab := createConnection(t, a.ID, b.ID, "ab")
+	ba := createConnection(t, b.ID, a.ID, "ba")
+	ba.Bidirectional = true
+	ba.FromID = b.ID
+	ba.ToID = a.ID
+	ba.Description = "ba"
+	if err := testRepo.PutConnection(ctx, ba); err != nil {
+		t.Fatalf("PutConnection ba: %v", err)
+	}
+	ac := createConnection(t, a.ID, c.ID, "ac")
+
+	t.Run("by from", func(t *testing.T) {
+		got, err := testRepo.FindConnections(ctx, locations.FindConnectionsFilter{FromID: &a.ID})
+		if err != nil {
+			t.Fatalf("FindConnections: %v", err)
+		}
+		if len(got) != 2 {
+			t.Fatalf("want 2 from A, got %#v", got)
+		}
+		ids := map[repositories.ID]struct{}{got[0].ID: {}, got[1].ID: {}}
+		if _, ok := ids[ab.ID]; !ok {
+			t.Fatalf("missing ab in %#v", got)
+		}
+		if _, ok := ids[ac.ID]; !ok {
+			t.Fatalf("missing ac in %#v", got)
+		}
+	})
+
+	t.Run("directed pair", func(t *testing.T) {
+		got, err := testRepo.FindConnections(ctx, locations.FindConnectionsFilter{FromID: &a.ID, ToID: &b.ID})
+		if err != nil {
+			t.Fatalf("FindConnections: %v", err)
+		}
+		if len(got) != 1 || got[0].ID != ab.ID {
+			t.Fatalf("want only ab, got %#v", got)
+		}
+	})
+
+	t.Run("either direction", func(t *testing.T) {
+		got, err := testRepo.FindConnections(ctx, locations.FindConnectionsFilter{
+			FromID:          &a.ID,
+			ToID:            &b.ID,
+			EitherDirection: true,
+		})
+		if err != nil {
+			t.Fatalf("FindConnections: %v", err)
+		}
+		if len(got) != 2 {
+			t.Fatalf("want ab+ba, got %#v", got)
+		}
+	})
+
+	t.Run("bidirectional reverse", func(t *testing.T) {
+		got, err := testRepo.FindConnections(ctx, locations.FindConnectionsFilter{
+			FromID:                      &a.ID,
+			ToID:                        &b.ID,
+			IncludeBidirectionalReverse: true,
+		})
+		if err != nil {
+			t.Fatalf("FindConnections: %v", err)
+		}
+		if len(got) != 2 {
+			t.Fatalf("want ab + bidirectional ba, got %#v", got)
+		}
+	})
+
+	t.Run("involving location", func(t *testing.T) {
+		got, err := testRepo.FindConnections(ctx, locations.FindConnectionsFilter{LocationID: &b.ID})
+		if err != nil {
+			t.Fatalf("FindConnections: %v", err)
+		}
+		if len(got) != 2 {
+			t.Fatalf("want connections involving B, got %#v", got)
+		}
+		ids := map[repositories.ID]struct{}{got[0].ID: {}, got[1].ID: {}}
+		if _, ok := ids[ab.ID]; !ok {
+			t.Fatalf("missing ab in %#v", got)
+		}
+		if _, ok := ids[ba.ID]; !ok {
+			t.Fatalf("missing ba in %#v", got)
+		}
+	})
 }
 
 func TestCreateConnection_RequiresExistingLocations(t *testing.T) {

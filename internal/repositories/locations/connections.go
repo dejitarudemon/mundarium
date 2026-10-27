@@ -26,7 +26,7 @@ type Connection struct {
 
 	Description string `gorm:"type:text" json:"description"`
 
-	ExpiresAt *int64
+	ExpiresAt *int64 `json:"expires_at"`
 }
 
 // CreateConnection inserts a new connection between two locations.

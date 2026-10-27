@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	repoevents "github.com/dejitarudemon/mundarium/internal/repositories/events"
 	pgstorage "github.com/dejitarudemon/mundarium/internal/storage/postgres"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -14,7 +15,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var testDB *gorm.DB
+var (
+	testDB   *gorm.DB
+	testRepo *repoevents.EventsRepository
+)
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -54,7 +58,14 @@ func TestMain(m *testing.M) {
 		return
 	}
 
+	repo, err := repoevents.NewEventsRepository(conn.DB(), nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "new repository: %v\n", err)
+		return
+	}
+
 	testDB = conn.DB()
+	testRepo = repo
 	code = m.Run()
 }
 

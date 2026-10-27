@@ -265,16 +265,14 @@ func TestUpdateConnection(t *testing.T) {
 	updateCtx, updateCancel := newExecCtx(t, rec)
 	defer updateCancel()
 
-	desc := "updated"
-	bidirectional := true
-	details := repositories.JSON(`{"v":1}`)
 	if err := testSvc.UpdateConnection(updateCtx, svclocations.UpdateConnectionInput{
 		ID:            created.ID,
-		ToID:          &c.ID,
-		Bidirectional: &bidirectional,
-		Description:   &desc,
-		Details:       &details,
-		ClearExpiresAt: true,
+		ToID:          c.ID,
+		Bidirectional: true,
+		Description:   "updated",
+		State:         repositories.JSON(`{"open":false}`),
+		Details:       repositories.JSON(`{"v":1}`),
+		ExpiresAt:     nil,
 	}); err != nil {
 		t.Fatalf("UpdateConnection: %v", err)
 	}
@@ -294,21 +292,26 @@ func TestUpdateConnection(t *testing.T) {
 	}
 }
 
-func TestUpdateConnection_NoFields(t *testing.T) {
+func TestUpdateConnection_RejectsZeroToID(t *testing.T) {
 	resetDB(t)
 	a := seedRoot(t, "A")
 	b := seedRoot(t, "B")
 	ctx, cancel := newExecCtx(t, nil)
 	defer cancel()
 
-	created, err := testSvc.CreateConnection(ctx, svclocations.CreateConnectionInput{FromID: a.ID, ToID: b.ID})
+	created, err := testSvc.CreateConnection(ctx, svclocations.CreateConnectionInput{FromID: a.ID, ToID: b.ID, Description: "x"})
 	if err != nil {
 		t.Fatalf("CreateConnection: %v", err)
 	}
 
-	err = testSvc.UpdateConnection(ctx, svclocations.UpdateConnectionInput{ID: created.ID})
+	err = testSvc.UpdateConnection(ctx, svclocations.UpdateConnectionInput{
+		ID:          created.ID,
+		Description: "x",
+		State:       repositories.JSON(`{}`),
+		Details:     repositories.JSON(`{}`),
+	})
 	if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
-		t.Fatalf("want InvalidRequest for empty update, got %v", err)
+		t.Fatalf("want InvalidRequest for zero to_id, got %v", err)
 	}
 }
 

@@ -57,15 +57,14 @@ type FindConnectionsInput struct {
 	IncludeBidirectionalReverse bool             `json:"include_bidirectional_reverse"`
 }
 
-// UpdateConnectionInput replaces only the fields that are set (non-nil pointers).
-// ClearExpiresAt clears ExpiresAt when true; it takes precedence over ExpiresAt.
+// UpdateConnectionInput fully replaces mutable connection fields (not FromID).
+// A nil ExpiresAt clears expiry.
 type UpdateConnectionInput struct {
-	ID             repositories.ID    `json:"id"`
-	ToID           *repositories.ID   `json:"to_id"`
-	Bidirectional  *bool              `json:"bidirectional"`
-	State          *repositories.JSON `json:"state"`
-	Details        *repositories.JSON `json:"details"`
-	Description    *string            `json:"description"`
-	ExpiresAt      *int64             `json:"expires_at"`
-	ClearExpiresAt bool               `json:"clear_expires_at"`
+	ID            repositories.ID   `json:"id"`
+	ToID          repositories.ID   `json:"to_id"`
+	Bidirectional bool              `json:"bidirectional"`
+	State         repositories.JSON `json:"state"`
+	Details       repositories.JSON `json:"details"`
+	Description   string            `json:"description"`
+	ExpiresAt     *int64            `json:"expires_at"`
 }

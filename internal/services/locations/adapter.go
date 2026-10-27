@@ -386,45 +386,26 @@ func toFoundConnections(connections []repolocations.Connection) (FindConnections
 	return FindConnectionsOutput{Connections: out}, nil
 }
 
-// applyConnectionUpdate copies non-nil fields from input onto connection.
-// Returns an error if no field would change.
+// applyConnectionUpdate writes all mutable fields from input onto connection.
+// FromID is left unchanged. A nil ExpiresAt clears expiry.
 func applyConnectionUpdate(connection *repolocations.Connection, input UpdateConnectionInput) error {
-	changed := false
+	if input.ToID == 0 {
+		return errors.New("to id is zero")
+	}
+	if strings.TrimSpace(input.Description) == "" {
+		return errors.New("description is empty")
+	}
 
-	if input.ToID != nil {
-		if *input.ToID == 0 {
-			return errors.New("to id is zero")
-		}
-		connection.ToID = *input.ToID
-		changed = true
-	}
-	if input.Bidirectional != nil {
-		connection.Bidirectional = *input.Bidirectional
-		changed = true
-	}
-	if input.State != nil {
-		connection.State = *input.State
-		changed = true
-	}
-	if input.Details != nil {
-		connection.Details = *input.Details
-		changed = true
-	}
-	if input.Description != nil {
-		connection.Description = *input.Description
-		changed = true
-	}
-	if input.ClearExpiresAt {
+	connection.ToID = input.ToID
+	connection.Bidirectional = input.Bidirectional
+	connection.State = input.State
+	connection.Details = input.Details
+	connection.Description = input.Description
+	if input.ExpiresAt == nil {
 		connection.ExpiresAt = nil
-		changed = true
-	} else if input.ExpiresAt != nil {
+	} else {
 		expires := *input.ExpiresAt
 		connection.ExpiresAt = &expires
-		changed = true
-	}
-
-	if !changed {
-		return errors.New("no fields to update")
 	}
 	return nil
 }

@@ -139,8 +139,8 @@ func (s *Service) FindConnections(ctx execution.ExecutionContext[journal.Result]
 	return result, nil
 }
 
-// UpdateConnection replaces the specified fields of a connection inside a transaction.
-// Only non-nil pointer fields in input are written. ClearExpiresAt clears ExpiresAt.
+// UpdateConnection fully replaces mutable connection fields inside a transaction.
+// FromID is not changed. A nil ExpiresAt clears expiry.
 func (s *Service) UpdateConnection(ctx execution.ExecutionContext[journal.Result], input UpdateConnectionInput) error {
 	if input.ID == 0 {
 		err := mapRequestErr(errZeroConnectionID)

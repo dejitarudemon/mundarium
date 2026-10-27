@@ -22,6 +22,11 @@ type Event struct {
 
 	Summary string            `gorm:"type:text;not null" json:"summary"` // short event context
 	Details repositories.JSON `gorm:"type:jsonb" json:"details"`         // event details
+
+	// Entities are entity links for this event (EventEntity.EventID).
+	Entities []EventEntity `gorm:"foreignKey:EventID;references:ID" json:"entities,omitempty"`
+	// Causals are outgoing causal edges where this event is the cause (From).
+	Causals []EventCausal `gorm:"foreignKey:From;references:ID" json:"causals,omitempty"`
 }
 
 // BeforeCreate assigns a random ID when none was set by the caller.

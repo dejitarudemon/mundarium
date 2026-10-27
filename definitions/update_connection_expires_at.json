@@ -1,0 +1,22 @@
+{
+    "name": "update_connection_expires_at",
+    "description": "Set or clear the expiry timestamp of an existing connection. Pass null to clear expires_at. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection whose expiry to change."
+        },
+        "expires_at": {
+          "type": ["integer", "null"],
+          "description": "Unix timestamp when the transition ceases to be valid, or null to clear expiry."
+        }
+      },
+      "required": [
+        "id",
+        "expires_at"
+      ],
+      "additionalProperties": false
+    }
+}

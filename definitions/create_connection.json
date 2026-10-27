@@ -1,0 +1,47 @@
+{
+    "name": "create_connection",
+    "description": "Record an explicit canonical transition between two locations (secret tunnel, portal, special passage, magical corridor). Do NOT use this for ordinary adjacency implied by hierarchy (doors between neighboring rooms, streets, stairs). Absence of a connection does NOT mean travel is impossible. Self-links (from_id == to_id) are allowed when the fiction requires it. Endpoints must already exist.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "from_id": {
+          "type": "integer",
+          "description": "Source location ID. The transition starts here."
+        },
+        "to_id": {
+          "type": "integer",
+          "description": "Destination location ID. May equal from_id for a self-loop."
+        },
+        "bidirectional": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the recorded transition may be used in reverse as well. Defaults to false; do not assume every link is two-way."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Narrative description of the transition as established canon."
+        },
+        "state": {
+          "type": "object",
+          "description": "Optional current runtime state of the transition (locked, open, known-to-players, and so on).",
+          "additionalProperties": true
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional established facts about the transition as key-value pairs.",
+          "additionalProperties": true
+        },
+        "expires_at": {
+          "type": ["integer", "null"],
+          "description": "Optional Unix timestamp when the transition ceases to be valid. Null means no expiry."
+        }
+      },
+      "required": [
+        "from_id",
+        "to_id",
+        "description"
+      ],
+      "additionalProperties": false
+    }
+}

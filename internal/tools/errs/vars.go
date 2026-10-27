@@ -11,6 +11,8 @@ var (
 	// ErrServiceIsNil is returned when a tool constructor receives a nil service dependency.
 	ErrServiceIsNil = errors.New("expected service, got nil")
 
-	ErrLocationIDZero = errors.New("location id is zero")
-	ErrParentIDZero   = errors.New("parent id is zero")
+	ErrLocationIDZero   = errors.New("location id is zero")
+	ErrParentIDZero     = errors.New("parent id is zero")
+	ErrConnectionIDZero = errors.New("connection id is zero")
+	ErrToIDZero         = errors.New("to id is zero")
 )

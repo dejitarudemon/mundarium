@@ -1,0 +1,23 @@
+{
+    "name": "update_connection_details",
+    "description": "Replace all details of an existing connection with the provided object. This is a full overwrite, not a merge. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection whose details to replace."
+        },
+        "details": {
+          "type": "object",
+          "description": "Complete new details object. Replaces any previous details entirely.",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "id",
+        "details"
+      ],
+      "additionalProperties": false
+    }
+}

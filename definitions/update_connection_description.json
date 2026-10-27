@@ -1,0 +1,23 @@
+{
+    "name": "update_connection_description",
+    "description": "Replace the narrative description of an existing connection. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection whose description to replace."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Complete new narrative description. Replaces any previous description entirely."
+        }
+      },
+      "required": [
+        "id",
+        "description"
+      ],
+      "additionalProperties": false
+    }
+}

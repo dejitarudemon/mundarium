@@ -138,3 +138,48 @@ func updateLocationDescriptionDefinitionPath(t *testing.T) string {
 	t.Helper()
 	return filepath.Join(definitionsDir(t), "update_location_description.json")
 }
+
+func createConnectionDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "create_connection.json")
+}
+
+func findConnectionsDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "find_connections.json")
+}
+
+func updateConnectionDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_connection.json")
+}
+
+func updateConnectionToDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_connection_to.json")
+}
+
+func updateConnectionStateDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_connection_state.json")
+}
+
+func updateConnectionDetailsDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_connection_details.json")
+}
+
+func updateConnectionDescriptionDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_connection_description.json")
+}
+
+func updateConnectionExpiresAtDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_connection_expires_at.json")
+}
+
+func updateConnectionBidirectionalDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "update_connection_bidirectional.json")
+}

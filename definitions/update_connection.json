@@ -1,0 +1,50 @@
+{
+    "name": "update_connection",
+    "description": "Fully replace mutable fields of an existing connection. Provide every field; expires_at null clears expiry. From endpoint is not changed. Repeating the same update is safe. Do not invent connection IDs — look them up with find_connections first.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection to update."
+        },
+        "to_id": {
+          "type": "integer",
+          "description": "Destination location ID. May equal from_id for a self-loop. Must already exist."
+        },
+        "bidirectional": {
+          "type": "boolean",
+          "description": "When true, the recorded transition may be used in reverse as well."
+        },
+        "state": {
+          "type": "object",
+          "description": "Complete connection state object.",
+          "additionalProperties": true
+        },
+        "details": {
+          "type": "object",
+          "description": "Complete connection details object.",
+          "additionalProperties": true
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Complete narrative description of the transition."
+        },
+        "expires_at": {
+          "type": ["integer", "null"],
+          "description": "Unix timestamp when the transition ceases to be valid, or null for no expiry."
+        }
+      },
+      "required": [
+        "id",
+        "to_id",
+        "bidirectional",
+        "state",
+        "details",
+        "description",
+        "expires_at"
+      ],
+      "additionalProperties": false
+    }
+}

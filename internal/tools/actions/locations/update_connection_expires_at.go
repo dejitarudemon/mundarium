@@ -76,7 +76,7 @@ func (t *UpdateConnectionExpiresAtTool) Execute(ctx execution.ExecutionContext[j
 		return nil, err
 	}
 
-	raw, err := t.marshal(UpdateConnectionExpiresAtResult{ID: in.ID, ExpiresAt: in.ExpiresAt})
+	raw, err := t.marshal(UpdateConnectionExpiresAtResult(in))
 	if err != nil {
 		errorf(t.logger, "failed to execute update_connection_expires_at", "type", "UpdateConnectionExpiresAtTool", "func", "Execute", "id", in.ID, "error", err)
 		return nil, err

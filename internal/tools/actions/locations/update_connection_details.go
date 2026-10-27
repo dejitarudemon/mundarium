@@ -76,7 +76,7 @@ func (t *UpdateConnectionDetailsTool) Execute(ctx execution.ExecutionContext[jou
 		return nil, err
 	}
 
-	raw, err := t.marshal(UpdateConnectionDetailsResult{ID: in.ID, Details: in.Details})
+	raw, err := t.marshal(UpdateConnectionDetailsResult(in))
 	if err != nil {
 		errorf(t.logger, "failed to execute update_connection_details", "type", "UpdateConnectionDetailsTool", "func", "Execute", "id", in.ID, "error", err)
 		return nil, err

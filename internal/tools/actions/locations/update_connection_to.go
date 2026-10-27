@@ -76,7 +76,7 @@ func (t *UpdateConnectionToTool) Execute(ctx execution.ExecutionContext[journal.
 		return nil, err
 	}
 
-	raw, err := t.marshal(UpdateConnectionToResult{ID: in.ID, ToID: in.ToID})
+	raw, err := t.marshal(UpdateConnectionToResult(in))
 	if err != nil {
 		errorf(t.logger, "failed to execute update_connection_to", "type", "UpdateConnectionToTool", "func", "Execute", "id", in.ID, "error", err)
 		return nil, err

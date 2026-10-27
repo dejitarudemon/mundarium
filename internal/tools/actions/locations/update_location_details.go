@@ -76,7 +76,7 @@ func (t *UpdateLocationDetailsTool) Execute(ctx execution.ExecutionContext[journ
 		return nil, err
 	}
 
-	raw, err := t.marshal(UpdateLocationDetailsResult{ID: in.ID, Details: in.Details})
+	raw, err := t.marshal(UpdateLocationDetailsResult(in))
 	if err != nil {
 		errorf(t.logger, "failed to execute update_location_details", "type", "UpdateLocationDetailsTool", "func", "Execute", "id", in.ID, "error", err)
 		return nil, err

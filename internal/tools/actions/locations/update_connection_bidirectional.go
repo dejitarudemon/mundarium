@@ -76,7 +76,7 @@ func (t *UpdateConnectionBidirectionalTool) Execute(ctx execution.ExecutionConte
 		return nil, err
 	}
 
-	raw, err := t.marshal(UpdateConnectionBidirectionalResult{ID: in.ID, Bidirectional: in.Bidirectional})
+	raw, err := t.marshal(UpdateConnectionBidirectionalResult(in))
 	if err != nil {
 		errorf(t.logger, "failed to execute update_connection_bidirectional", "type", "UpdateConnectionBidirectionalTool", "func", "Execute", "id", in.ID, "error", err)
 		return nil, err

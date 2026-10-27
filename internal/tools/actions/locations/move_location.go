@@ -76,7 +76,7 @@ func (t *MoveLocationTool) Execute(ctx execution.ExecutionContext[journal.Result
 		return nil, err
 	}
 
-	raw, err := t.marshal(MoveLocationResult{ID: in.ID, ParentID: in.ParentID})
+	raw, err := t.marshal(MoveLocationResult(in))
 	if err != nil {
 		errorf(t.logger, "failed to execute move_location", "type", "MoveLocationTool", "func", "Execute", "id", in.ID, "error", err)
 		return nil, err

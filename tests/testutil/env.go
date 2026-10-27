@@ -1,4 +1,5 @@
-// Package testutil provides shared helpers for integration tests under tests/.
+// Package testutil provides shared helpers for integration tests under
+// tests/executor and tests/invoke.
 package testutil
 
 import (

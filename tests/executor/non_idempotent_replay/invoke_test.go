@@ -1,4 +1,4 @@
-package executor_non_idempotent_replay_test
+package non_idempotent_replay_test
 
 import (
 	"context"

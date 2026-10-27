@@ -1,4 +1,4 @@
-package executor_invalid_references_test
+package invalid_references_test
 
 import (
 	"context"

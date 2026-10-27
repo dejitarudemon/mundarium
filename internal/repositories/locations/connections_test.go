@@ -122,7 +122,7 @@ func TestPutConnection(t *testing.T) {
 	}
 }
 
-func TestPutConnection_RejectsSameEndpoints(t *testing.T) {
+func TestPutConnection_AllowsSameEndpoints(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
@@ -131,9 +131,68 @@ func TestPutConnection_RejectsSameEndpoints(t *testing.T) {
 	conn := createConnection(t, a.ID, b.ID, "link")
 	conn.ToID = a.ID
 
-	err := testRepo.PutConnection(ctx, conn)
-	if !errors.Is(err, locations.ErrConnectionSameEndpoints) {
-		t.Fatalf("want ErrConnectionSameEndpoints, got %v", err)
+	if err := testRepo.PutConnection(ctx, conn); err != nil {
+		t.Fatalf("PutConnection same endpoints: %v", err)
+	}
+
+	got, err := testRepo.GetConnection(ctx, conn.ID)
+	if err != nil {
+		t.Fatalf("GetConnection: %v", err)
+	}
+	if got.FromID != a.ID || got.ToID != a.ID {
+		t.Fatalf("want self-link, got %+v", got)
+	}
+}
+
+func TestPatchConnectionFields(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+
+	a := createRoot(t, "A")
+	b := createRoot(t, "B")
+	c := createRoot(t, "C")
+	conn := createConnection(t, a.ID, b.ID, "old")
+
+	if err := testRepo.PatchConnectionTo(ctx, conn.ID, c.ID); err != nil {
+		t.Fatalf("PatchConnectionTo: %v", err)
+	}
+	if err := testRepo.PatchConnectionBidirectional(ctx, conn.ID, true); err != nil {
+		t.Fatalf("PatchConnectionBidirectional: %v", err)
+	}
+	if err := testRepo.PatchConnectionDescription(ctx, conn.ID, "new"); err != nil {
+		t.Fatalf("PatchConnectionDescription: %v", err)
+	}
+	if err := testRepo.PatchConnectionState(ctx, conn.ID, repositories.JSON(`{"open":true}`)); err != nil {
+		t.Fatalf("PatchConnectionState: %v", err)
+	}
+	if err := testRepo.PatchConnectionDetails(ctx, conn.ID, repositories.JSON(`{"k":"v"}`)); err != nil {
+		t.Fatalf("PatchConnectionDetails: %v", err)
+	}
+	expires := int64(1_700_000_000)
+	if err := testRepo.PatchConnectionExpiresAt(ctx, conn.ID, &expires); err != nil {
+		t.Fatalf("PatchConnectionExpiresAt: %v", err)
+	}
+
+	got, err := testRepo.GetConnection(ctx, conn.ID)
+	if err != nil {
+		t.Fatalf("GetConnection: %v", err)
+	}
+	if got.ToID != c.ID || !got.Bidirectional || got.Description != "new" {
+		t.Fatalf("unexpected patched connection: %+v", got)
+	}
+	if got.ExpiresAt == nil || *got.ExpiresAt != expires {
+		t.Fatalf("unexpected ExpiresAt: %#v", got.ExpiresAt)
+	}
+
+	if err := testRepo.PatchConnectionExpiresAt(ctx, conn.ID, nil); err != nil {
+		t.Fatalf("PatchConnectionExpiresAt clear: %v", err)
+	}
+	got, err = testRepo.GetConnection(ctx, conn.ID)
+	if err != nil {
+		t.Fatalf("GetConnection after clear: %v", err)
+	}
+	if got.ExpiresAt != nil {
+		t.Fatalf("want cleared ExpiresAt, got %#v", got.ExpiresAt)
 	}
 }
 

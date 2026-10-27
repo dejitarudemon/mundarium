@@ -2,16 +2,9 @@ package locations
 
 import (
 	"context"
-	"errors"
 
 	"github.com/dejitarudemon/mundarium/internal/repositories"
 	"gorm.io/gorm"
-)
-
-var (
-	// ErrConnectionSameEndpoints is returned when PutConnection would set FromID == ToID.
-	// CreateConnection allows self-links (e.g. magical corridors back to the entry).
-	ErrConnectionSameEndpoints = errors.New("connection between the same locations")
 )
 
 // Connection is not a physical place; it represents a directed link between two locations.
@@ -127,14 +120,8 @@ func (r *LocationRepository) FindInderectConnections(ctx context.Context, fromID
 }
 
 // PutConnection updates mutable fields of an existing connection identified by connection.ID.
-// Returns ErrConnectionSameEndpoints if FromID and ToID refer to the same location.
-// Returns gorm.ErrRecordNotFound if no row was updated.
+// Self-links (FromID == ToID) are allowed. Returns gorm.ErrRecordNotFound if no row was updated.
 func (r *LocationRepository) PutConnection(ctx context.Context, connection *Connection) error {
-	if connection.FromID == connection.ToID {
-		r.error("failed to put connection", "type", "LocationRepository", "func", "PutConnection", "id", connection.ID, "error", ErrConnectionSameEndpoints)
-		return ErrConnectionSameEndpoints
-	}
-
 	result := r.db.WithContext(ctx).
 		Model(&Connection{}).
 		Where("id = ?", connection.ID).
@@ -160,6 +147,56 @@ func (r *LocationRepository) PutConnection(ctx context.Context, connection *Conn
 	}
 
 	r.info("connection is updated", "type", "LocationRepository", "func", "PutConnection", "data", connection)
+	return nil
+}
+
+// PatchConnectionTo sets the destination location of the connection identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchConnectionTo(ctx context.Context, id, toID repositories.ID) error {
+	return r.patchConnectionColumn(ctx, "PatchConnectionTo", id, "to_id", toID)
+}
+
+// PatchConnectionState sets the state of the connection identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchConnectionState(ctx context.Context, id repositories.ID, state repositories.JSON) error {
+	return r.patchConnectionColumn(ctx, "PatchConnectionState", id, "state", state)
+}
+
+// PatchConnectionDetails sets the details of the connection identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchConnectionDetails(ctx context.Context, id repositories.ID, details repositories.JSON) error {
+	return r.patchConnectionColumn(ctx, "PatchConnectionDetails", id, "details", details)
+}
+
+// PatchConnectionDescription sets the description of the connection identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchConnectionDescription(ctx context.Context, id repositories.ID, description string) error {
+	return r.patchConnectionColumn(ctx, "PatchConnectionDescription", id, "description", description)
+}
+
+// PatchConnectionExpiresAt sets ExpiresAt of the connection identified by id.
+// A nil expiresAt clears the column. Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchConnectionExpiresAt(ctx context.Context, id repositories.ID, expiresAt *int64) error {
+	return r.patchConnectionColumn(ctx, "PatchConnectionExpiresAt", id, "expires_at", expiresAt)
+}
+
+// PatchConnectionBidirectional sets Bidirectional of the connection identified by id.
+// Returns gorm.ErrRecordNotFound if no row was updated.
+func (r *LocationRepository) PatchConnectionBidirectional(ctx context.Context, id repositories.ID, bidirectional bool) error {
+	return r.patchConnectionColumn(ctx, "PatchConnectionBidirectional", id, "bidirectional", bidirectional)
+}
+
+func (r *LocationRepository) patchConnectionColumn(ctx context.Context, funcName string, id repositories.ID, column string, value any) error {
+	result := r.db.WithContext(ctx).Model(&Connection{}).Where("id = ?", id).Update(column, value)
+	if result.Error != nil {
+		r.error("failed to patch connection", "type", "LocationRepository", "func", funcName, "id", id, "error", result.Error)
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		r.error("failed to patch connection", "type", "LocationRepository", "func", funcName, "id", id, "error", gorm.ErrRecordNotFound)
+		return gorm.ErrRecordNotFound
+	}
+	r.info("connection is patched", "type", "LocationRepository", "func", funcName, "id", id)
 	return nil
 }
 

@@ -2,10 +2,12 @@ package errs_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/dejitarudemon/mundarium/internal/services/errs"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -62,6 +64,24 @@ func TestFrom_GormInvalidRequestClass(t *testing.T) {
 	}
 	if ir.Reason == "" {
 		t.Fatal("want non-empty reason")
+	}
+}
+
+func TestFrom_PostgresForeignKeyViolation23503(t *testing.T) {
+	cause := &pgconn.PgError{
+		Code:    "23503",
+		Message: `insert or update on table "locations" violates foreign key constraint "fk_locations_subtype"`,
+	}
+	// Driver path without gorm.Config.TranslateError, and wrapped like gorm Translate.
+	for _, err := range []error{
+		cause,
+		fmt.Errorf("db: %w", cause),
+		fmt.Errorf("%w: %w", gorm.ErrForeignKeyViolated, cause),
+	} {
+		got := errs.From(err, "location", "1")
+		if _, ok := got.(errs.InvalidRequest); !ok {
+			t.Fatalf("SQLSTATE 23503 want InvalidRequest, got %T (%v)", got, got)
+		}
 	}
 }
 

@@ -94,6 +94,28 @@ func TestCreateLocation_ValidationErrors(t *testing.T) {
 			t.Fatal("want Fail called on validation error")
 		}
 	})
+
+	t.Run("missing subtype fk", func(t *testing.T) {
+		before := len(rec.failCalls)
+		missing := repositories.ID(999999)
+		_, err := testSvc.CreateLocation(ctx, svclocations.CreateLocationInput{
+			ParentID:    new(root.ID),
+			Type:        "structure",
+			SubtypeID:   &missing,
+			Name:        "orphan-subtype",
+			Description: "refs missing subtype",
+			Details:     repositories.JSON(`{}`),
+		})
+		if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+			t.Fatalf("SQLSTATE 23503 want errs.InvalidRequest, got %T (%v)", err, err)
+		}
+		if _, ok := errors.AsType[svcerrs.InternalError](err); ok {
+			t.Fatalf("foreign key violation must not be InternalError: %v", err)
+		}
+		if len(rec.failCalls) <= before {
+			t.Fatal("want Fail called on FK violation")
+		}
+	})
 }
 
 func TestCreateLocation_CompleteError(t *testing.T) {

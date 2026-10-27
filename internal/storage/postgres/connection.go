@@ -22,7 +22,8 @@ type Connection struct {
 // and returns a Connection.
 func Open(dsn string) (*Connection, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger:         logger.Default.LogMode(logger.Silent),
+		TranslateError: true, // map SQLSTATE 23503/23505/… to gorm.ErrForeignKeyViolated / ErrDuplicatedKey / …
 	})
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)

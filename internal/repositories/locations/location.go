@@ -9,6 +9,7 @@ import (
 type Location struct {
 	ID       repositories.ID  `gorm:"primaryKey" json:"id"`
 	ParentID *repositories.ID `gorm:"index" json:"parent_id"` // parent location ID; nil for a root
+	Parent   *Location        `gorm:"foreignKey:ParentID" json:"parent"`
 
 	Type      LocationType     `gorm:"not null" json:"type"`
 	SubtypeID *repositories.ID `gorm:"index" json:"subtype_id"`

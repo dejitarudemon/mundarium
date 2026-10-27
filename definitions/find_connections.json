@@ -1,0 +1,32 @@
+{
+    "name": "find_connections",
+    "description": "Find previously recorded explicit transitions (connections) between locations. Use before creating a connection that might already exist, and when the master must recall secret tunnels, portals, or other canon links. An empty result means no such connection was recorded — not that travel is impossible. Ordinary hierarchy adjacency is not returned here.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "from_id": {
+          "type": ["integer", "null"],
+          "description": "Optional source location ID filter."
+        },
+        "to_id": {
+          "type": ["integer", "null"],
+          "description": "Optional destination location ID filter."
+        },
+        "location_id": {
+          "type": ["integer", "null"],
+          "description": "Optional location ID that must appear as either endpoint. When set, from_id/to_id direction flags are ignored."
+        },
+        "either_direction": {
+          "type": "boolean",
+          "default": false,
+          "description": "When from_id and to_id are both set, also return the reverse directed row (to_id -> from_id)."
+        },
+        "include_bidirectional_reverse": {
+          "type": "boolean",
+          "default": false,
+          "description": "When from_id and to_id are both set (and either_direction is false), also return reverse rows marked bidirectional."
+        }
+      },
+      "additionalProperties": false
+    }
+}

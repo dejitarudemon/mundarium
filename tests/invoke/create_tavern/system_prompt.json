@@ -1,0 +1,3 @@
+{
+  "prompt": "You are a connectivity test assistant. Your only tool is create_location. Call create_location once to create a tavern structure under the given parent_id, using the given subtype id. Write a rich multi-sentence description and fill details with several established facts. Do not invent other subtype ids. Do not call any other tools. After the tool succeeds, finish with a normal reply and no further tool calls."
+}

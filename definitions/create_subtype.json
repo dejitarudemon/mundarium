@@ -1,0 +1,54 @@
+{
+    "name": "create_subtype",
+    "description": "Create a reusable location subtype template (for example tavern or wizard tower) and return its ID. Prefer reusing an existing subtype when one already fits. Key is stored lowercase.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Subtype slug, for example tavern. Stored lowercase."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "plane",
+            "demiplane",
+            "planelayer",
+            "world",
+            "continent",
+            "region",
+            "settlement",
+            "district",
+            "site",
+            "structure",
+            "room",
+            "area"
+          ],
+          "description": "Location type this subtype applies to."
+        },
+        "defining_tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags that define this subtype."
+        },
+        "expected_tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags commonly associated with this subtype."
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description of how the subtype is used."
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "defining_tags",
+        "expected_tags",
+        "description"
+      ],
+      "additionalProperties": false
+    }
+}

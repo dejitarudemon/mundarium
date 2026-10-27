@@ -1,0 +1,22 @@
+{
+    "name": "update_connection_to",
+    "description": "Change the destination location of an existing connection. Self-links (to_id equal to the connection's from_id) are allowed. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection to update."
+        },
+        "to_id": {
+          "type": "integer",
+          "description": "New destination location ID. Must already exist."
+        }
+      },
+      "required": [
+        "id",
+        "to_id"
+      ],
+      "additionalProperties": false
+    }
+}

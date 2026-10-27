@@ -1,0 +1,22 @@
+{
+    "name": "move_location",
+    "description": "Reparent an existing location. Pass parent_id null to make it a root. Repeating the same move is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the location to move."
+        },
+        "parent_id": {
+          "type": ["integer", "null"],
+          "description": "New parent location ID. Use null to make the location a root."
+        }
+      },
+      "required": [
+        "id",
+        "parent_id"
+      ],
+      "additionalProperties": false
+    }
+}

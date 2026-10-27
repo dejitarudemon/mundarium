@@ -1,0 +1,22 @@
+{
+    "name": "update_connection_bidirectional",
+    "description": "Set whether an existing connection may be used in reverse. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection to update."
+        },
+        "bidirectional": {
+          "type": "boolean",
+          "description": "When true, the recorded transition may be used in reverse as well."
+        }
+      },
+      "required": [
+        "id",
+        "bidirectional"
+      ],
+      "additionalProperties": false
+    }
+}

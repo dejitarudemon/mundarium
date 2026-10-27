@@ -1,0 +1,3 @@
+{
+  "prompt": "You are a connectivity test assistant. Available tools: create_location and find_locations. First call create_location once to create a root world location without subtype. Then call find_locations once with scope_id equal to the created location id and depth=0. Do not use send_message or any other tools. After find_locations succeeds, finish with a normal reply and no further tool calls."
+}

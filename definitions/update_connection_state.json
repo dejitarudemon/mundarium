@@ -1,0 +1,23 @@
+{
+    "name": "update_connection_state",
+    "description": "Replace all runtime state of an existing connection with the provided object. This is a full overwrite, not a merge. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection whose state to replace."
+        },
+        "state": {
+          "type": "object",
+          "description": "Complete new state object. Replaces any previous state entirely.",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "id",
+        "state"
+      ],
+      "additionalProperties": false
+    }
+}

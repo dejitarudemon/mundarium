@@ -1,0 +1,230 @@
+package locations
+
+import (
+	"github.com/dejitarudemon/mundarium/internal/repositories"
+	"testing"
+
+	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
+)
+
+func TestToNewLocation(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
+		loc, err := toNewLocation(CreateLocationInput{
+			ParentID:    new(repositories.ID(3)),
+			Type:        "structure",
+			SubtypeID:   new(repositories.ID(7)),
+			Name:        "Tavern",
+			Description: "warm",
+			Details:     repositories.JSON(`{"x":1}`),
+		})
+		if err != nil {
+			t.Fatalf("toNewLocation: %v", err)
+		}
+		if loc.ParentID == nil || *loc.ParentID != 3 || loc.Type != repolocations.LocationType_STRUCTURE || loc.Name != "Tavern" {
+			t.Fatalf("unexpected location: %+v", loc)
+		}
+		if loc.SubtypeID == nil || *loc.SubtypeID != 7 {
+			t.Fatalf("unexpected subtype: %#v", loc.SubtypeID)
+		}
+	})
+
+	t.Run("root parent", func(t *testing.T) {
+		loc, err := toNewLocation(CreateLocationInput{Type: "world", Name: "x"})
+		if err != nil {
+			t.Fatalf("toNewLocation: %v", err)
+		}
+		if loc.ParentID != nil {
+			t.Fatalf("want nil parent for root, got %v", loc.ParentID)
+		}
+	})
+
+	t.Run("zero parent", func(t *testing.T) {
+		_, err := toNewLocation(CreateLocationInput{ParentID: new(repositories.ID(0)), Type: "region", Name: "x"})
+		if err == nil || err.Error() != "parent id is zero" {
+			t.Fatalf("want parent id is zero, got %v", err)
+		}
+	})
+
+	t.Run("bad type", func(t *testing.T) {
+		_, err := toNewLocation(CreateLocationInput{ParentID: new(repositories.ID(1)), Type: "nope", Name: "x"})
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+
+	t.Run("zero subtype", func(t *testing.T) {
+		_, err := toNewLocation(CreateLocationInput{
+			ParentID:  new(repositories.ID(1)),
+			Type:      "region",
+			SubtypeID: new(repositories.ID(0)),
+			Name:      "x",
+		})
+		if err == nil || err.Error() != "subtype id is zero" {
+			t.Fatalf("want subtype id is zero, got %v", err)
+		}
+	})
+}
+
+func TestToCreatedAndGotLocation(t *testing.T) {
+	loc := repolocations.Location{
+		ID:          10,
+		ParentID:    nil,
+		Type:        repolocations.LocationType_WORLD,
+		Name:        "World",
+		Description: "big",
+		Details:     repositories.JSON(`{}`),
+	}
+
+	created, err := toCreatedLocation(loc)
+	if err != nil {
+		t.Fatalf("toCreatedLocation: %v", err)
+	}
+	if created.ID != 10 || created.ParentID != nil || created.Name != "World" {
+		t.Fatalf("unexpected created: %+v", created)
+	}
+
+	got, err := toGotLocation(loc)
+	if err != nil {
+		t.Fatalf("toGotLocation: %v", err)
+	}
+	if got.Type != "world" || got.Description != "big" || got.ParentID != nil {
+		t.Fatalf("unexpected got: %+v", got)
+	}
+}
+
+func TestCheckLocation(t *testing.T) {
+	if err := checkLocation(repolocations.Location{ID: 0, ParentID: new(repositories.ID(1))}); err == nil || err.Error() != "location id is zero" {
+		t.Fatalf("want location id is zero, got %v", err)
+	}
+	if err := checkLocation(repolocations.Location{ID: 1, ParentID: new(repositories.ID(0))}); err == nil || err.Error() != "parent id is zero" {
+		t.Fatalf("want parent id is zero, got %v", err)
+	}
+	if err := checkLocation(repolocations.Location{ID: 1, ParentID: nil}); err != nil {
+		t.Fatalf("root location should be valid: %v", err)
+	}
+}
+
+func TestToGotChildLocations(t *testing.T) {
+	children := map[int][]repolocations.Location{
+		1: {{ID: 2, ParentID: new(repositories.ID(1)), Type: repolocations.LocationType_REGION, Name: "A"}},
+		2: {{ID: 3, ParentID: new(repositories.ID(2)), Type: repolocations.LocationType_SITE, Name: "A1"}},
+	}
+
+	out, err := toGotChildLocations(children)
+	if err != nil {
+		t.Fatalf("toGotChildLocations: %v", err)
+	}
+	if len(out[1]) != 1 || out[1][0].Name != "A" || len(out[2]) != 1 || out[2][0].Name != "A1" {
+		t.Fatalf("unexpected output: %#v", out)
+	}
+
+	_, err = toGotChildLocations(map[int][]repolocations.Location{
+		1: {{ID: 0, ParentID: new(repositories.ID(1)), Name: "bad"}},
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestToFindLocationsFilter(t *testing.T) {
+	const maxDepth = 5
+
+	got, limit, err := toFindLocationsFilter(FindLocationsInput{
+		ScopeID: 7,
+		Query:   new("north"),
+		Type:    new("region"),
+		Depth:   new(2),
+	}, maxDepth)
+	if err != nil {
+		t.Fatalf("toFindLocationsFilter: %v", err)
+	}
+	if got.ScopeID != 7 || got.Depth != 2 || limit != defaultFindLocationsLimit {
+		t.Fatalf("unexpected filter/limit: %+v %d", got, limit)
+	}
+	if got.Query == nil || *got.Query != "north" {
+		t.Fatalf("unexpected query: %#v", got.Query)
+	}
+	if got.Type == nil || *got.Type != repolocations.LocationType_REGION {
+		t.Fatalf("unexpected type: %#v", got.Type)
+	}
+
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 0}, maxDepth)
+	if err == nil || err.Error() != "scope id is zero" {
+		t.Fatalf("want scope id is zero, got %v", err)
+	}
+
+	defaults, limit, err := toFindLocationsFilter(FindLocationsInput{ScopeID: 1}, maxDepth)
+	if err != nil {
+		t.Fatalf("defaults: %v", err)
+	}
+	if defaults.Depth != 1 || limit != 20 {
+		t.Fatalf("want depth=1 limit=20, got %+v %d", defaults, limit)
+	}
+
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Depth: new(6)}, maxDepth)
+	if err == nil || err.Error() != "depth out of range" {
+		t.Fatalf("want depth out of range, got %v", err)
+	}
+
+	_, _, err = toFindLocationsFilter(FindLocationsInput{ScopeID: 1, Limit: new(0)}, maxDepth)
+	if err == nil || err.Error() != "limit out of range" {
+		t.Fatalf("want limit out of range, got %v", err)
+	}
+}
+
+func TestToNewSubtype(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
+		got, err := toNewSubtype(CreateSubtypeInput{
+			Key:          " Tavern ",
+			Type:         "structure",
+			DefiningTags: []string{"rest"},
+			ExpectedTags: nil,
+			Description:  "inn",
+		})
+		if err != nil {
+			t.Fatalf("toNewSubtype: %v", err)
+		}
+		if got.Key != "Tavern" || got.Type != repolocations.LocationType_STRUCTURE || got.Description != "inn" {
+			t.Fatalf("unexpected subtype: %+v", got)
+		}
+		if len(got.DefiningTags) != 1 || got.DefiningTags[0] != "rest" {
+			t.Fatalf("unexpected defining tags: %#v", got.DefiningTags)
+		}
+		if got.ExpectedTags == nil {
+			t.Fatal("expected empty ExpectedTags slice, got nil")
+		}
+	})
+
+	t.Run("empty key", func(t *testing.T) {
+		_, err := toNewSubtype(CreateSubtypeInput{Key: "  ", Type: "structure"})
+		if err == nil || err.Error() != "key is empty" {
+			t.Fatalf("want key is empty, got %v", err)
+		}
+	})
+
+	t.Run("bad type", func(t *testing.T) {
+		_, err := toNewSubtype(CreateSubtypeInput{Key: "tavern", Type: "nope"})
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+}
+
+func TestToFindSubtypesFilter(t *testing.T) {
+	got, err := toFindSubtypesFilter(FindSubtypesInput{
+		ID:   new(repositories.ID(3)),
+		Keys: []string{"tav"},
+		Type: new("structure"),
+	})
+	if err != nil {
+		t.Fatalf("toFindSubtypesFilter: %v", err)
+	}
+	if got.ID == nil || *got.ID != 3 || len(got.Keys) != 1 || got.Type == nil || *got.Type != repolocations.LocationType_STRUCTURE {
+		t.Fatalf("unexpected filter: %+v", got)
+	}
+
+	_, err = toFindSubtypesFilter(FindSubtypesInput{ID: new(repositories.ID(0))})
+	if err == nil || err.Error() != "subtype id is zero" {
+		t.Fatalf("want subtype id is zero, got %v", err)
+	}
+}

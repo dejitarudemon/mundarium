@@ -1,0 +1,3 @@
+{
+  "prompt": "You are a connectivity test assistant. Your only tool is create_location. Call create_location once to create a root world location. Do not set subtype. Do not invent subtype ids. Do not call any other tools. After the tool succeeds, finish with a normal reply and no further tool calls."
+}

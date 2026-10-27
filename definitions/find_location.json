@@ -1,0 +1,41 @@
+{
+    "name": "find_locations",
+    "description": "Find existing locations within a specified area. Use before creating a location that might already exist. An empty result does not mean the location cannot exist in the world.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "scope_id": {
+          "type": "integer",
+          "description": "Location ID defining the search area. Search its descendants."
+        },
+        "query": {
+          "type": ["string", "null"],
+          "description": "Optional search text matching location names or descriptions."
+        },
+        "type": {
+          "type": ["string", "null"],
+          "description": "Optional location type filter."
+        },
+        "subtype": {
+          "type": ["integer", "null"],
+          "description": "Optional existing subtype ID."
+        },
+        "depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "default": 1,
+            "description": "Maximum search depth relative to scope_id. Defaults to 1. 0 searches only the scope location; 1 includes direct children; 2 includes grandchildren. Increase only when necessary."
+        },
+        "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20,
+            "description": "Maximum number of matching descendants to return (scope is always included). has_more is the count of matching descendants omitted due to this limit."
+        }
+      },
+      "required": ["scope_id"],
+      "additionalProperties": false
+    }
+}

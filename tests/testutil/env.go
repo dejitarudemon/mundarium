@@ -1,5 +1,5 @@
 // Package testutil provides shared helpers for integration tests under
-// tests/executor and tests/invoke.
+// tests/executor/{locations,events} and tests/invoke/{locations,events}.
 package testutil
 
 import (
@@ -117,6 +117,10 @@ func RequireLLMStudioEnv() (url, model, apiKey string, maxIters int, ok bool, re
 	model = strings.TrimSpace(os.Getenv(EnvModel))
 	if url == "" || model == "" {
 		return "", "", "", 0, false, fmt.Errorf("%s and %s are required in .env", EnvURL, EnvModel)
+	}
+	// OpenAI client requires an absolute URL with a scheme.
+	if !strings.Contains(url, "://") {
+		url = "http://" + url
 	}
 	return url, model, os.Getenv(EnvAPIKey), EnvInt(EnvMaxIters, 8), true, nil
 }

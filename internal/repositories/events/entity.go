@@ -64,7 +64,7 @@ func (r *EventsRepository) GetEventEntity(ctx context.Context, entityID entities
 }
 
 // FindEventEntities returns links matching filter ordered by event_id, entity_id.
-// With an empty filter, all links are returned.
+// With an empty filter, all links are returned (subject to Limit when positive).
 func (r *EventsRepository) FindEventEntities(ctx context.Context, filter FindEventEntitiesFilter) ([]EventEntity, error) {
 	links := make([]EventEntity, 0)
 	query := r.db.WithContext(ctx).Model(&EventEntity{})
@@ -80,6 +80,9 @@ func (r *EventsRepository) FindEventEntities(ctx context.Context, filter FindEve
 	}
 	if filter.KnownOnly {
 		query = query.Where("known_at_game_time IS NOT NULL")
+	}
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
 	}
 
 	if err := query.Order("event_id, entity_id").Find(&links).Error; err != nil {

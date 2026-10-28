@@ -16,12 +16,21 @@ var (
 	errNilEventID = errors.New("event id is nil")
 )
 
-// CreateEvent creates an event (optionally with entities and outgoing causals)
+// CreateEvent creates an event (optionally with entities and incoming causals)
 // inside a transaction and completes the execution context.
+// Nested causals use From as the cause event; this event becomes To (effect).
 // Nested causals may form cycles with other events; self-links are rejected.
-// Causal targets may occur later in game time than this event.
+// Cause endpoints may occur later in game time than this event.
 func (s *Service) CreateEvent(ctx execution.ExecutionContext[journal.Result], input CreateEventInput) (CreateEventOutput, error) {
 	event, err := toNewEvent(input)
+	if err != nil {
+		err = mapRequestErr(err)
+		s.error("failed to create event", "type", "Service", "func", "CreateEvent", "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "CreateEvent")
+		return CreateEventOutput{}, err
+	}
+
+	incoming, err := toIncomingCreateCausals(input.Causals)
 	if err != nil {
 		err = mapRequestErr(err)
 		s.error("failed to create event", "type", "Service", "func", "CreateEvent", "error", err)
@@ -34,9 +43,17 @@ func (s *Service) CreateEvent(ctx execution.ExecutionContext[journal.Result], in
 	if err := s.connection.WithTransaction(
 		ctx,
 		func(tx *gorm.DB) error {
-			created, err := s.generator(tx).CreateEvent(ctx, event)
+			repo := s.generator(tx)
+			created, err := repo.CreateEvent(ctx, event)
 			if err != nil {
 				return err
+			}
+
+			for i := range incoming {
+				incoming[i].To = created.ID
+				if err := repo.CreateEventCausal(ctx, &incoming[i]); err != nil {
+					return err
+				}
 			}
 
 			var mapErr error

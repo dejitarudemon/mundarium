@@ -165,6 +165,82 @@ func TestEventsRepository_PatchEventLocation(t *testing.T) {
 	}
 }
 
+func TestEventsRepository_FindEventsByIDQueryLimit(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+
+	a, err := testRepo.CreateEvent(ctx, &events.Event{
+		Importance:        10,
+		CreatedAtGameTime: 1,
+		Summary:           "a",
+		Details:           repositories.JSON(`{"weapon":"sword","note":"shiny"}`),
+	})
+	if err != nil {
+		t.Fatalf("CreateEvent a: %v", err)
+	}
+	_, err = testRepo.CreateEvent(ctx, &events.Event{
+		Importance:        10,
+		CreatedAtGameTime: 2,
+		Summary:           "b",
+		Details:           repositories.JSON(`{"weapon":"shield"}`),
+	})
+	if err != nil {
+		t.Fatalf("CreateEvent b: %v", err)
+	}
+	_, err = testRepo.CreateEvent(ctx, &events.Event{
+		Importance:        10,
+		CreatedAtGameTime: 3,
+		Summary:           "c",
+		Details:           repositories.JSON(`{"weapon":"sword","note":"rusty"}`),
+	})
+	if err != nil {
+		t.Fatalf("CreateEvent c: %v", err)
+	}
+
+	byID, err := testRepo.FindEvents(ctx, events.FindEventsFilter{ID: &a.ID})
+	if err != nil {
+		t.Fatalf("FindEvents by id: %v", err)
+	}
+	if len(byID) != 1 || byID[0].ID != a.ID {
+		t.Fatalf("want only a, got %#v", byID)
+	}
+
+	q := "sword"
+	byQuery, err := testRepo.FindEvents(ctx, events.FindEventsFilter{Query: &q})
+	if err != nil {
+		t.Fatalf("FindEvents by query: %v", err)
+	}
+	if len(byQuery) != 2 {
+		t.Fatalf("want 2 sword details, got %#v", byQuery)
+	}
+
+	sumQ := "ambush-at-gate"
+	sumEv, err := testRepo.CreateEvent(ctx, &events.Event{
+		Importance:        10,
+		CreatedAtGameTime: 4,
+		Summary:           "ambush-at-gate",
+		Details:           repositories.JSON(`{"ok":true}`),
+	})
+	if err != nil {
+		t.Fatalf("CreateEvent summary: %v", err)
+	}
+	bySummary, err := testRepo.FindEvents(ctx, events.FindEventsFilter{Query: &sumQ})
+	if err != nil {
+		t.Fatalf("FindEvents by summary: %v", err)
+	}
+	if len(bySummary) != 1 || bySummary[0].ID != sumEv.ID {
+		t.Fatalf("want summary match, got %#v", bySummary)
+	}
+
+	limited, err := testRepo.FindEvents(ctx, events.FindEventsFilter{Query: &q, Limit: 1})
+	if err != nil {
+		t.Fatalf("FindEvents limit: %v", err)
+	}
+	if len(limited) != 1 {
+		t.Fatalf("want 1 with limit, got %#v", limited)
+	}
+}
+
 func TestEventsRepository_FindEventsByTags(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
@@ -344,4 +420,3 @@ func TestEventsRepository_CreateEventCausal_RejectsIncomplete(t *testing.T) {
 		}
 	}
 }
-

@@ -63,18 +63,9 @@ func toNewEvent(input CreateEventInput) (*repoevents.Event, error) {
 		})
 	}
 
-	causals := make([]repoevents.EventCausal, 0, len(input.Causals))
-	for _, in := range input.Causals {
-		if isNilEventID(in.To) {
-			return nil, repoevents.ErrEventCausalIncomplete
-		}
-		if strings.TrimSpace(in.Cause) == "" {
-			return nil, errors.New("cause is empty")
-		}
-		causals = append(causals, repoevents.EventCausal{
-			To:    in.To,
-			Cause: in.Cause,
-		})
+	// Nested causals are attached after insert (incoming: From -> new event as To).
+	if _, err := toIncomingCreateCausals(input.Causals); err != nil {
+		return nil, err
 	}
 
 	return &repoevents.Event{
@@ -85,8 +76,26 @@ func toNewEvent(input CreateEventInput) (*repoevents.Event, error) {
 		Summary:           input.Summary,
 		Details:           input.Details,
 		Entities:          entitiesLinks,
-		Causals:           causals,
 	}, nil
+}
+
+// toIncomingCreateCausals validates nested create_event causals (From + Cause).
+// To is filled with the new event id by CreateEvent after insert.
+func toIncomingCreateCausals(input []CreateEventCausalInput) ([]repoevents.EventCausal, error) {
+	edges := make([]repoevents.EventCausal, 0, len(input))
+	for _, in := range input {
+		if isNilEventID(in.From) {
+			return nil, repoevents.ErrEventCausalIncomplete
+		}
+		if strings.TrimSpace(in.Cause) == "" {
+			return nil, errors.New("cause is empty")
+		}
+		edges = append(edges, repoevents.EventCausal{
+			From:  in.From,
+			Cause: in.Cause,
+		})
+	}
+	return edges, nil
 }
 
 func toCreatedEvent(event repoevents.Event) (CreateEventOutput, error) {
@@ -153,7 +162,15 @@ func toFoundEvents(events []repoevents.Event) (FindEventsOutput, error) {
 	return FindEventsOutput{Events: out}, nil
 }
 
+const (
+	defaultFindEventsLimit = 20
+	maxFindEventsLimit     = 100
+)
+
 func toFindEventsFilter(in FindEventsInput) (repoevents.FindEventsFilter, error) {
+	if in.ID != nil && isNilEventID(*in.ID) {
+		return repoevents.FindEventsFilter{}, errors.New("event id is nil")
+	}
 	if in.LocationID != nil && *in.LocationID == 0 {
 		return repoevents.FindEventsFilter{}, repoevents.ErrEventLocationRequired
 	}
@@ -163,13 +180,30 @@ func toFindEventsFilter(in FindEventsInput) (repoevents.FindEventsFilter, error)
 	if in.MaxImportance != nil && (*in.MaxImportance < 0 || *in.MaxImportance > 100) {
 		return repoevents.FindEventsFilter{}, repoevents.ErrEventImportanceOutOfRange
 	}
+
+	limit, err := resolveFindLimit(in.Limit)
+	if err != nil {
+		return repoevents.FindEventsFilter{}, err
+	}
+
+	var query *string
+	if in.Query != nil {
+		q := strings.TrimSpace(*in.Query)
+		if q != "" {
+			query = &q
+		}
+	}
+
 	return repoevents.FindEventsFilter{
+		ID:            in.ID,
 		LocationID:    in.LocationID,
 		Tags:          in.Tags,
 		MinImportance: in.MinImportance,
 		MaxImportance: in.MaxImportance,
 		CreatedAtFrom: in.CreatedAtFrom,
 		CreatedAtTo:   in.CreatedAtTo,
+		Query:         query,
+		Limit:         limit,
 	}, nil
 }
 
@@ -222,6 +256,17 @@ func toFoundEventEntities(links []repoevents.EventEntity) (FindEventEntitiesOutp
 	return FindEventEntitiesOutput{Entities: out}, nil
 }
 
+func resolveFindLimit(limit *int) (int, error) {
+	n := defaultFindEventsLimit
+	if limit != nil {
+		n = *limit
+	}
+	if n < 1 || n > maxFindEventsLimit {
+		return 0, errors.New("limit out of range")
+	}
+	return n, nil
+}
+
 func toFindEventEntitiesFilter(in FindEventEntitiesInput) (repoevents.FindEventEntitiesFilter, error) {
 	filter := repoevents.FindEventEntitiesFilter{
 		EventID:   in.EventID,
@@ -244,6 +289,11 @@ func toFindEventEntitiesFilter(in FindEventEntitiesInput) (repoevents.FindEventE
 		}
 		filter.Role = &role
 	}
+	n, err := resolveFindLimit(in.Limit)
+	if err != nil {
+		return repoevents.FindEventEntitiesFilter{}, err
+	}
+	filter.Limit = n
 	return filter, nil
 }
 
@@ -297,9 +347,14 @@ func toFindEventCausalsFilter(in FindEventCausalsInput) (repoevents.FindEventCau
 	if in.To != nil && isNilEventID(*in.To) {
 		return repoevents.FindEventCausalsFilter{}, errors.New("to id is nil")
 	}
+	limit, err := resolveFindLimit(in.Limit)
+	if err != nil {
+		return repoevents.FindEventCausalsFilter{}, err
+	}
 	return repoevents.FindEventCausalsFilter{
 		EventID: in.EventID,
 		From:    in.From,
 		To:      in.To,
+		Limit:   limit,
 	}, nil
 }

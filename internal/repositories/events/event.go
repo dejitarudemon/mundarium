@@ -30,7 +30,8 @@ type Event struct {
 
 	// Entities are entity links for this event (EventEntity.EventID).
 	Entities []EventEntity `gorm:"foreignKey:EventID;references:ID" json:"entities,omitempty"`
-	// Causals are outgoing causal edges where this event is the cause (From).
+	// Causals are outgoing causal edges where this event is From (the cause);
+	// each Causal.To is the effect event.
 	Causals []EventCausal `gorm:"foreignKey:From;references:ID" json:"causals,omitempty"`
 }
 
@@ -87,11 +88,14 @@ func (r *EventsRepository) GetEvent(ctx context.Context, id ID) (*Event, error) 
 }
 
 // FindEvents returns events matching filter ordered by created_at_game_time, id.
-// With an empty filter, all events are returned.
+// With an empty filter, all events are returned (subject to Limit when positive).
 func (r *EventsRepository) FindEvents(ctx context.Context, filter FindEventsFilter) ([]Event, error) {
 	events := make([]Event, 0)
 	query := r.db.WithContext(ctx).Model(&Event{})
 
+	if filter.ID != nil {
+		query = query.Where("id = ?", *filter.ID)
+	}
 	if filter.LocationID != nil {
 		query = query.Where("location_id = ?", *filter.LocationID)
 	}
@@ -109,6 +113,15 @@ func (r *EventsRepository) FindEvents(ctx context.Context, filter FindEventsFilt
 	}
 	if filter.CreatedAtTo != nil {
 		query = query.Where("created_at_game_time <= ?", *filter.CreatedAtTo)
+	}
+	if filter.Query != nil && *filter.Query != "" {
+		query = query.Where(
+			"summary ILIKE '%' || ? || '%' OR details::text ILIKE '%' || ? || '%'",
+			*filter.Query, *filter.Query,
+		)
+	}
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
 	}
 
 	if err := query.Order("created_at_game_time, id").Find(&events).Error; err != nil {

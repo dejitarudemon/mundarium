@@ -15,7 +15,7 @@ func TestCreateGetEvent_WithEntitiesAndCausals(t *testing.T) {
 	ctx, cancel := newExecCtx(t, nil)
 	defer cancel()
 
-	effect := createEvent(t, "effect-later", 40, 200)
+	cause := createEvent(t, "prior-cause", 40, 10)
 	entityID := newEntityID()
 	locID := repositories.ID(7)
 
@@ -27,20 +27,20 @@ func TestCreateGetEvent_WithEntitiesAndCausals(t *testing.T) {
 		LocationID:        &locID,
 		Importance:        80,
 		CreatedAtGameTime: 50,
-		Summary:           "cause-now",
+		Summary:           "effect-now",
 		Tags:              []string{"quest", "combat"},
 		Details:           repositories.JSON(`{"scene":"gate"}`),
 		Entities: []svcevents.CreateEventEntityInput{
 			{EntityID: entityID.String(), Role: "actor"},
 		},
 		Causals: []svcevents.CreateEventCausalInput{
-			{To: effect.ID, Cause: "leads to"},
+			{From: cause.ID, Cause: "leads to"},
 		},
 	})
 	if err != nil {
 		t.Fatalf("CreateEvent: %v", err)
 	}
-	if created.Summary != "cause-now" {
+	if created.Summary != "effect-now" {
 		t.Fatalf("unexpected create output: %+v", created)
 	}
 	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Create {
@@ -51,7 +51,7 @@ func TestCreateGetEvent_WithEntitiesAndCausals(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetEvent: %v", err)
 	}
-	if got.Summary != "cause-now" || got.Importance != 80 {
+	if got.Summary != "effect-now" || got.Importance != 80 {
 		t.Fatalf("unexpected event: %+v", got)
 	}
 	if got.LocationID == nil || *got.LocationID != locID {
@@ -60,8 +60,14 @@ func TestCreateGetEvent_WithEntitiesAndCausals(t *testing.T) {
 	if len(got.Entities) != 1 || got.Entities[0].EntityID != entityID.String() || got.Entities[0].Role != "actor" {
 		t.Fatalf("unexpected entities: %#v", got.Entities)
 	}
-	if len(got.Causals) != 1 || got.Causals[0].To != effect.ID || got.Causals[0].Cause != "leads to" {
-		t.Fatalf("unexpected causals: %#v", got.Causals)
+
+	// Incoming edge is From=cause -> To=created; visible on the cause's outgoing Causals.
+	causeGot, err := testSvc.GetEvent(ctx, cause.ID)
+	if err != nil {
+		t.Fatalf("GetEvent cause: %v", err)
+	}
+	if len(causeGot.Causals) != 1 || causeGot.Causals[0].To != created.ID || causeGot.Causals[0].Cause != "leads to" {
+		t.Fatalf("unexpected causals on cause: %#v", causeGot.Causals)
 	}
 }
 

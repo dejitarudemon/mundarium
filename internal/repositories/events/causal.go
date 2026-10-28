@@ -9,14 +9,18 @@ import (
 )
 
 // EventCausal is a directed causal edge from one event to another.
+// From is the cause event (the event the link originates from).
+// To is the effect event (the event the link leads to).
 // From and To form the composite primary key: a causal link either exists with
 // both endpoints set, or it does not exist at all. From and To must be non-nil
 // and distinct. Direct self-links are forbidden.
 // The edge endpoints are immutable after insert; Cause may be updated via PatchEventCausalCause.
 // Edges are removed when either endpoint event is deleted.
 type EventCausal struct {
+	// From is the cause event id (от какого события).
 	From ID `gorm:"column:from_id;type:uuid;primaryKey;check:chk_event_causals_no_self,from_id <> to_id" json:"from"`
-	To   ID `gorm:"column:to_id;type:uuid;primaryKey;index" json:"to"`
+	// To is the effect event id (к какому событию).
+	To ID `gorm:"column:to_id;type:uuid;primaryKey;index" json:"to"`
 
 	Cause string `gorm:"type:text;not null" json:"cause"`
 }
@@ -69,7 +73,7 @@ func (r *EventsRepository) GetEventCausal(ctx context.Context, from, to ID) (*Ev
 }
 
 // FindEventCausals returns causal edges matching filter ordered by from_id, to_id.
-// With an empty filter, all edges are returned.
+// With an empty filter, all edges are returned (subject to Limit when positive).
 //
 // EventID, when set, matches rows where the event is either endpoint and
 // ignores From/To.
@@ -87,6 +91,9 @@ func (r *EventsRepository) FindEventCausals(ctx context.Context, filter FindEven
 		if filter.To != nil {
 			query = query.Where("to_id = ?", *filter.To)
 		}
+	}
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
 	}
 
 	if err := query.Order("from_id, to_id").Find(&edges).Error; err != nil {

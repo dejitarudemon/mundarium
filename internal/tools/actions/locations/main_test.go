@@ -144,6 +144,11 @@ func createConnectionDefinitionPath(t *testing.T) string {
 	return filepath.Join(definitionsDir(t), "create_connection.json")
 }
 
+func deleteConnectionDefinitionPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(definitionsDir(t), "delete_connection.json")
+}
+
 func findConnectionsDefinitionPath(t *testing.T) string {
 	t.Helper()
 	return filepath.Join(definitionsDir(t), "find_connections.json")

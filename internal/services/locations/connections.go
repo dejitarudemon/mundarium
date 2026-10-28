@@ -235,6 +235,41 @@ func (s *Service) PatchConnectionBidirectional(ctx execution.ExecutionContext[jo
 	})
 }
 
+// DeleteConnection deletes a connection by id inside a transaction and completes the execution context.
+func (s *Service) DeleteConnection(ctx execution.ExecutionContext[journal.Result], id repositories.ID) error {
+	if id == 0 {
+		err := mapRequestErr(errZeroConnectionID)
+		s.error("failed to delete connection", "type", "Service", "func", "DeleteConnection", "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "DeleteConnection")
+		return err
+	}
+
+	if err := s.connection.WithTransaction(
+		ctx,
+		func(tx *gorm.DB) error {
+			if err := s.generator(tx).DeleteConnection(ctx, id); err != nil {
+				return err
+			}
+
+			return ctx.Complete(
+				journal.Result{
+					Action: journal.Action_Delete,
+					Entity: locationConnectionEntity,
+					Data:   id,
+				}, tx,
+			)
+		},
+	); err != nil {
+		err = mapConnectionErr(err, id)
+		s.error("failed to delete connection", "type", "Service", "func", "DeleteConnection", "id", id, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "DeleteConnection", "id", id)
+		return err
+	}
+
+	s.info("connection is deleted", "type", "Service", "func", "DeleteConnection", "id", id)
+	return nil
+}
+
 func (s *Service) patchConnection(
 	ctx execution.ExecutionContext[journal.Result],
 	funcName string,

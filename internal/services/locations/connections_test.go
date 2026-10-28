@@ -243,6 +243,61 @@ func TestPatchConnection_NotFound(t *testing.T) {
 	}
 }
 
+func TestDeleteConnection(t *testing.T) {
+	resetDB(t)
+	a := seedRoot(t, "A")
+	b := seedRoot(t, "B")
+	ctx, cancel := newExecCtx(t, nil)
+	defer cancel()
+
+	created, err := testSvc.CreateConnection(ctx, svclocations.CreateConnectionInput{
+		FromID:      a.ID,
+		ToID:        b.ID,
+		Description: "doomed",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnection: %v", err)
+	}
+
+	rec := &completeRecorder{}
+	delCtx, delCancel := newExecCtx(t, rec)
+	defer delCancel()
+
+	if err := testSvc.DeleteConnection(delCtx, created.ID); err != nil {
+		t.Fatalf("DeleteConnection: %v", err)
+	}
+	if len(rec.calls) != 1 || rec.calls[0].Action != journal.Action_Delete || rec.calls[0].Entity != "LOCATION_CONNECTION" {
+		t.Fatalf("unexpected complete calls: %#v", rec.calls)
+	}
+
+	_, err = testSvc.GetConnection(ctx, created.ID)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("want NotFound after delete, got %v", err)
+	}
+}
+
+func TestDeleteConnection_NotFound(t *testing.T) {
+	resetDB(t)
+	ctx, cancel := newExecCtx(t, nil)
+	defer cancel()
+
+	err := testSvc.DeleteConnection(ctx, 999)
+	if _, ok := errors.AsType[svcerrs.NotFound](err); !ok {
+		t.Fatalf("want NotFound, got %v", err)
+	}
+}
+
+func TestDeleteConnection_ZeroID(t *testing.T) {
+	resetDB(t)
+	ctx, cancel := newExecCtx(t, nil)
+	defer cancel()
+
+	err := testSvc.DeleteConnection(ctx, 0)
+	if _, ok := errors.AsType[svcerrs.InvalidRequest](err); !ok {
+		t.Fatalf("want InvalidRequest, got %v", err)
+	}
+}
+
 func TestUpdateConnection(t *testing.T) {
 	resetDB(t)
 	a := seedRoot(t, "A")

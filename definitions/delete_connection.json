@@ -1,0 +1,17 @@
+{
+    "name": "delete_connection",
+    "description": "Delete a previously recorded explicit transition (connection) by id. Use when a secret tunnel, portal, or other canon link should no longer exist. Deleting a missing id fails. Locations are not affected.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the connection to delete."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    }
+}

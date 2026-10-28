@@ -1,29 +1,41 @@
+
 {
-    "name": "create_event_entity",
-    "description": "Link an entity to an existing event as a participant with a role. Knowledge (known_at / belief) is established later with dedicated update tools.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "entity_id": {
-          "type": "string",
-          "description": "Entity UUID."
-        },
-        "event_id": {
-          "type": "string",
-          "description": "Event UUID."
-        },
-        "role": {
-          "type": "string",
-          "enum": ["unknown", "actor", "participant", "affected", "witness", "informed"],
-          "description": "Role of the entity relative to the event."
-        },
-        "details": {
-          "type": "object",
-          "description": "Optional contextual details about the link.",
-          "additionalProperties": true
-        }
+  "name": "create_event_entity",
+  "description": "Create a NEW association between an existing entity and an existing event, specifying the entity's role in that event. This tool must only be used if the association does not already exist. If the entity is already linked to the event, use the corresponding update_event_entity_* tools instead. Do not recreate an existing association to update its role, details, knowledge time, or belief. Creating this association does NOT mean the entity knows about the event. Knowledge and initial belief are established separately using update_event_entity_known_at.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "entity_id": {
+        "type": "string",
+        "description": "UUID of an existing entity to associate with the event."
       },
-      "required": ["entity_id", "event_id", "role"],
-      "additionalProperties": false
-    }
+      "event_id": {
+        "type": "string",
+        "description": "UUID of an existing event. The combination of entity_id and event_id must be unique."
+      },
+      "role": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "actor",
+          "participant",
+          "affected",
+          "witness",
+          "informed"
+        ],
+        "description": "Role of the entity relative to the event. Describes its involvement, not necessarily its knowledge. Use 'unknown' if the role is not established. This field can be changed later using update_event_entity_role."
+      },
+      "details": {
+        "type": "object",
+        "description": "Optional JSON object containing contextual details about the entity's involvement in this event. Can be updated later using update_event_entity_details.",
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "entity_id",
+      "event_id",
+      "role"
+    ],
+    "additionalProperties": false
+  }
 }

@@ -1,0 +1,88 @@
+{
+    "name": "create_event",
+    "description": "Record a new canon event (fact or occurrence in game time). Optionally attach participants and outgoing causal links in the same call. Causal targets may occur later in game time. An event cannot be a cause of itself. Reuse find_events before inventing duplicates when the fact may already be recorded.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "location_id": {
+          "type": ["integer", "null"],
+          "description": "Optional location ID where the event took place."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Search tags for the event."
+        },
+        "importance": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Fact importance from 0 to 100 inclusive."
+        },
+        "created_at_game_time": {
+          "type": "integer",
+          "description": "Game time (ticks) when the event occurred."
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Short event summary."
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional structured event details.",
+          "additionalProperties": true
+        },
+        "entities": {
+          "type": "array",
+          "description": "Optional participants linked at creation.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entity_id": {
+                "type": "string",
+                "description": "Entity UUID."
+              },
+              "role": {
+                "type": "string",
+                "enum": ["unknown", "actor", "participant", "affected", "witness", "informed"],
+                "description": "Role of the entity relative to the event."
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": ["entity_id", "role"],
+            "additionalProperties": false
+          }
+        },
+        "causals": {
+          "type": "array",
+          "description": "Optional incoming causal edges: each from is a cause event that already exists; this new event becomes the effect (to).",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "Cause event UUID — from which event this new event follows (от какого события идём)."
+              },
+              "cause": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Narrative description of the causal link."
+              }
+            },
+            "required": ["from", "cause"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "importance",
+        "created_at_game_time",
+        "summary"
+      ],
+      "additionalProperties": false
+    }
+}

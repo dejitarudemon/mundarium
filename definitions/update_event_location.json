@@ -1,0 +1,20 @@
+{
+    "name": "update_event_location",
+    "description": "Set the location of an existing event. location_id is required and must be non-zero. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Event UUID to update."
+        },
+        "location_id": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "New location ID. Must be non-zero."
+        }
+      },
+      "required": ["id", "location_id"],
+      "additionalProperties": false
+    }
+}

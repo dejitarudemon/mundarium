@@ -1,0 +1,25 @@
+{
+    "name": "update_event_entity_belief",
+    "description": "Update belief for an entity–event link that already has known_at_game_time. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "description": "Entity UUID."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event UUID."
+        },
+        "belief": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "New belief/conviction score 0..100."
+        }
+      },
+      "required": ["entity_id", "event_id", "belief"],
+      "additionalProperties": false
+    }
+}

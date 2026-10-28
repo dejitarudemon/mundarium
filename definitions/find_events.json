@@ -1,0 +1,54 @@
+{
+    "name": "find_events",
+    "description": "Find previously recorded events by optional filters. Use before creating an event that might already exist. An empty result means no matching event was recorded.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": ["string", "null"],
+          "description": "Optional exact event UUID filter."
+        },
+        "location_id": {
+          "type": ["integer", "null"],
+          "description": "Optional exact location ID filter."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional tags; event must share at least one."
+        },
+        "min_importance": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Optional inclusive minimum importance."
+        },
+        "max_importance": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Optional inclusive maximum importance."
+        },
+        "created_at_from": {
+          "type": ["integer", "null"],
+          "description": "Optional inclusive lower bound on created_at_game_time."
+        },
+        "created_at_to": {
+          "type": ["integer", "null"],
+          "description": "Optional inclusive upper bound on created_at_game_time."
+        },
+        "query": {
+          "type": ["string", "null"],
+          "description": "Optional text search. Case-insensitive substring match against summary OR details (details searched as JSON text). An event matches if the query appears in either field."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "description": "Maximum number of events to return. Defaults to 20."
+        }
+      },
+      "additionalProperties": false
+    }
+}

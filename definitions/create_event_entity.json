@@ -1,0 +1,29 @@
+{
+    "name": "create_event_entity",
+    "description": "Link an entity to an existing event as a participant with a role. Knowledge (known_at / belief) is established later with dedicated update tools.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "description": "Entity UUID."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event UUID."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["unknown", "actor", "participant", "affected", "witness", "informed"],
+          "description": "Role of the entity relative to the event."
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional contextual details about the link.",
+          "additionalProperties": true
+        }
+      },
+      "required": ["entity_id", "event_id", "role"],
+      "additionalProperties": false
+    }
+}

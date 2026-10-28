@@ -1,0 +1,24 @@
+{
+    "name": "update_event_entity_role",
+    "description": "Change the role of an entity on an event. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "description": "Entity UUID."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event UUID."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["unknown", "actor", "participant", "affected", "witness", "informed"],
+          "description": "New role."
+        }
+      },
+      "required": ["entity_id", "event_id", "role"],
+      "additionalProperties": false
+    }
+}

@@ -1,0 +1,29 @@
+{
+    "name": "update_event_entity_known_at",
+    "description": "Establish that an entity learned about an event: sets known_at_game_time and belief together. May be called only once per link; later belief changes use update_event_entity_belief.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "description": "Entity UUID."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event UUID."
+        },
+        "known_at_game_time": {
+          "type": "integer",
+          "description": "Game time (ticks) when knowledge was established."
+        },
+        "belief": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Initial belief/conviction score 0..100."
+        }
+      },
+      "required": ["entity_id", "event_id", "known_at_game_time", "belief"],
+      "additionalProperties": false
+    }
+}

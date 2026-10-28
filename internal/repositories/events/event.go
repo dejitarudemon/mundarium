@@ -10,6 +10,7 @@ import (
 )
 
 // Event is a fact or occurrence in game time that can be referenced by entities.
+// Usage should follow the Novikov self-consistency principle.
 type Event struct {
 	ID ID `gorm:"type:uuid;primaryKey" json:"id"`
 

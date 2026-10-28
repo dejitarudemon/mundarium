@@ -56,7 +56,7 @@ func newExecCtx(t *testing.T, rec *completeRecorder) (execution.ExecutionContext
 	return ctx, cancel
 }
 
-func createEvent(t *testing.T, summary string, importance int8, gameTime repositories.Ticks) svcevents.CreateEventOutput {
+func createEvent(t *testing.T, summary string, importance int, gameTime repositories.Ticks) svcevents.CreateEventOutput {
 	t.Helper()
 	ctx, cancel := newExecCtx(t, nil)
 	defer cancel()

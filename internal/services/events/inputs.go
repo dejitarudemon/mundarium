@@ -13,7 +13,7 @@ import (
 type CreateEventInput struct {
 	LocationID        *repositories.ID         `json:"location_id"`
 	Tags              []string                 `json:"tags"`
-	Importance        int8                     `json:"importance"`
+	Importance        int                      `json:"importance"`
 	CreatedAtGameTime repositories.Ticks       `json:"created_at_game_time"`
 	Summary           string                   `json:"summary"`
 	Details           repositories.JSON        `json:"details"`
@@ -45,8 +45,8 @@ type FindEventsInput struct {
 	ID            *repoevents.ID      `json:"id"`
 	LocationID    *repositories.ID    `json:"location_id"`
 	Tags          []string            `json:"tags"`
-	MinImportance *int8               `json:"min_importance"`
-	MaxImportance *int8               `json:"max_importance"`
+	MinImportance *int                `json:"min_importance"`
+	MaxImportance *int                `json:"max_importance"`
 	CreatedAtFrom *repositories.Ticks `json:"created_at_from"`
 	CreatedAtTo   *repositories.Ticks `json:"created_at_to"`
 	Query         *string             `json:"query"` // substring match against summary or details

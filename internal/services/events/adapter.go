@@ -34,13 +34,23 @@ func parseRole(s string) (repoevents.EventEntityRole, error) {
 	return repoevents.NewEventEntityRole(s)
 }
 
+// toImportance converts a tool-facing importance int into the domain int8 range 0..100.
+// Values outside that range yield ErrEventImportanceOutOfRange (mapped to InvalidRequest).
+func toImportance(v int) (int8, error) {
+	if v < 0 || v > 100 {
+		return 0, repoevents.ErrEventImportanceOutOfRange
+	}
+	return int8(v), nil
+}
+
 // toNewEvent maps CreateEventInput to a domain Event ready for insert.
 func toNewEvent(input CreateEventInput) (*repoevents.Event, error) {
 	if strings.TrimSpace(input.Summary) == "" {
 		return nil, errors.New("summary is empty")
 	}
-	if input.Importance < 0 || input.Importance > 100 {
-		return nil, repoevents.ErrEventImportanceOutOfRange
+	importance, err := toImportance(input.Importance)
+	if err != nil {
+		return nil, err
 	}
 	if input.LocationID != nil && *input.LocationID == 0 {
 		return nil, repoevents.ErrEventLocationRequired
@@ -71,7 +81,7 @@ func toNewEvent(input CreateEventInput) (*repoevents.Event, error) {
 	return &repoevents.Event{
 		LocationID:        input.LocationID,
 		Tags:              pq.StringArray(input.Tags),
-		Importance:        input.Importance,
+		Importance:        importance,
 		CreatedAtGameTime: input.CreatedAtGameTime,
 		Summary:           input.Summary,
 		Details:           input.Details,
@@ -174,11 +184,21 @@ func toFindEventsFilter(in FindEventsInput) (repoevents.FindEventsFilter, error)
 	if in.LocationID != nil && *in.LocationID == 0 {
 		return repoevents.FindEventsFilter{}, repoevents.ErrEventLocationRequired
 	}
-	if in.MinImportance != nil && (*in.MinImportance < 0 || *in.MinImportance > 100) {
-		return repoevents.FindEventsFilter{}, repoevents.ErrEventImportanceOutOfRange
+	var minImportance *int8
+	if in.MinImportance != nil {
+		v, err := toImportance(*in.MinImportance)
+		if err != nil {
+			return repoevents.FindEventsFilter{}, err
+		}
+		minImportance = &v
 	}
-	if in.MaxImportance != nil && (*in.MaxImportance < 0 || *in.MaxImportance > 100) {
-		return repoevents.FindEventsFilter{}, repoevents.ErrEventImportanceOutOfRange
+	var maxImportance *int8
+	if in.MaxImportance != nil {
+		v, err := toImportance(*in.MaxImportance)
+		if err != nil {
+			return repoevents.FindEventsFilter{}, err
+		}
+		maxImportance = &v
 	}
 
 	limit, err := resolveFindLimit(in.Limit)
@@ -198,8 +218,8 @@ func toFindEventsFilter(in FindEventsInput) (repoevents.FindEventsFilter, error)
 		ID:            in.ID,
 		LocationID:    in.LocationID,
 		Tags:          in.Tags,
-		MinImportance: in.MinImportance,
-		MaxImportance: in.MaxImportance,
+		MinImportance: minImportance,
+		MaxImportance: maxImportance,
 		CreatedAtFrom: in.CreatedAtFrom,
 		CreatedAtTo:   in.CreatedAtTo,
 		Query:         query,

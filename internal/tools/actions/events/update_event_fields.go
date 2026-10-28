@@ -103,13 +103,13 @@ type UpdateEventImportanceTool struct {
 // UpdateEventImportanceArgs is the JSON payload accepted by update_event_importance.
 type UpdateEventImportanceArgs struct {
 	ID         repoevents.ID `json:"id"`
-	Importance int8          `json:"importance"`
+	Importance int           `json:"importance"`
 }
 
 // UpdateEventImportanceResult is the JSON payload returned by update_event_importance.
 type UpdateEventImportanceResult struct {
 	ID         repoevents.ID `json:"id"`
-	Importance int8          `json:"importance"`
+	Importance int           `json:"importance"`
 }
 
 // NewUpdateEventImportanceTool loads the tool definition from file and binds service.

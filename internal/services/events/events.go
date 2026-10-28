@@ -174,9 +174,17 @@ func (s *Service) PatchEventLocation(ctx execution.ExecutionContext[journal.Resu
 }
 
 // PatchEventImportance sets Importance of an event (0..100 inclusive).
-func (s *Service) PatchEventImportance(ctx execution.ExecutionContext[journal.Result], id repoevents.ID, importance int8) error {
+// Tool-facing importance is int; values outside 0..100 are InvalidRequest.
+func (s *Service) PatchEventImportance(ctx execution.ExecutionContext[journal.Result], id repoevents.ID, importance int) error {
+	value, err := toImportance(importance)
+	if err != nil {
+		err = mapRequestErr(err)
+		s.error("failed to patch event importance", "type", "Service", "func", "PatchEventImportance", "id", id, "error", err)
+		s.fail(ctx, err, "type", "Service", "func", "PatchEventImportance", "id", id)
+		return err
+	}
 	return s.patchEvent(ctx, "PatchEventImportance", id, func(tx *gorm.DB) error {
-		return s.generator(tx).PatchEventImportance(ctx, id, importance)
+		return s.generator(tx).PatchEventImportance(ctx, id, value)
 	})
 }
 

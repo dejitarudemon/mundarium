@@ -1,0 +1,20 @@
+{
+    "name": "update_event_summary",
+    "description": "Replace the summary of an existing event. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Event UUID to update."
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "New short event summary."
+        }
+      },
+      "required": ["id", "summary"],
+      "additionalProperties": false
+    }
+}

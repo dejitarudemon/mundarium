@@ -1,0 +1,35 @@
+
+{
+  "name": "update_event_entity_known_at",
+  "description": "Set when an entity first learned about an event, together with its initial belief score. Requires an existing EventEntity association. This operation can succeed only once per association: known_at_game_time is immutable after being set. For subsequent belief changes, use update_event_entity_belief. Do not create a duplicate EventEntity or retry this operation after a successful call.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "entity_id": {
+        "type": "string",
+        "description": "UUID of an existing entity."
+      },
+      "event_id": {
+        "type": "string",
+        "description": "UUID of an existing event."
+      },
+      "known_at_game_time": {
+        "type": "integer",
+        "description": "Absolute in-game timestamp when the entity FIRST learned about the event, measured in Mundarium ticks relative to campaign start. EXACT DEFINITION: 1 tick = 1 second. Tick 0 is the exact moment the campaign begins. Positive values represent times AFTER campaign start; negative values represent times BEFORE campaign start. Conversions: 1 minute = 60 ticks, 1 hour = 3600 ticks, 1 day = 86400 ticks. Examples: 3600 = one hour after campaign start; 86400 = exactly one day after campaign start; 1728000 = exactly 20 days after campaign start; -86400 = exactly one day before campaign start. Convert durations to seconds before passing them. This is NOT a Unix timestamp or a calendar day number. Do not confuse the time when the entity learned about the event with the time when the event occurred. If the exact moment cannot be determined from the available information, do not invent a timestamp. This field can only be set once and cannot be changed afterward."
+      },
+      "belief": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Initial belief score at the moment the entity first learned about this event, from 0 (no conviction) to 100 (complete conviction). Later changes must use update_event_entity_belief."
+      }
+    },
+    "required": [
+      "entity_id",
+      "event_id",
+      "known_at_game_time",
+      "belief"
+    ],
+    "additionalProperties": false
+  }
+}

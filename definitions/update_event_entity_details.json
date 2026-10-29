@@ -1,0 +1,24 @@
+{
+    "name": "update_event_entity_details",
+    "description": "Replace details of an entity–event link. Full overwrite, not a merge. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "description": "Entity UUID."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event UUID."
+        },
+        "details": {
+          "type": "object",
+          "description": "Complete new details object.",
+          "additionalProperties": true
+        }
+      },
+      "required": ["entity_id", "event_id", "details"],
+      "additionalProperties": false
+    }
+}

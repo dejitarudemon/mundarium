@@ -1,0 +1,105 @@
+
+{
+  "name": "create_event",
+  "description": "Record a NEW canonical event in the game world. Use this tool for facts or occurrences that are not already recorded. If the event may already exist, search with find_events first to avoid duplicates. Optionally attach existing entities as participants and existing events as INCOMING causes in the same call. Each causal link points FROM an existing cause event TO the newly created event. Creating an event does not automatically establish that its participants know about it. Causal links may point backward or forward in game time; chronological order is not enforced. Direct self-causation is prohibited.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "location_id": {
+        "type": ["integer", "null"],
+        "description": "Optional ID of an existing location where the event occurred. Use null or omit this field if the location is unknown or not applicable. Do not invent location IDs."
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional search tags describing the event. Use concise, relevant tags. Do not invent unrelated classifications."
+      },
+      "importance": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Importance of the event on a scale from 0 to 100 inclusive. Higher values indicate greater significance. This is an importance score, not a probability or belief score."
+      },
+      "created_at_game_time": {
+        "type": "integer",
+        "description": "Absolute in-game timestamp measured in Mundarium ticks relative to the start of the campaign. EXACT DEFINITION: 1 tick = 1 second. Tick 0 is the exact moment the campaign begins. Positive values represent times AFTER campaign start; negative values represent times BEFORE campaign start. Conversions: 1 minute = 60 ticks, 1 hour = 3600 ticks, 1 day = 86400 ticks. Examples: 3600 = one hour after campaign start; 86400 = exactly one day after campaign start; 1728000 = exactly 20 days after campaign start; -86400 = exactly one day before campaign start. Convert durations to seconds before passing them. This is NOT a Unix timestamp, a calendar day number, or the real-world time when the event was recorded. If the exact moment cannot be determined from the available information, do not invent a timestamp."
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Short, clear summary of what happened. Describe the established event as a fact. Avoid speculation, unsupported details, and unnecessary narrative embellishment."
+      },
+      "details": {
+        "type": "object",
+        "description": "Optional structured JSON object containing additional established facts about the event. Do not present assumptions or speculation as confirmed facts.",
+        "additionalProperties": true
+      },
+      "entities": {
+        "type": "array",
+        "description": "Optional associations between the new event and existing entities. Each entity is linked with a role describing its involvement. Adding an entity does NOT automatically mean it knows about the event. Knowledge time and initial belief must be established separately using update_event_entity_known_at.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "string",
+              "description": "UUID of an existing entity. Do not invent entity UUIDs."
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "actor",
+                "participant",
+                "affected",
+                "witness",
+                "informed"
+              ],
+              "description": "Role of the entity relative to the event. Describes involvement, not necessarily confirmed knowledge. Use 'unknown' when the role is not established. The role can be changed later using update_event_entity_role."
+            },
+            "details": {
+              "type": "object",
+              "description": "Optional structured details about this entity's involvement in the event.",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "entity_id",
+            "role"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "causals": {
+        "type": "array",
+        "description": "Optional INCOMING causal links. Each item identifies an EXISTING event that caused or contributed to the NEW event being created. Direction: existing event (from) → new event (to). The new event's UUID is generated automatically; do not supply a 'to' field. These links represent narrative causation, not necessarily chronological order. To add a causal link between two already existing events, use create_event_causal.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "UUID of an EXISTING cause event. This is the cause (source), while the newly created event is the effect (target). Do not reverse the direction or invent UUIDs."
+            },
+            "cause": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Concise narrative explanation of how the existing event caused or contributed to the newly created event. Describe the causal relationship, not merely the two event names."
+            }
+          },
+          "required": [
+            "from",
+            "cause"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "importance",
+      "created_at_game_time",
+      "summary"
+    ],
+    "additionalProperties": false
+  }
+}

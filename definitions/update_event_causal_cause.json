@@ -1,0 +1,24 @@
+{
+    "name": "update_event_causal_cause",
+    "description": "Update the cause text of an existing causal edge. Endpoints are immutable. Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Cause event UUID — the event this link originates from (от какого события)."
+        },
+        "to": {
+          "type": "string",
+          "description": "Effect event UUID — the event this link leads to (к какому событию)."
+        },
+        "cause": {
+          "type": "string",
+          "minLength": 1,
+          "description": "New narrative description of the causal link."
+        }
+      },
+      "required": ["from", "to", "cause"],
+      "additionalProperties": false
+    }
+}

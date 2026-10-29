@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	journal "github.com/dejitarudemon/mundarium/internal/libs/journals/execution"
+	repoevents "github.com/dejitarudemon/mundarium/internal/repositories/events"
 	repolocations "github.com/dejitarudemon/mundarium/internal/repositories/locations"
 	repomessages "github.com/dejitarudemon/mundarium/internal/repositories/messages"
 	"gorm.io/driver/postgres"
@@ -44,6 +45,9 @@ func migrate(db *gorm.DB) error {
 		&repolocations.Connection{},
 		&repomessages.Message{},
 		&journal.Request{},
+		&repoevents.Event{},
+		&repoevents.EventEntity{},
+		&repoevents.EventCausal{},
 	); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}

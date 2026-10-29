@@ -15,4 +15,6 @@ var (
 	ErrParentIDZero     = errors.New("parent id is zero")
 	ErrConnectionIDZero = errors.New("connection id is zero")
 	ErrToIDZero         = errors.New("to id is zero")
+	ErrEventIDNil       = errors.New("event id is nil")
+	ErrEntityIDEmpty    = errors.New("entity id is empty")
 )

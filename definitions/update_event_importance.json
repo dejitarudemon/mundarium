@@ -1,0 +1,21 @@
+{
+    "name": "update_event_importance",
+    "description": "Set importance of an existing event (0..100 inclusive). Repeating the same update is safe.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Event UUID to update."
+        },
+        "importance": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "New importance value."
+        }
+      },
+      "required": ["id", "importance"],
+      "additionalProperties": false
+    }
+}

@@ -136,10 +136,10 @@ func TestInvoke_DungeonMaster_GoblinCrit(t *testing.T) {
 							attackTotal, natural, atk.Modifier)
 						toolUsagePass = false
 					}
-					switch {
-					case natural == 1:
+					switch natural {
+					case 1:
 						hit, critical = false, false
-					case natural == 20:
+					case 20:
 						hit, critical = true, true
 					default:
 						hit = attackTotal >= playerAC

@@ -1,0 +1,134 @@
+{
+    "name": "roll_dice",
+    "description": "Roll dice and return the actual random results. Use this tool for attacks, damage, healing, ability checks, saving throws, and other situations requiring random dice rolls. Supports multiple dice groups, modifiers, multipliers, subtraction, keeping highest or lowest dice, rerolls, and exploding dice. All dice in a group are rolled independently. The tool performs dice calculations only; determine the applicable D&D rules and required dice yourself. Never invent dice results or call this tool again merely to reinterpret an existing result.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "dieces_group": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One or more dice groups. Each group is rolled independently, and its calculated contribution is added to or subtracted from the final total. For example, rapier damage with Sneak Attack can use 1d8 and 3d6 as two groups.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sides": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 255,
+                "description": "Number of faces on each die. Common D&D dice: 4, 6, 8, 10, 12, 20, 100. Each roll produces a value between 1 and sides inclusive."
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 255,
+                "description": "Number of independent dice to roll in this group."
+              },
+              "sub": {
+                "type": "boolean",
+                "description": "If true, subtract this group's calculated contribution from the final total. Defaults to false."
+              },
+              "modifier": {
+                "type": "integer",
+                "description": "Fixed modifier added to the sum of kept dice before applying the multiplier. May be negative. Defaults to 0."
+              },
+              "multiplier": {
+                "type": "integer",
+                "description": "Multiply the sum of kept dice plus modifier by this value. IMPORTANT: 0 means the default multiplier of 1. Use 1 for ordinary rolls."
+              },
+              "keep_settings": {
+                "type": "object",
+                "description": "Optional selection of dice results. Applied after rerolls and explosions. Leave both fields at 0 or omit this object to keep all dice. Do not specify both highest_count and lowest_count as positive values. An exploded die counts as one die with its accumulated result.",
+                "properties": {
+                  "highest_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Keep this many highest results. Example: 4d6 keeping the best 3 uses highest_count=3."
+                  },
+                  "lowest_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Keep this many lowest results. Example: disadvantage on d20 uses count=2, sides=20, lowest_count=1."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "reroll_setting": {
+                "type": "object",
+                "description": "Optional reroll rules. Matching results are discarded and rolled again. Conditions are combined using OR. A threshold of 0 disables that condition. The reroll budget is independent for every original die.",
+                "properties": {
+                  "condition_equal": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Reroll when the face equals this value. 0 disables this condition."
+                  },
+                  "condition_lower_than": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Reroll when the face is strictly less than this value. 0 disables this condition."
+                  },
+                  "condition_greater_than": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Reroll when the face is strictly greater than this value. 0 disables this condition."
+                  },
+                  "max_rerolls": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Maximum additional rerolls per original die. 0 disables rerolls."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "blow_setting": {
+                "type": "object",
+                "description": "Optional exploding dice rules. A matching face is added to the die's accumulated result and triggers an additional roll. Conditions are combined using OR. A threshold of 0 disables that condition. The explosion budget is independent for every original die. Rerolls take priority over explosions when both conditions match.",
+                "properties": {
+                  "condition_equal": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Explode when the face equals this value. 0 disables this condition."
+                  },
+                  "condition_lower_than": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Explode when the face is strictly less than this value. 0 disables this condition."
+                  },
+                  "condition_greater_than": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Explode when the face is strictly greater than this value. 0 disables this condition."
+                  },
+                  "max_blows": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "description": "Maximum additional explosions per original die. 0 disables explosions."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "sides",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "dieces_group"
+      ],
+      "additionalProperties": false
+    }
+  }
+  

@@ -74,7 +74,7 @@ func (t *DeleteConnectionTool) Execute(ctx execution.ExecutionContext[journal.Re
 		return nil, err
 	}
 
-	raw, err := t.marshal(DeleteConnectionResult{ID: in.ID})
+	raw, err := t.marshal(DeleteConnectionResult(in))
 	if err != nil {
 		errorf(t.logger, "failed to execute delete_connection", "type", "DeleteConnectionTool", "func", "Execute", "id", in.ID, "error", err)
 		return nil, err

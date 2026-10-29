@@ -78,16 +78,6 @@ func countTool(seq []toolCallRec, name string) int {
 	return n
 }
 
-func toolsNamed(seq []toolCallRec, name string) []toolCallRec {
-	var out []toolCallRec
-	for _, rec := range seq {
-		if rec.Name == name {
-			out = append(out, rec)
-		}
-	}
-	return out
-}
-
 func firstToolArgs(seq []toolCallRec, name string) json.RawMessage {
 	for _, rec := range seq {
 		if rec.Name == name {
@@ -95,16 +85,6 @@ func firstToolArgs(seq []toolCallRec, name string) json.RawMessage {
 		}
 	}
 	return nil
-}
-
-func lastToolArgs(seq []toolCallRec, name string) json.RawMessage {
-	var last json.RawMessage
-	for _, rec := range seq {
-		if rec.Name == name {
-			last = rec.Args
-		}
-	}
-	return last
 }
 
 func resetDB(t *testing.T) {

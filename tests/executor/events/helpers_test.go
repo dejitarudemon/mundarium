@@ -11,7 +11,6 @@ import (
 	repoevents "github.com/dejitarudemon/mundarium/internal/repositories/events"
 	"github.com/dejitarudemon/mundarium/internal/tools"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 func resetDB(t *testing.T) {
@@ -148,22 +147,6 @@ func newEntityID() entities.ID {
 	return entities.New()
 }
 
-func assertJournalCompleted(t *testing.T, invokeID, callID, tool string) {
-	t.Helper()
-	var req journal.Request
-	if err := testConn.DB().
-		Where("group_id = ? AND id = ?", invokeID, callID).
-		First(&req).Error; err != nil {
-		t.Fatalf("load journal: %v", err)
-	}
-	if req.Tool != tool {
-		t.Fatalf("journal tool: want %s, got %s", tool, req.Tool)
-	}
-	if req.Status != journal.Status_Completed {
-		t.Fatalf("journal status: want %s, got %s (error=%v)", journal.Status_Completed, req.Status, req.Error)
-	}
-}
-
 func assertJournalFailed(t *testing.T, invokeID, callID, tool string) {
 	t.Helper()
 	var req journal.Request
@@ -180,19 +163,6 @@ func assertJournalFailed(t *testing.T, invokeID, callID, tool string) {
 	}
 	if req.Error.Err() == nil {
 		t.Fatal("failed journal row must store error")
-	}
-}
-
-func assertNoJournal(t *testing.T, invokeID, callID string) {
-	t.Helper()
-	err := testConn.DB().
-		Where("group_id = ? AND id = ?", invokeID, callID).
-		First(&journal.Request{}).Error
-	if err == nil {
-		t.Fatalf("idempotent call must not journal (group=%s id=%s)", invokeID, callID)
-	}
-	if err != gorm.ErrRecordNotFound {
-		t.Fatalf("journal lookup: %v", err)
 	}
 }
 
